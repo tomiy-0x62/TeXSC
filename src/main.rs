@@ -28,20 +28,20 @@ fn main() {
         .version("0.1.0")
         .author("tomiy <tomiy@tomiylab.com>")
         .about("TeXSC: TeX Scientific Calculator") 
-        .arg(Arg::new("formulas")
-        .help("Szpecify the formula to calculate")
-        .short('c')
-        .takes_value(true)
-        )
         .arg(Arg::new("file")
         .help("load formulas from file")
+        .short('f')
+        .takes_value(true)
+        )
+        .arg(Arg::new("tex formulas")
+        .help("tex formulas")
         .required(false)
         );
 
     let matches = app.get_matches();
     
-    // formulas from -c option
-    if let Some(form) = matches.value_of("formulas") {
+    // formulas from command line arg
+    if let Some(form) = matches.value_of("tex formulas") {
         tex_parser(form.to_string());
         return;
     }
@@ -50,11 +50,9 @@ fn main() {
     if let Some(file_name) = matches.value_of("file") {
         let f = File::open(file_name).expect(file_name);
         let reader = BufReader::new(f);
-        let mut buf = String::new();
         for result in reader.lines() {
-            buf.push_str(&result.unwrap());
+            tex_parser(result.unwrap());
         }
-        tex_parser(buf);
         return;
     }
     
