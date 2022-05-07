@@ -11,7 +11,7 @@ $ tsc "1 + 1"
 ファイル
 $cat hoge.txt
 1+1
-$ tsc hoge.txt
+$ tsc -f hoge.txt
 2
 どれでも変数が使える
 $ tsc
@@ -25,39 +25,57 @@ or
 $ cat hoge.txt
 a+1
 a=1
-$ tsc hoge.txt
+$ tsc -f hoge.txt
 2
 
-## 対応(予定)texコマンド
+## 対応(予定)の機能
+### TeXコマンド
 ### 対数
-\log : 底が2の対数
-\log_a : 底がaの対数
-\ln : 自然対数 
+- \log : 底が2の対数
+- \log_a : 底がaの対数
+- \ln : 自然対数 
 ### ルート
-\sqrt{x} : 平方根
-\sqrt[n]{x} : n乗根
+- \sqrt{x} : 平方根
+- \sqrt[n]{x} : n乗根
 ### 分数
-\frac{a}{b}
+- \frac{a}{b}
+### その他
 ### 累乗
-^
+- ^
 ### 四則演算
-+
--
-\times : 
-\cdot :
-\div :
-/ :
+- +
+- -
+- \times : 
+- \cdot :
+- \div :
+- / :
 ### 和, 積
-\sum
-\prod
-
+- \sum
+- \prod
+### その他関数
+- sin
+- cos
+- tan
+- arcsin
+- arccos
+- arctan
+- ! (階乗)
+- ()
+- abs
 
 ## 対応定数
-e: ネイピア数
-c: 光速
-g: 重力加速度
+- e: ネイピア数
+- \pi: 円周率
 
-\pi: 円周率
+### usage
+$ tsc "1+1"
+2
+$ tsc "\frac{3}{4}"
+0.75
+$ tsc "sin\frac{3}{4}\pi"
+0.4111176183
+$ tsc "\log_3 9"
+2
 
 方針: 
 tokenに分割 1 + 1 > "1", "+", "1"
