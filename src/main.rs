@@ -31,12 +31,12 @@ impl Lexer {
 
     fn analyze(&mut self) {
         let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap(); // OK
-        let operator = Regex::new(r"\+|-|/|\|").unwrap(); // OK
+        let operator = Regex::new(r"\+|-|/|!|\|").unwrap(); // OK
         let command = Regex::new(r"sin|cos|tan|arcsin|arccons|arctan").unwrap(); // OK
         let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap(); // OK
-        let num = Regex::new(r"0x[0-9]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap(); //
+        let num = Regex::new(r"0x[0-9]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap(); // OK
         let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap(); // OK
-        let token_types: Vec<Regex> = [tex_command, operator, command, var, num, braces].to_vec();
+        // let token_types: Vec<Regex> = [tex_command, operator, command, var, num, braces].to_vec();
 
         
         /*
@@ -44,10 +44,10 @@ impl Lexer {
             println!("match '{}'", &caps[0]);
         }*/
         
-        /* if let Some(caps) = braces.captures(&self.formulas) {
-            println!("match '{}'", caps.get(0).unwrap().as_str());
+        if let Some(caps) = operator.captures(&self.formulas) {
+            println!("<<< match '{}' >>>", caps.get(0).unwrap().as_str());
             // if let Some(hoge) = caps.get(0)
-        }*/
+        }
 
     }
 }
