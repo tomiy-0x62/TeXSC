@@ -1,6 +1,27 @@
 // TeX Scientific Calculator
 
 use clap::{Command, Arg};
+use std::fs::File;
+use std::io::{BufReader, BufRead, stdout, Write};
+use std::io;
+
+fn tex_parser(form: String) {
+    println!("form: {}", form.replace("\n", " "));
+}
+
+fn main_loop() {
+    loop {
+        print!("tsc> ");
+        stdout().flush().unwrap();
+        let mut form = String::new();
+        io::stdin().read_line(&mut form)
+        .expect("stdin");
+        if form.replace("\n", "").as_str() == "exit" {
+            return;
+        }
+        tex_parser(form);
+    }
+}
 
 fn main() {
     let app = Command::new("tsc")
@@ -18,15 +39,26 @@ fn main() {
         );
 
     let matches = app.get_matches();
-
+    
+    // formulas from -c option
     if let Some(form) = matches.value_of("formulas") {
-        println!("formulas: {}", form);
+        tex_parser(form.to_string());
+        return;
     }
 
-    if let Some(file) = matches.value_of("file") {
-        println!("file: {}", file);
+    // formulas from file
+    if let Some(file_name) = matches.value_of("file") {
+        let f = File::open(file_name).expect(file_name);
+        let reader = BufReader::new(f);
+        let mut buf = String::new();
+        for result in reader.lines() {
+            buf.push_str(&result.unwrap());
+        }
+        tex_parser(buf);
+        return;
     }
-
-    println!("Hello, world!");
+    
+    // REPL
+    main_loop();
     
 }
