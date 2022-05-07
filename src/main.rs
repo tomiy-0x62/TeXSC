@@ -1,8 +1,24 @@
 // TeX Scientific Calculator
 
-use clap::{App, Arg};
+use clap::{Command, Arg};
 
 fn main() {
+    let app = Command::new("tsc")
+        .version("0.1.0")
+        .author("tomiy <tomiy@tomiylab.com>")
+        .about("TeXSC: TeX Scientific Calculator") 
+        .arg(Arg::new("formulas")
+        .help("Szpecify the formula to  calculate")
+        .short('c')
+        .takes_value(true)
+    );
+
+    let matches = app.get_matches();
+
+    if let Some(form) = matches.value_of("formulas") {
+        println!("formulas: {}", form);
+    }
+
     println!("Hello, world!");
     
 }
