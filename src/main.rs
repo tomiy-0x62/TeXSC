@@ -22,6 +22,7 @@ tokenの種類
 
 impl Lexer {
     fn new(form: String) -> Lexer {
+        let form = form.replace("\n", "").replace("\t", "");
         Lexer { formulas: form, tokens: Vec::new() }
     }
 
@@ -29,14 +30,79 @@ impl Lexer {
         println!("form: {}", self.formulas.replace("\n", " "));
     }
 
+    fn print_token(&self) {
+        for token in self.tokens.iter() {
+            // {}でした
+            print!("'{}', ", token);
+        }
+        println!("");
+    }
+
     fn analyze(&mut self) {
         let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap(); // OK
-        let operator = Regex::new(r"\+|-|/|!|\|").unwrap(); // OK
-        let command = Regex::new(r"sin|cos|tan|arcsin|arccons|arctan").unwrap(); // OK
+        let operator = Regex::new(r"\+|-|/|!|_|,|\^|\|").unwrap(); // OK
         let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap(); // OK
-        let num = Regex::new(r"0x[0-9]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap(); // OK
+        let num = Regex::new(r"0x[0-9a-fA-F]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap(); // OK
         let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap(); // OK
         // let token_types: Vec<Regex> = [tex_command, operator, command, var, num, braces].to_vec();
+
+        loop {
+            // TODO: 0b423 -> num:"0", var"b423"と分割失敗してるのを修正
+            // 0b423みたいなのがきたらエラーにしたい
+            // TODO: a\sindsをどう扱うか決める -> 'a', '\sin', 'ds' or '\sinds'(構文解析のときにpanic)
+            let mut c = self.formulas.chars().nth(0).unwrap();
+            if c == ' ' {
+                self.formulas = self.formulas.replacen(" ", "", 1);
+                c = self.formulas.chars().nth(0).unwrap();
+            }
+            let mut ismatch = false;
+            if c == '\\' {
+                if let Some(caps) = tex_command.captures(&self.formulas) {
+                    println!("<<< match '{}' as tex_command >>>", caps.get(0).unwrap().as_str());
+                    self.tokens.push(caps.get(0).unwrap().as_str().to_string().replace(" ", ""));
+                    self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                    println!("formulas: '{}'", self.formulas.replace(" ", ""));
+                    ismatch = true;
+                }
+            } else if let Some(caps) = operator.captures(&c.to_string()) {
+                println!("<<< match '{}' as operator >>>", caps.get(0).unwrap().as_str());
+                self.tokens.push(caps.get(0).unwrap().as_str().to_string().replace(" ", ""));
+                self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                println!("formulas: '{}'", self.formulas.replace(" ", ""));
+                ismatch = true;
+            } else if let Some(caps) = braces.captures(&c.to_string()) {
+                println!("<<< match '{}' as braces >>>", caps.get(0).unwrap().as_str());
+                self.tokens.push(caps.get(0).unwrap().as_str().to_string().replace(" ", ""));
+                self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                println!("formulas: '{}'", self.formulas.replace(" ", ""));
+                ismatch = true;
+            } else if let Some(_) = num.captures(&c.to_string()) {
+                if let Some(caps) = num.captures(&self.formulas) {
+                    println!("<<< match '{}' as num >>>", caps.get(0).unwrap().as_str());
+                    self.tokens.push(caps.get(0).unwrap().as_str().to_string().replace(" ", ""));
+                    self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                    println!("formulas: '{}'", self.formulas.replace(" ", ""));
+                    ismatch = true;
+                }
+            } else if let Some(caps) = var.captures(&self.formulas) {
+                if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() { continue; }
+                    println!("<<< match '{}' as var >>>", caps.get(0).unwrap().as_str());
+                    self.tokens.push(caps.get(0).unwrap().as_str().to_string().replace(" ", ""));
+                    self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                    println!("formulas: '{}'", self.formulas.replace(" ", ""));
+                    ismatch = true;
+            } 
+            if !ismatch {
+                panic!("hoge")
+            }
+
+            // println!("formulas: '{}'", self.formulas);
+
+            if self.formulas.len() == 0 {
+                self.print_token();
+                break;
+            }
+        }
 
         
         /*
