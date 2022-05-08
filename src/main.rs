@@ -6,9 +6,22 @@ use std::io::{BufReader, BufRead, stdout, Write};
 use std::io;
 use regex::Regex;
 
+enum TokenType {
+    TexCommand,
+    Operator,
+    Var,
+    Num,
+    Brace,
+}
+
+struct Token {
+    token: String,
+    token_type: TokenType,
+}
+
 struct Lexer {
     formulas: String,
-    tokens: Vec<String>
+    tokens: Vec<Token>
 }
 
 /*
@@ -33,7 +46,7 @@ impl Lexer {
     fn print_token(&self) {
         for token in self.tokens.iter() {
             // {}でした
-            print!("'{}', ", token);
+            print!("'{}', ", token.token);
         }
         println!("");
     }
@@ -58,38 +71,38 @@ impl Lexer {
             let mut ismatch = false;
             if c == '\\' {
                 if let Some(caps) = tex_command.captures(&self.formulas) {
-                    println!("<<< match '{}' as tex_command >>>", caps.get(0).unwrap().as_str());
-                    self.tokens.push(caps.get(0).unwrap().as_str().to_string().replace(" ", ""));
+                    // println!("<<< match '{}' as tex_command >>>", caps.get(0).unwrap().as_str());
+                    self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_type: TokenType::TexCommand});
                     self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
-                    println!("formulas: '{}'", self.formulas.replace(" ", ""));
+                    // println!("formulas: '{}'", self.formulas.replace(" ", ""));
                     ismatch = true;
                 }
             } else if let Some(caps) = operator.captures(&c.to_string()) {
-                println!("<<< match '{}' as operator >>>", caps.get(0).unwrap().as_str());
-                self.tokens.push(caps.get(0).unwrap().as_str().to_string().replace(" ", ""));
+                // println!("<<< match '{}' as operator >>>", caps.get(0).unwrap().as_str());
+                self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_type: TokenType::Operator});
                 self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
-                println!("formulas: '{}'", self.formulas.replace(" ", ""));
+                // println!("formulas: '{}'", self.formulas.replace(" ", ""));
                 ismatch = true;
             } else if let Some(caps) = braces.captures(&c.to_string()) {
-                println!("<<< match '{}' as braces >>>", caps.get(0).unwrap().as_str());
-                self.tokens.push(caps.get(0).unwrap().as_str().to_string().replace(" ", ""));
+                // println!("<<< match '{}' as braces >>>", caps.get(0).unwrap().as_str());
+                self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_type: TokenType::Brace});
                 self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
-                println!("formulas: '{}'", self.formulas.replace(" ", ""));
+                // println!("formulas: '{}'", self.formulas.replace(" ", ""));
                 ismatch = true;
             } else if let Some(_) = num.captures(&c.to_string()) {
                 if let Some(caps) = num.captures(&self.formulas) {
-                    println!("<<< match '{}' as num >>>", caps.get(0).unwrap().as_str());
-                    self.tokens.push(caps.get(0).unwrap().as_str().to_string().replace(" ", ""));
+                    // println!("<<< match '{}' as num >>>", caps.get(0).unwrap().as_str());
+                    self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_type: TokenType::Num});
                     self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
-                    println!("formulas: '{}'", self.formulas.replace(" ", ""));
+                    // println!("formulas: '{}'", self.formulas.replace(" ", ""));
                     ismatch = true;
                 }
             } else if let Some(caps) = var.captures(&self.formulas) {
                 if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() { continue; }
-                    println!("<<< match '{}' as var >>>", caps.get(0).unwrap().as_str());
-                    self.tokens.push(caps.get(0).unwrap().as_str().to_string().replace(" ", ""));
+                    // println!("<<< match '{}' as var >>>", caps.get(0).unwrap().as_str());
+                    self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_type: TokenType::Var});
                     self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
-                    println!("formulas: '{}'", self.formulas.replace(" ", ""));
+                    // println!("formulas: '{}'", self.formulas.replace(" ", ""));
                     ismatch = true;
             } 
             if !ismatch {
