@@ -39,9 +39,23 @@ $ tsc -f hoge.txt
 - \sqrt[n]{x} : n乗根
 ### 分数
 - \frac{a}{b}
+### 絶対値
+- \abs
+- |
+- \left|
+- \right|
+### 三角関数
+- \sin
+- \cos
+- \tan
+- \csc
+- \sec
+- \cot
 ### その他
-### 累乗
-- ^
+- ^{}
+- _{}
+- ! (階乗)
+- \exp
 ### 四則演算
 - +
 - -
@@ -50,18 +64,8 @@ $ tsc -f hoge.txt
 - \div :
 - / :
 ### 和, 積
-- \sum
+- \sum_{a}^{n=1}
 - \prod
-### その他関数
-- sin
-- cos
-- tan
-- arcsin
-- arccos
-- arctan
-- ! (階乗)
-- ()
-- abs
 
 ## 対応定数
 - e: ネイピア数
