@@ -19,6 +19,21 @@ struct Token {
     token_type: TokenType,
 }
 
+struct BNord<'a> {
+    token: Token,
+    right_nord: &'a BNord<'a>,
+    left_nord: &'a BNord<'a>,
+    Val: f64,
+    is_calced: bool,
+}
+
+struct SNord<'a> {
+    token: Token,
+    child_nord: &'a SNord<'a>,
+    Val: f64,
+    is_calced: bool,
+}
+
 struct Lexer {
     formulas: String,
     tokens: Vec<Token>
