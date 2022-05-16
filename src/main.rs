@@ -19,6 +19,21 @@ struct Token {
     token_type: TokenType,
 }
 
+struct BNord<'a> {
+    token: Token,
+    right_nord: &'a Nord<'a>,
+    left_nord: &'a Nord<'a>,
+    Val: f64,
+    is_calced: bool,
+}
+
+struct SNord<'a> {
+    token: Token,
+    child_nord: &'a Nord<'a>,
+    Val: f64,
+    is_calced: bool,
+}
+
 struct Lexer {
     formulas: String,
     tokens: Vec<Token>
@@ -53,7 +68,7 @@ impl Lexer {
 
     fn analyze(&mut self) {
         let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap(); // OK
-        let operator = Regex::new(r"\+|-|/|!|_|,|\^|\|").unwrap(); // OK
+        let operator = Regex::new(r"\+|-|*|=|/|!|_|,|\^|\|").unwrap(); // OK
         let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap(); // OK
         let num = Regex::new(r"0x[0-9a-fA-F]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap(); // OK
         let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap(); // OK
