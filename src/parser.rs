@@ -1,5 +1,6 @@
 
 use std::collections::HashMap;
+use std::str::FromStr;
 
 pub mod lexer;
 
@@ -18,7 +19,13 @@ pub struct Parser<'a> {
 
 impl Parser<'_> {
 
-    pub fn new(lex: lexer::Lexer, vars: &HashMap<String, f64>) -> Parser<'static> {
+    pub fn print_vars(&self) {
+        for i in self.vars.into_iter() {
+            println!("{:?}", i);
+        }
+    }
+
+    pub fn new(lex: lexer::Lexer, vars: &mut HashMap<String, f64>) -> Parser {
         // lex から varsを構築
         for i in 0..lex.tokens.len() {
             if lex.tokens[i].token == "," {
@@ -32,26 +39,23 @@ impl Parser<'_> {
                 match lex.tokens[i+3].token_type {
                     // 定数の置き換え
                     lexer::TokenType::Num => {
-                        match lex.tokens[i+1].token.parse::<f64>() {
+                        match f64::from_str(&lex.tokens[i+3].token) {
                             Ok(num) => {
-                                match vars.insert(lex.tokens[i+1].token, num) {
-                                    Some(_) => {},
-                                    None => panic!(),
-                                }
+                                vars.insert(lex.tokens[i+1].token.clone(), num);
                             },
-                            Err(_) => panic!(),
+                            Err(_) => panic!("f64::from_str(\"{}\") failed", &lex.tokens[i+3].token),
                         }
                     },
                     lexer::TokenType::Var => {
                         if lex.tokens[i+3].token == "e" {
-                            vars.insert(lex.tokens[i+1].token, std::f64::consts::E);
+                            vars.insert(lex.tokens[i+1].token.clone(), std::f64::consts::E);
                         } else {
                             panic!();
                         }
                     }
                     lexer::TokenType::TexCommand => {
                         if lex.tokens[i+3].token == "\\pi" {
-                            vars.insert(lex.tokens[i+1].token, std::f64::consts::PI);
+                            vars.insert(lex.tokens[i+1].token.clone(), std::f64::consts::PI);
                         } else {
                             panic!();
                         }
@@ -62,8 +66,8 @@ impl Parser<'_> {
         }
         Parser { lex: lex, vars: vars }
     }
-
-    pub fn build_tree(lex: lexer::Lexer) -> Nord<'static> {
+    /* 
+    pub fn build_tree(lex: lexer::Lexer) -> Nord {
         // インタラクティブモードと、その他のモードで変数の扱いが違う
         // ファイル、コマンドラインは1行で完結
 
@@ -79,5 +83,5 @@ impl Parser<'_> {
             index += 1;
         }
     
-    }
+    }*/
 }
