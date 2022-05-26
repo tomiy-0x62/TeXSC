@@ -9,6 +9,8 @@ use std::collections::HashMap;
 // mod lexer;
 mod parser;
 
+// TODO: .a=\piを入力すると不審な挙動を示すから修正
+
 fn main_loop() {
     let mut vars: HashMap<String, f64> = HashMap::new();
     loop {
@@ -23,7 +25,8 @@ fn main_loop() {
         let mut lex = parser::lexer::Lexer::new(form.to_string());
         lex.print_form();
         lex.analyze();
-        let mut _pars = parser::Parser::new(lex, &vars);
+        let mut _pars = parser::Parser::new(lex, &mut vars);
+        _pars.print_vars();
     }
 }
 
@@ -50,7 +53,7 @@ fn main() {
         lex.print_form();
         lex.analyze();
         let mut vars: HashMap<String, f64> = HashMap::new();
-        let mut _pars = parser::Parser::new(lex, &vars);
+        let mut _pars = parser::Parser::new(lex, &mut vars);
         return;
     }
 
@@ -63,7 +66,7 @@ fn main() {
             lex.print_form();
             lex.analyze();
             let mut vars: HashMap<String, f64> = HashMap::new();
-            let mut _pars = parser::Parser::new(lex, &vars);
+            let mut _pars = parser::Parser::new(lex, &mut vars);
         }
         return;
     }
