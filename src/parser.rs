@@ -4,10 +4,10 @@ use std::str::FromStr;
 
 pub mod lexer;
 
-struct Nord<'a> {
+struct Node<'a> {
     token: lexer::Token,
-    right_nord: Option<&'a Nord<'a>>,
-    left_nord: Option<&'a Nord<'a>>,
+    right_nord: Option<&'a Node<'a>>,
+    left_nord: Option<&'a Node<'a>>,
     val: f64,
     is_calced: bool,
 }
