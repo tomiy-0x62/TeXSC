@@ -42,13 +42,24 @@ impl Parser<'_> {
         let mut figure: f64 = 1.0;
         for i in num_str.chars() {
             println!("f64::from_str({})", &i.to_string());
-            // TODO: a~f,A~Fが来たときに対応
             match f64::from_str(&i.to_string()) {
                 Ok(n) => {
                     num += n * 16.0_f64.powf(num_str.len() as f64 - figure);
                     figure = figure + 1.0;
                 },
-                Err(_) => return Err(MathError::DivisionByZero),
+                Err(_) => {
+                    let n: f64 = match &i.to_string()[0..1] {
+                        "a" | "A" => 10.0,
+                        "b" | "B" => 11.0,
+                        "c" | "C" => 12.0,
+                        "d" | "D" => 13.0,
+                        "e" | "E" => 14.0,
+                        "f" | "F" => 15.0,
+                        _ => return Err(MathError::InvalidHexFormat),
+                    };
+                    num += n * 16.0_f64.powf(num_str.len() as f64 - figure);
+                    figure = figure + 1.0;
+                },
             }
             println!("num: {}", num);
         }
@@ -61,7 +72,7 @@ impl Parser<'_> {
         for i in num_str.chars() {
             match f64::from_str(&i.to_string()) {
                 Ok(n) => {
-                    // TODO: 0か1以外の数が来たときにエラーを返す
+                    if n > 1.0_f64 { return Err(MathError::InvalidBinFormat) }
                     num += n * 2.0_f64.powf(num_str.len() as f64 - figure);
                     figure = figure + 1.0;
                 },
@@ -72,38 +83,51 @@ impl Parser<'_> {
     }
     
     fn f64_from_str(num_str: &str) -> Result<f64, MathError> {
-        match &num_str[0..2] {
-            "0x"=> match Parser::hex2dec(&num_str[2..]) {
-                Ok(num) => {
-                    println!("<<<Hex found>>>");
-                    Ok(num)
-                },
-                Err(_) => {
-                    println!("<<<Hex found>>>");
-                    Err(MathError::DivisionByZero)
-                },
-            },
-            "0b"=> match Parser::bin2dec(&num_str[2..]) {
-                Ok(num) => {
-                    println!("<<<Bin found>>>");
-                    Ok(num)
-                },
-                Err(_) => {
-                    println!("<<<Bin found>>>");
-                    Err(MathError::DivisionByZero)
-                },
-            },
-            _ => match f64::from_str(num_str) {
+        if num_str.len() < 2 {
+            match f64::from_str(num_str) {
                 Ok(num) => {
                     println!("<<<Dec found>>>");
-                    Ok(num)
+                    return Ok(num);
                 },
                 Err(_) => {
                     println!("<<<Dec found>>>");
-                    Err(MathError::DivisionByZero)
+                    return Err(MathError::DivisionByZero);
                 },
-            },
-        }
+            }
+        } else {
+            match &num_str[0..2] {
+                "0x"=> match Parser::hex2dec(&num_str[2..]) {
+                    Ok(num) => {
+                        println!("<<<Hex found>>>");
+                        Ok(num)
+                    },
+                    Err(_) => {
+                        println!("<<<Hex found>>>");
+                        Err(MathError::DivisionByZero)
+                    },
+                },
+                "0b"=> match Parser::bin2dec(&num_str[2..]) {
+                    Ok(num) => {
+                        println!("<<<Bin found>>>");
+                        Ok(num)
+                    },
+                    Err(_) => {
+                        println!("<<<Bin found>>>");
+                        Err(MathError::DivisionByZero)
+                    },
+                },
+                _ => match f64::from_str(num_str) {
+                    Ok(num) => {
+                        println!("<<<Dec found>>>");
+                        Ok(num)
+                    },
+                    Err(_) => {
+                        println!("<<<Dec found>>>");
+                        Err(MathError::DivisionByZero)
+                    },
+                },
+            }
+    }
         
     }
 
