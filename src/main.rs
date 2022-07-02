@@ -9,8 +9,6 @@ use std::collections::HashMap;
 // mod lexer;
 mod parser;
 
-// TODO: .a=\piを入力すると不審な挙動を示すから修正
-
 fn main_loop() {
     let mut vars: HashMap<String, f64> = HashMap::new();
     loop {

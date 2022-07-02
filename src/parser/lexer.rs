@@ -92,15 +92,15 @@ impl Lexer {
                     ismatch = true;
                 }
             } else if let Some(caps) = var.captures(&self.formulas) {
-                if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() { continue; }
-                    // println!("<<< match '{}' as var >>>", caps.get(0).unwrap().as_str());
-                    self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_type: TokenType::Var});
-                    self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
-                    // println!("formulas: '{}'", self.formulas.replace(" ", ""));
-                    ismatch = true;
+                if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() { panic!("invalid input \"{}\"", c); }
+                // println!("<<< match '{}' as var >>>", caps.get(0).unwrap().as_str());
+                self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_type: TokenType::Var});
+                self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                // println!("formulas: '{}'", self.formulas.replace(" ", ""));
+                ismatch = true;
             } 
             if !ismatch {
-                panic!("hoge")
+                panic!("hoge");
             }
 
             // println!("formulas: '{}'", self.formulas);
