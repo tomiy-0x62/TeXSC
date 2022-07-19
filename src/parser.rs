@@ -4,12 +4,28 @@ use std::str::FromStr;
 
 pub mod lexer;
 
+pub enum NodeKind {
+    NdAdd,
+    NdSub,
+    NdMul,
+    NdDiv,
+    Ndnum,
+    NdSin,
+    NdCos,
+    NdTan,
+    NdCsc,
+    NdSec,
+    NdCot,
+    NdSqrt,
+    NdFrac,
+    NdLog,
+}
+
 struct Node<'a> {
-    token: lexer::Token,
+    node_kind: NodeKind,
     right_nord: Option<&'a Node<'a>>,
     left_nord: Option<&'a Node<'a>>,
-    val: f64,
-    is_calced: bool,
+    val: Option<f64>,
 }
 
 pub struct Parser<'a> {
