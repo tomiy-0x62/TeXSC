@@ -1,21 +1,30 @@
 use regex::Regex;
 
-pub enum TokenType {
-    TexCommand,
-    Operator,
-    Var,
-    Num,
-    Brace,
+pub enum TokenKind {
+    TkTexCommand,
+    TkOperator,
+    TkVariable,
+    TkNum,
+    TkBrace,
+    TkEOT,
 }
 
 pub struct Token {
     pub token: String,
-    pub token_type: TokenType,
+    pub token_kind: TokenKind,
 }
 
 pub struct Lexer {
     formulas: String,
-    pub tokens: Vec<Token>
+    pub tokens: Vec<Token>,
+    pub token_idx: usize
+}
+
+pub enum TkError {
+    NotTkNumber,
+    NotTkOperator,
+    NotExpected,
+    Succsess
 }
 
 /*
@@ -30,7 +39,7 @@ tokenの種類
 impl Lexer {
     pub fn new(form: String) -> Lexer {
         let form = form.replace("\n", "").replace("\t", "");
-        Lexer { formulas: form, tokens: Vec::new() }
+        Lexer { formulas: form, tokens: Vec::new(), token_idx: 0 }
     }
 
     pub fn print_form(&self) {
@@ -43,6 +52,51 @@ impl Lexer {
             print!("'{}', ", token.token);
         }
         println!("");
+    }
+
+    pub fn consume(&mut self, op: String) -> bool {
+        match self.tokens[self.token_idx].token_kind {
+            TokenKind::TkOperator => {
+                if self.tokens[self.token_idx].token == op {
+                    self.token_idx += 1;
+                    true
+                } else {
+                    false
+                }
+            },
+            _ => false,
+        }
+    }
+
+    pub fn expect(&mut self, op: String) -> TkError {
+        match self.tokens[self.token_idx].token_kind {
+            TokenKind::TkOperator => {
+                if self.tokens[self.token_idx].token == op {
+                    self.token_idx += 1;
+                    TkError::Succsess
+                } else {
+                    TkError::NotExpected
+                }
+            },
+            _ => TkError::NotTkOperator,
+        }
+    }
+
+    pub fn expect_number(&mut self) -> Result<String, TkError> {
+        match self.tokens[self.token_idx].token_kind {
+            TokenKind::TkNum => {
+                self.token_idx += 1;
+                Ok(self.tokens[self.token_idx].token.clone())
+            },
+            _ => Err(TkError::NotTkNumber),
+        }
+    }
+
+    pub fn is_eot(&self) -> bool {
+        match self.tokens[self.token_idx].token_kind {
+            TokenKind::TkEOT => true,
+            _ => false
+        }
     }
 
     pub fn analyze(&mut self) {
@@ -66,27 +120,27 @@ impl Lexer {
             if c == '\\' {
                 if let Some(caps) = tex_command.captures(&self.formulas) {
                     // println!("<<< match '{}' as tex_command >>>", caps.get(0).unwrap().as_str());
-                    self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_type: TokenType::TexCommand});
+                    self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkTexCommand});
                     self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     // println!("formulas: '{}'", self.formulas.replace(" ", ""));
                     ismatch = true;
                 }
             } else if let Some(caps) = operator.captures(&c.to_string()) {
                 // println!("<<< match '{}' as operator >>>", caps.get(0).unwrap().as_str());
-                self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_type: TokenType::Operator});
+                self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkOperator});
                 self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 // println!("formulas: '{}'", self.formulas.replace(" ", ""));
                 ismatch = true;
             } else if let Some(caps) = braces.captures(&c.to_string()) {
                 // println!("<<< match '{}' as braces >>>", caps.get(0).unwrap().as_str());
-                self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_type: TokenType::Brace});
+                self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkBrace});
                 self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 // println!("formulas: '{}'", self.formulas.replace(" ", ""));
                 ismatch = true;
             } else if let Some(_) = num.captures(&c.to_string()) {
                 if let Some(caps) = num.captures(&self.formulas) {
                     // println!("<<< match '{}' as num >>>", caps.get(0).unwrap().as_str());
-                    self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_type: TokenType::Num});
+                    self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkNum});
                     self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     // println!("formulas: '{}'", self.formulas.replace(" ", ""));
                     ismatch = true;
@@ -94,7 +148,7 @@ impl Lexer {
             } else if let Some(caps) = var.captures(&self.formulas) {
                 if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() { panic!("invalid input \"{}\"", c); }
                 // println!("<<< match '{}' as var >>>", caps.get(0).unwrap().as_str());
-                self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_type: TokenType::Var});
+                self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkVariable});
                 self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 // println!("formulas: '{}'", self.formulas.replace(" ", ""));
                 ismatch = true;
@@ -106,6 +160,7 @@ impl Lexer {
             // println!("formulas: '{}'", self.formulas);
 
             if self.formulas.len() == 0 {
+                self.tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
                 self.print_token();
                 break;
             }

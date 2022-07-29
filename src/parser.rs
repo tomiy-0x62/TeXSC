@@ -9,7 +9,7 @@ pub enum NodeKind {
     NdSub,
     NdMul,
     NdDiv,
-    Ndnum,
+    NdNum,
     NdSin,
     NdCos,
     NdTan,
@@ -151,16 +151,16 @@ impl Parser<'_> {
         // lex から varsを構築
         for i in 0..lex.tokens.len() {
             if lex.tokens[i].token == "," {
-                match lex.tokens[i+1].token_type {
-                    lexer::TokenType::Var => {},
+                match lex.tokens[i+1].token_kind {
+                    lexer::TokenKind::TkVariable => {},
                     _ => panic!(),
                 }
                 if !(lex.tokens[i+2].token == "=") {
                     panic!();
                 } 
-                match lex.tokens[i+3].token_type {
+                match lex.tokens[i+3].token_kind {
                     // 定数の置き換え
-                    lexer::TokenType::Num => {
+                    lexer::TokenKind::TkNum => {
                         match Parser::f64_from_str(&lex.tokens[i+3].token) {
                             Ok(num) => {
                                 vars.insert(lex.tokens[i+1].token.clone(), num);
@@ -168,14 +168,14 @@ impl Parser<'_> {
                             Err(_) => panic!("f64::from_str(\"{}\") failed", &lex.tokens[i+3].token),
                         }
                     },
-                    lexer::TokenType::Var => {
+                    lexer::TokenKind::TkVariable => {
                         if lex.tokens[i+3].token == "e" {
                             vars.insert(lex.tokens[i+1].token.clone(), std::f64::consts::E);
                         } else {
                             panic!();
                         }
                     }
-                    lexer::TokenType::TexCommand => {
+                    lexer::TokenKind::TkTexCommand => {
                         if lex.tokens[i+3].token == "\\pi" {
                             vars.insert(lex.tokens[i+1].token.clone(), std::f64::consts::PI);
                         } else {
@@ -188,22 +188,57 @@ impl Parser<'_> {
         }
         Parser { lex: lex, vars: vars }
     }
-    /* 
-    pub fn build_tree(lex: lexer::Lexer) -> Nord {
-        // インタラクティブモードと、その他のモードで変数の扱いが違う
-        // ファイル、コマンドラインは1行で完結
+    // TODO: consider life time
+    fn new_node(&self, kind: NodeKind, left: Node, right: Node) -> Node {
+        Node { node_kind: kind, right_nord: Some(&right), left_nord: Some(&left), val: None }
+    }
 
-        let mut _stack: Vec<String> = Vec::new();
-        let mut index: usize = 0;
+    fn new_node_num(&mut self, val: f64) -> Node {
+        Node { node_kind: NodeKind::NdNum, right_nord: None, left_nord: None, val: Some(val) }
+    }
+
+    fn expr(&self) -> Node {
+        let mut node: Node = self.mul();
         loop {
-            match lex.tokens[index].token_type {
-                lexer::TokenType::TexCommand => {},
-                lexer::TokenType::Operator => {
-                },
-                _ => {},
+            if self.lex.consume("+".to_string()) {
+                node = self.new_node(NodeKind::NdAdd, node, self.mul());
+            } else if self.lex.consume("-".to_string()) {
+                node = self.new_node(NodeKind::NdSub, node, self.mul());
+            } else {
+                return node;
             }
-            index += 1;
         }
-    
-    }*/
+    }
+
+    fn mul(&self) -> Node {
+        let mut node: Node = self.primary();
+        loop {
+            if self.lex.consume("*".to_string()) {
+                node = self.new_node(NodeKind::NdMul, node, self.primary());
+            } else if self.lex.consume("/".to_string()) {
+                node = self.new_node(NodeKind::NdDiv, node, self.primary());
+            } else {
+                return node;
+            }
+        }
+    }
+
+    fn primary(&self) -> Node {
+        if self.lex.consume("(".to_string()) {
+            let node: Node = self.expr();
+            self.lex.expect(")".to_string());
+            return node;
+        }
+        let val:f64 = match self.lex.expect_number() {
+            Ok(v) => {
+                match Parser::f64_from_str(&v) {
+                    Ok(v) => v,
+                    Err(e) => panic!(e),
+                }
+            },
+            Err(e) => panic!(e),
+        };
+        return self.new_node_num(val);
+
+    }
 }
