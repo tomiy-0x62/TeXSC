@@ -5,11 +5,7 @@ use std::str::FromStr;
 pub mod lexer;
 
 pub enum NodeKind {
-    NdAdd,
-    NdSub,
-    NdMul,
-    NdDiv,
-    NdNum,
+    // 前置, 1引数
     NdSin,
     NdCos,
     NdTan,
@@ -17,15 +13,24 @@ pub enum NodeKind {
     NdSec,
     NdCot,
     NdSqrt,
-    NdFrac,
     NdLog,
+    NdAbs,
+    // 前置, 2引数
+    NdFrac,
+    // 中置
+    NdAdd,
+    NdSub,
+    NdMul,
+    NdDiv,
+    // 数字
+    NdNum,
 }
 
-struct Node<'a> {
-    node_kind: NodeKind,
-    right_nord: Option<&'a Node<'a>>,
-    left_nord: Option<&'a Node<'a>>,
-    val: Option<f64>,
+pub struct Node {
+    pub node_kind: NodeKind,
+    pub right_node: Option<Box<Node>>,
+    pub left_node: Option<Box<Node>>,
+    pub val: Option<f64>,
 }
 
 pub struct Parser<'a> {
@@ -102,11 +107,11 @@ impl Parser<'_> {
         if num_str.len() < 2 {
             match f64::from_str(num_str) {
                 Ok(num) => {
-                    println!("<<<Dec found>>>");
+                    // println!("<<<Dec found>>>");
                     return Ok(num);
                 },
                 Err(_) => {
-                    println!("<<<Dec found>>>");
+                    // println!("<<<Dec found>>>");
                     return Err(MathError::DivisionByZero);
                 },
             }
@@ -114,31 +119,31 @@ impl Parser<'_> {
             match &num_str[0..2] {
                 "0x"=> match Parser::hex2dec(&num_str[2..]) {
                     Ok(num) => {
-                        println!("<<<Hex found>>>");
+                        // println!("<<<Hex found>>>");
                         Ok(num)
                     },
                     Err(_) => {
-                        println!("<<<Hex found>>>");
+                        // println!("<<<Hex found>>>");
                         Err(MathError::DivisionByZero)
                     },
                 },
                 "0b"=> match Parser::bin2dec(&num_str[2..]) {
                     Ok(num) => {
-                        println!("<<<Bin found>>>");
+                        // println!("<<<Bin found>>>");
                         Ok(num)
                     },
                     Err(_) => {
-                        println!("<<<Bin found>>>");
+                        // println!("<<<Bin found>>>");
                         Err(MathError::DivisionByZero)
                     },
                 },
                 _ => match f64::from_str(num_str) {
                     Ok(num) => {
-                        println!("<<<Dec found>>>");
+                        // println!("<<<Dec found>>>");
                         Ok(num)
                     },
                     Err(_) => {
-                        println!("<<<Dec found>>>");
+                        // println!("<<<Dec found>>>");
                         Err(MathError::DivisionByZero)
                     },
                 },
@@ -147,19 +152,22 @@ impl Parser<'_> {
         
     }
 
-    pub fn new(lex: lexer::Lexer, vars: &mut HashMap<String, f64>) -> Parser {
+    pub fn new(mut lex: lexer::Lexer, vars: &mut HashMap<String, f64>) -> Parser {
         // lex から varsを構築
+        // TODO: lex.tokensから変数部分を削除
+        let mut to_delete_el = Vec::<usize>::new();
         for i in 0..lex.tokens.len() {
             if lex.tokens[i].token == "," {
+                to_delete_el.push(i);
                 match lex.tokens[i+1].token_kind {
-                    lexer::TokenKind::TkVariable => {},
+                    lexer::TokenKind::TkVariable => to_delete_el.push(i+1),
                     _ => panic!(),
                 }
                 if !(lex.tokens[i+2].token == "=") {
                     panic!();
                 } 
+                to_delete_el.push(i+2);
                 match lex.tokens[i+3].token_kind {
-                    // 定数の置き換え
                     lexer::TokenKind::TkNum => {
                         match Parser::f64_from_str(&lex.tokens[i+3].token) {
                             Ok(num) => {
@@ -168,77 +176,101 @@ impl Parser<'_> {
                             Err(_) => panic!("f64::from_str(\"{}\") failed", &lex.tokens[i+3].token),
                         }
                     },
-                    lexer::TokenKind::TkVariable => {
-                        if lex.tokens[i+3].token == "e" {
-                            vars.insert(lex.tokens[i+1].token.clone(), std::f64::consts::E);
-                        } else {
-                            panic!();
-                        }
-                    }
-                    lexer::TokenKind::TkTexCommand => {
-                        if lex.tokens[i+3].token == "\\pi" {
-                            vars.insert(lex.tokens[i+1].token.clone(), std::f64::consts::PI);
-                        } else {
-                            panic!();
-                        }
-                    }
                     _ => panic!(),
                 }
+                to_delete_el.push(i+3);
             }
+        }
+        to_delete_el.sort_by(|a, b| b.cmp(a));
+        for i in to_delete_el.into_iter() {
+            lex.tokens.remove(i);
         }
         Parser { lex: lex, vars: vars }
     }
-    // TODO: consider life time
-    fn new_node(&self, kind: NodeKind, left: Node, right: Node) -> Node {
-        Node { node_kind: kind, right_nord: Some(&right), left_nord: Some(&left), val: None }
+
+    pub fn build_ast(&mut self) -> Box<Node> {
+        self.expr()
     }
 
-    fn new_node_num(&mut self, val: f64) -> Node {
-        Node { node_kind: NodeKind::NdNum, right_nord: None, left_nord: None, val: Some(val) }
+    fn new_node(kind: NodeKind, left: Box<Node>, right: Box<Node>) -> Box<Node> {
+        Box::new(Node { node_kind: kind, right_node: Some(right), left_node: Some(left), val: None })
     }
 
-    fn expr(&self) -> Node {
-        let mut node: Node = self.mul();
+    fn new_node_num(val: f64) -> Box<Node> {
+        Box::new(Node { node_kind: NodeKind::NdNum, right_node: None, left_node: None, val: Some(val) })
+    }
+
+    fn show_node(place: String, node: &Node) {
+        println!("{}: create {{ Kind: {:?}, Val: {:?} }}", place, match node.node_kind {
+            NodeKind::NdSin => "NdSin",
+            NodeKind::NdCos => "NdCos",
+            NodeKind::NdTan => "NdTan",
+            NodeKind::NdCsc => "NdCsc",
+            NodeKind::NdSec => "NdSec",
+            NodeKind::NdCot => "NdCot",
+            NodeKind::NdSqrt => "NdSqr",
+            NodeKind::NdLog => "NdLog",
+            NodeKind::NdAbs => "NdAbs",
+            NodeKind::NdFrac => "NdFra",
+            NodeKind::NdAdd => "NdAdd",
+            NodeKind::NdSub => "NdSub",
+            NodeKind::NdMul => "NdMul",
+            NodeKind::NdDiv => "NdDiv",
+            NodeKind::NdNum => "NdNum",
+        }, node.val)
+    }
+
+    fn expr(&mut self) -> Box<Node> {
+        let mut node: Box<Node> = self.mul();
         loop {
             if self.lex.consume("+".to_string()) {
-                node = self.new_node(NodeKind::NdAdd, node, self.mul());
+                node = Parser::new_node(NodeKind::NdAdd, node, self.mul());
             } else if self.lex.consume("-".to_string()) {
-                node = self.new_node(NodeKind::NdSub, node, self.mul());
+                node = Parser::new_node(NodeKind::NdSub, node, self.mul());
             } else {
+                Parser::show_node("expr".to_string(), &node);
                 return node;
             }
         }
     }
 
-    fn mul(&self) -> Node {
-        let mut node: Node = self.primary();
+    fn mul(&mut self) -> Box<Node> {
+        let mut node: Box<Node> = self.primary();
+        Parser::show_node("primary".to_string(), &node);
         loop {
             if self.lex.consume("*".to_string()) {
-                node = self.new_node(NodeKind::NdMul, node, self.primary());
+                node = Parser::new_node(NodeKind::NdMul, node, self.primary());
+            } else if self.lex.consume("\\times".to_string()) {
+                node = Parser::new_node(NodeKind::NdMul, node, self.primary());
+            } else if self.lex.consume("\\cdot".to_string()) {
+                node = Parser::new_node(NodeKind::NdMul, node, self.primary());
+            }else if self.lex.consume("\\div".to_string()) {
+                node = Parser::new_node(NodeKind::NdDiv, node, self.primary());
             } else if self.lex.consume("/".to_string()) {
-                node = self.new_node(NodeKind::NdDiv, node, self.primary());
+                node = Parser::new_node(NodeKind::NdDiv, node, self.primary());
             } else {
+                Parser::show_node("mul".to_string(), &node);
                 return node;
             }
         }
     }
 
-    fn primary(&self) -> Node {
+    fn primary(&mut self) -> Box<Node> {
         if self.lex.consume("(".to_string()) {
-            let node: Node = self.expr();
+            let node: Box<Node> = self.expr();
             self.lex.expect(")".to_string());
             return node;
         }
-        let val:f64 = match self.lex.expect_number() {
+        let val:f64 = match self.lex.expect_number(self.vars) {
             Ok(v) => {
                 match Parser::f64_from_str(&v) {
                     Ok(v) => v,
-                    Err(e) => panic!(e),
+                    Err(e) => panic!("failed to parse '{}' to f64", v),
                 }
             },
             Err(e) => panic!(e),
         };
-        return self.new_node_num(val);
+        return Parser::new_node_num(val);
 
     }
 }

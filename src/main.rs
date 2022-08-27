@@ -1,6 +1,7 @@
 // TeX Scientific Calculator
 
 use clap::{Command, Arg};
+use parser::Node;
 use std::fs::File;
 use std::io::{BufReader, BufRead, stdout, Write};
 use std::io;
@@ -25,6 +26,12 @@ fn main_loop() {
         lex.analyze();
         let mut _pars = parser::Parser::new(lex, &mut vars);
         _pars.print_vars();
+        let mut ast_root = _pars.build_ast();
+        if let Ok(result) = calc(ast_root) {
+            println!("resutl: {}", result);
+        } else {
+            println!("failed");
+        }
     }
 }
 
@@ -52,6 +59,12 @@ fn main() {
         lex.analyze();
         let mut vars: HashMap<String, f64> = HashMap::new();
         let mut _pars = parser::Parser::new(lex, &mut vars);
+        let mut ast_root = _pars.build_ast();
+        if let Ok(result) = calc(ast_root) {
+            println!("resutl: {}", result);
+        } else {
+            println!("failed");
+        }
         return;
     }
 
@@ -65,6 +78,12 @@ fn main() {
             lex.analyze();
             let mut vars: HashMap<String, f64> = HashMap::new();
             let mut _pars = parser::Parser::new(lex, &mut vars);
+            let mut ast_root = _pars.build_ast();
+            if let Ok(result) = calc(ast_root) {
+                println!("resutl: {}", result);
+            } else {
+                println!("failed");
+            }
         }
         return;
     }
@@ -72,4 +91,67 @@ fn main() {
     // REPL
     main_loop();
     
+}
+
+enum CalcError {
+    Err,
+    BrokenAstErr,
+}
+
+fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
+
+    match (*node).node_kind {
+        parser::NodeKind::NdNum => return Ok((*node).val.unwrap()),
+        _ => (),
+    }
+
+    let mut loperand: f64 = 1.0;
+    let mut roperand: f64 = 1.0;
+
+    if let Some(left) = (*node).left_node {
+        loperand = getoperand(left)?;
+    } else {
+        // NdNum以外でleftがNoneはエラー
+        // ここに到達した => 不正なAST
+        return Err(CalcError::BrokenAstErr);
+    }
+
+    if let Some(right) = (*node).right_node {
+        roperand = getoperand(right)?;
+    } else {
+        // NdNum以外でleftがNoneはありえる
+        // 前置, 1引数のノードの場合 => 正常
+        // それ以外 => 不正なAST
+        match (*node).node_kind {
+            parser::NodeKind::NdSin => (),
+            parser::NodeKind::NdCos => (),
+            parser::NodeKind::NdTan => (),
+            parser::NodeKind::NdCsc => (),
+            parser::NodeKind::NdSec => (),
+            parser::NodeKind::NdCot => (),
+            parser::NodeKind::NdSqrt => (),
+            parser::NodeKind::NdLog => (),
+            _ => return Err(CalcError::BrokenAstErr),
+        }
+    }
+
+    match (*node).node_kind {
+        parser::NodeKind::NdAdd => Ok(loperand + roperand),
+        parser::NodeKind::NdSub => Ok(loperand - roperand),
+        parser::NodeKind::NdMul => Ok(loperand * roperand),
+        parser::NodeKind::NdDiv => Ok(loperand / roperand),
+        _  => Err(CalcError::Err), // TODO: エラーを起こす
+    }
+
+}
+
+fn getoperand(node: Box<parser::Node>) -> Result<f64, CalcError> {
+    match &(*node).node_kind {
+        parser::NodeKind::NdAdd => calc(node),
+        parser::NodeKind::NdSub => calc(node),
+        parser::NodeKind::NdMul => calc(node),
+        parser::NodeKind::NdDiv => calc(node),
+        parser::NodeKind::NdNum => Ok((*node).val.unwrap()),
+        _  => return Err(CalcError::Err),
+    }
 }

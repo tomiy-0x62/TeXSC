@@ -1,4 +1,6 @@
+
 use regex::Regex;
+use std::collections::HashMap;
 
 pub enum TokenKind {
     TkTexCommand,
@@ -24,7 +26,8 @@ pub enum TkError {
     NotTkNumber,
     NotTkOperator,
     NotExpected,
-    Succsess
+    Succsess,
+    UndiffinedVar,
 }
 
 /*
@@ -82,11 +85,24 @@ impl Lexer {
         }
     }
 
-    pub fn expect_number(&mut self) -> Result<String, TkError> {
+    pub fn expect_number(&mut self, vars: &HashMap<String, f64>) -> Result<String, TkError> {
         match self.tokens[self.token_idx].token_kind {
             TokenKind::TkNum => {
                 self.token_idx += 1;
-                Ok(self.tokens[self.token_idx].token.clone())
+                Ok(self.tokens[self.token_idx-1].token.clone())
+            },
+            TokenKind::TkVariable => {
+                self.token_idx += 1;
+                match vars.get(&self.tokens[self.token_idx-1].token) {
+                    Some(v) => {
+                        println!("var: {} = {}", self.tokens[self.token_idx-1].token, v);
+                        Ok(v.to_string())
+                    },
+                    None => {
+                        println!("var: {} is not diffined", self.tokens[self.token_idx-1].token);
+                        Err(TkError::UndiffinedVar)
+                    },
+                }
             },
             _ => Err(TkError::NotTkNumber),
         }
@@ -112,7 +128,7 @@ impl Lexer {
             // 0b423みたいなのがきたらエラーにしたい
             // TODO: a\sindsをどう扱うか決める -> 'a', '\sin', 'ds' or '\sinds'(構文解析のときにpanic)
             let mut c = self.formulas.chars().nth(0).unwrap();
-            if c == ' ' {
+            while c == ' ' {
                 self.formulas = self.formulas.replacen(" ", "", 1);
                 c = self.formulas.chars().nth(0).unwrap();
             }
@@ -120,7 +136,14 @@ impl Lexer {
             if c == '\\' {
                 if let Some(caps) = tex_command.captures(&self.formulas) {
                     // println!("<<< match '{}' as tex_command >>>", caps.get(0).unwrap().as_str());
-                    self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkTexCommand});
+                    let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
+                    match &*token {
+                        "\\times" => self.tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
+                        "\\cdot" => self.tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
+                        "\\div" => self.tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
+                        "\\pi" => self.tokens.push(Token {token: std::f64::consts::PI.to_string(), token_kind: TokenKind::TkNum}),
+                        _ => self.tokens.push(Token {token: token, token_kind: TokenKind::TkTexCommand}),
+                    }
                     self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     // println!("formulas: '{}'", self.formulas.replace(" ", ""));
                     ismatch = true;
@@ -148,7 +171,12 @@ impl Lexer {
             } else if let Some(caps) = var.captures(&self.formulas) {
                 if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() { panic!("invalid input \"{}\"", c); }
                 // println!("<<< match '{}' as var >>>", caps.get(0).unwrap().as_str());
-                self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkVariable});
+                let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
+                if token == "e" {
+                    self.tokens.push(Token {token: std::f64::consts::E.to_string(), token_kind: TokenKind::TkNum});
+                } else {
+                    self.tokens.push(Token {token: token, token_kind: TokenKind::TkVariable});
+                }
                 self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 // println!("formulas: '{}'", self.formulas.replace(" ", ""));
                 ismatch = true;
