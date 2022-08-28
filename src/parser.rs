@@ -38,13 +38,7 @@ pub struct Parser<'a> {
     vars: &'a HashMap<String, f64>,
 }
 
-// token(String)かNodeの参照のどちらか一方を持つデータ構造を用意、このデータ構造を仮にHogeとする
-// Hogeを要素に持つVecを用意
-// tokenを先頭から見て子を持つtoken(TexCommand, Operator)であれば子がNULLなNodeを形成して
-// Hogeに入に格納し、Vecにいれる。
-// tokenが子をもたないなら(Val, Num, Bracket)それをそのまま
-
-enum MathError {
+enum ParseNumLiteralError {
     DivisionByZero,
     InvalidHexFormat,
     InvalidBinFormat,
@@ -58,7 +52,7 @@ impl Parser<'_> {
         }
     }
 
-    fn hex2dec(num_str: &str) -> Result<f64, MathError> {
+    fn hex2dec(num_str: &str) -> Result<f64, ParseNumLiteralError> {
         let mut num: f64 = 0.0;
         let mut figure: f64 = 1.0;
         for i in num_str.chars() {
@@ -76,7 +70,7 @@ impl Parser<'_> {
                         "d" | "D" => 13.0,
                         "e" | "E" => 14.0,
                         "f" | "F" => 15.0,
-                        _ => return Err(MathError::InvalidHexFormat),
+                        _ => return Err(ParseNumLiteralError::InvalidHexFormat),
                     };
                     num += n * 16.0_f64.powf(num_str.len() as f64 - figure);
                     figure = figure + 1.0;
@@ -87,64 +81,56 @@ impl Parser<'_> {
         Ok(num)
     }
 
-    fn bin2dec(num_str: &str) -> Result<f64, MathError> {
+    fn bin2dec(num_str: &str) -> Result<f64, ParseNumLiteralError> {
         let mut num: f64 = 0.0;
         let mut figure: f64 = 1.0;
         for i in num_str.chars() {
             match f64::from_str(&i.to_string()) {
                 Ok(n) => {
-                    if n > 1.0_f64 { return Err(MathError::InvalidBinFormat) }
+                    if n > 1.0_f64 { return Err(ParseNumLiteralError::InvalidBinFormat) }
                     num += n * 2.0_f64.powf(num_str.len() as f64 - figure);
                     figure = figure + 1.0;
                 },
-                Err(_) => return Err(MathError::DivisionByZero),
+                Err(_) => return Err(ParseNumLiteralError::DivisionByZero),
             }
         }
         Ok(num)
     }
     
-    fn f64_from_str(num_str: &str) -> Result<f64, MathError> {
+    fn f64_from_str(num_str: &str) -> Result<f64, ParseNumLiteralError> {
         if num_str.len() < 2 {
             match f64::from_str(num_str) {
                 Ok(num) => {
-                    // println!("<<<Dec found>>>");
                     return Ok(num);
                 },
                 Err(_) => {
-                    // println!("<<<Dec found>>>");
-                    return Err(MathError::DivisionByZero);
+                    return Err(ParseNumLiteralError::DivisionByZero);
                 },
             }
         } else {
             match &num_str[0..2] {
-                "0x"=> match Parser::hex2dec(&num_str[2..]) {
+                "0x" => match Parser::hex2dec(&num_str[2..]) {
                     Ok(num) => {
-                        // println!("<<<Hex found>>>");
                         Ok(num)
                     },
                     Err(_) => {
-                        // println!("<<<Hex found>>>");
-                        Err(MathError::DivisionByZero)
+                        Err(ParseNumLiteralError::DivisionByZero)
                     },
                 },
-                "0b"=> match Parser::bin2dec(&num_str[2..]) {
+                "0b" => match Parser::bin2dec(&num_str[2..]) {
                     Ok(num) => {
-                        // println!("<<<Bin found>>>");
                         Ok(num)
                     },
                     Err(_) => {
-                        // println!("<<<Bin found>>>");
-                        Err(MathError::DivisionByZero)
+                        Err(ParseNumLiteralError::DivisionByZero)
                     },
                 },
                 _ => match f64::from_str(num_str) {
                     Ok(num) => {
-                        // println!("<<<Dec found>>>");
                         Ok(num)
                     },
                     Err(_) => {
-                        // println!("<<<Dec found>>>");
-                        Err(MathError::DivisionByZero)
+                        Err(ParseNumLiteralError::DivisionByZero)
                     },
                 },
             }

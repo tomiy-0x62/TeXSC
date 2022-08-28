@@ -94,8 +94,8 @@ fn main() {
 }
 
 enum CalcError {
-    Err,
     BrokenAstErr,
+    UDcommandErr,
 }
 
 fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
@@ -140,7 +140,7 @@ fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
         parser::NodeKind::NdSub => Ok(loperand - roperand),
         parser::NodeKind::NdMul => Ok(loperand * roperand),
         parser::NodeKind::NdDiv => Ok(loperand / roperand),
-        _  => Err(CalcError::Err), // TODO: エラーを起こす
+        _  => Err(CalcError::UDcommandErr),
     }
 
 }
@@ -152,6 +152,6 @@ fn getoperand(node: Box<parser::Node>) -> Result<f64, CalcError> {
         parser::NodeKind::NdMul => calc(node),
         parser::NodeKind::NdDiv => calc(node),
         parser::NodeKind::NdNum => Ok((*node).val.unwrap()),
-        _  => return Err(CalcError::Err),
+        _  => return Err(CalcError::UDcommandErr),
     }
 }
