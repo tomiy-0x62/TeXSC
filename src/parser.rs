@@ -2,8 +2,8 @@
 use std::collections::HashMap;
 use std::num::ParseFloatError;
 use std::str::FromStr;
-use std::error;
 use thiserror::Error;
+use std::fmt;
 
 pub mod lexer;
 
@@ -29,6 +29,28 @@ pub enum NodeKind {
     NdNum,
 }
 
+impl fmt::Display for NodeKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NodeKind::NdSin =>  write!(f, "NdSin"),
+            NodeKind::NdCos =>  write!(f, "NdCos"),
+            NodeKind::NdTan =>  write!(f, "NdTan"),
+            NodeKind::NdCsc =>  write!(f, "NdCsc"),
+            NodeKind::NdSec =>  write!(f, "NdSec"),
+            NodeKind::NdCot =>  write!(f, "NdCot"),
+            NodeKind::NdSqrt => write!(f, "NdSqrt"),
+            NodeKind::NdLog =>  write!(f, "NdLog"),
+            NodeKind::NdAbs =>  write!(f, "NdAbs"),
+            NodeKind::NdFrac => write!(f, "NdFrac"),
+            NodeKind::NdAdd =>  write!(f, "NdAdd"),
+            NodeKind::NdSub =>  write!(f, "NdSub"),
+            NodeKind::NdMul =>  write!(f, "NdMul"),
+            NodeKind::NdDiv =>  write!(f, "NdDiv"),
+            NodeKind::NdNum =>  write!(f, "NdNum"),
+        }
+    }
+}
+
 pub struct Node {
     pub node_kind: NodeKind,
     pub right_node: Option<Box<Node>>,
@@ -49,6 +71,16 @@ enum ParseNumError {
     InvalidBinFormat(String),
     #[error("{0}")]
     CantParse(#[from] ParseFloatError)
+}
+
+#[derive(Debug, Error)]
+pub enum ParserError {
+    #[error("{0}")]
+    UnExpectedToken(#[from] lexer::TkError),
+    #[error("Undiffined command: {0}")]
+    UDcommandErr(String),
+    #[error("{0}")]
+    CantParse(#[from] ParseNumError),
 }
 
 impl Parser<'_> {
@@ -162,7 +194,7 @@ impl Parser<'_> {
         Parser { lex: lex, vars: vars }
     }
 
-    pub fn build_ast(&mut self) -> Box<Node> {
+    pub fn build_ast(&mut self) -> Result<Box<Node>, ParserError> {
         self.expr()
     }
 
@@ -175,76 +207,63 @@ impl Parser<'_> {
     }
 
     fn show_node(place: String, node: &Node) {
-        println!("{}: create {{ Kind: {:?}, Val: {:?} }}", place, match node.node_kind {
-            NodeKind::NdSin => "NdSin",
-            NodeKind::NdCos => "NdCos",
-            NodeKind::NdTan => "NdTan",
-            NodeKind::NdCsc => "NdCsc",
-            NodeKind::NdSec => "NdSec",
-            NodeKind::NdCot => "NdCot",
-            NodeKind::NdSqrt => "NdSqr",
-            NodeKind::NdLog => "NdLog",
-            NodeKind::NdAbs => "NdAbs",
-            NodeKind::NdFrac => "NdFra",
-            NodeKind::NdAdd => "NdAdd",
-            NodeKind::NdSub => "NdSub",
-            NodeKind::NdMul => "NdMul",
-            NodeKind::NdDiv => "NdDiv",
-            NodeKind::NdNum => "NdNum",
-        }, node.val)
+        println!("{}: create {{ Kind: {}, Val: {:?} }}", place, node.node_kind.to_string(), node.val)
     }
 
-    fn expr(&mut self) -> Box<Node> {
-        let mut node: Box<Node> = self.mul();
+    fn expr(&mut self) -> Result<Box<Node>, ParserError> {
+        let mut node: Box<Node> = self.mul()?;
         loop {
             if self.lex.consume("+".to_string()) {
-                node = Parser::new_node(NodeKind::NdAdd, node, self.mul());
+                node = Parser::new_node(NodeKind::NdAdd, node, self.mul()?);
             } else if self.lex.consume("-".to_string()) {
-                node = Parser::new_node(NodeKind::NdSub, node, self.mul());
+                node = Parser::new_node(NodeKind::NdSub, node, self.mul()?);
             } else {
                 Parser::show_node("expr".to_string(), &node);
-                return node;
+                return Ok(node);
             }
         }
     }
 
-    fn mul(&mut self) -> Box<Node> {
-        let mut node: Box<Node> = self.primary();
+    fn mul(&mut self) -> Result<Box<Node>, ParserError> {
+        let mut node: Box<Node> = self.primary()?;
         Parser::show_node("primary".to_string(), &node);
         loop {
             if self.lex.consume("*".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.primary());
+                node = Parser::new_node(NodeKind::NdMul, node, self.primary()?);
             } else if self.lex.consume("\\times".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.primary());
+                node = Parser::new_node(NodeKind::NdMul, node, self.primary()?);
             } else if self.lex.consume("\\cdot".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.primary());
+                node = Parser::new_node(NodeKind::NdMul, node, self.primary()?);
             }else if self.lex.consume("\\div".to_string()) {
-                node = Parser::new_node(NodeKind::NdDiv, node, self.primary());
+                node = Parser::new_node(NodeKind::NdDiv, node, self.primary()?);
             } else if self.lex.consume("/".to_string()) {
-                node = Parser::new_node(NodeKind::NdDiv, node, self.primary());
+                node = Parser::new_node(NodeKind::NdDiv, node, self.primary()?);
             } else {
                 Parser::show_node("mul".to_string(), &node);
-                return node;
+                return Ok(node);
             }
         }
     }
 
-    fn primary(&mut self) -> Box<Node> {
+    fn primary(&mut self) -> Result<Box<Node>, ParserError> {
         if self.lex.consume("(".to_string()) {
-            let node: Box<Node> = self.expr();
-            self.lex.expect(")".to_string());
-            return node;
+            let node: Box<Node> = self.expr()?;
+            match self.lex.expect(")".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            return Ok(node);
         }
         let val:f64 = match self.lex.expect_number(self.vars) {
             Ok(v) => {
                 match Parser::f64_from_str(&v) {
                     Ok(v) => v,
-                    Err(e) => panic!("failed to parse '{}' to f64", v),
+                    Err(e) => return Err(ParserError::CantParse(e)),
                 }
             },
-            Err(e) => panic!(e),
+            Err(e) => return Err(ParserError::UnExpectedToken(e)),
         };
-        return Parser::new_node_num(val);
+        return Ok(Parser::new_node_num(val));
 
     }
 }

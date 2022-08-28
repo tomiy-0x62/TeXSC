@@ -1,11 +1,11 @@
 // TeX Scientific Calculator
 
 use clap::{Command, Arg};
-use parser::Node;
 use std::fs::File;
 use std::io::{BufReader, BufRead, stdout, Write};
 use std::io;
 use std::collections::HashMap;
+use thiserror::Error;
 
 // mod lexer;
 mod parser;
@@ -23,14 +23,25 @@ fn main_loop() {
         }
         let mut lex = parser::lexer::Lexer::new(form.to_string());
         lex.print_form();
-        lex.analyze();
+        match lex.analyze() {
+            Ok(_) => (),
+            Err(e) => {
+                println!("{}", e);
+                continue;
+            }
+        };
         let mut _pars = parser::Parser::new(lex, &mut vars);
         _pars.print_vars();
-        let mut ast_root = _pars.build_ast();
-        if let Ok(result) = calc(ast_root) {
-            println!("resutl: {}", result);
-        } else {
-            println!("failed");
+        let ast_root = match _pars.build_ast() {
+            Ok(ast) => ast,
+            Err(e) => {
+                println!("Err: {}", e);
+                continue;
+            },
+        };
+        match calc(ast_root) {
+            Ok(result) => println!("resutl: {}", result),
+            Err(e) => println!("{}", e),
         }
     }
 }
@@ -56,14 +67,25 @@ fn main() {
     if let Some(form) = matches.value_of("tex formulas") {
         let mut lex = parser::lexer::Lexer::new(form.to_string());
         lex.print_form();
-        lex.analyze();
+        match lex.analyze() {
+            Ok(_) => (),
+            Err(e) => {
+                println!("{}", e);
+                return;
+            }
+        };
         let mut vars: HashMap<String, f64> = HashMap::new();
         let mut _pars = parser::Parser::new(lex, &mut vars);
-        let mut ast_root = _pars.build_ast();
-        if let Ok(result) = calc(ast_root) {
-            println!("resutl: {}", result);
-        } else {
-            println!("failed");
+        let ast_root = match _pars.build_ast() {
+            Ok(ast) => ast,
+            Err(e) => {
+                println!("Err: {}", e);
+                return;
+            },
+        };
+        match calc(ast_root) {
+            Ok(result) => println!("resutl: {}", result),
+            Err(e) => println!("{}", e),
         }
         return;
     }
@@ -75,14 +97,25 @@ fn main() {
         for result in reader.lines() {
             let mut lex = parser::lexer::Lexer::new(result.unwrap());
             lex.print_form();
-            lex.analyze();
+            match lex.analyze() {
+                Ok(_) => (),
+                Err(e) => {
+                    println!("{}", e);
+                    continue;
+                }
+            };
             let mut vars: HashMap<String, f64> = HashMap::new();
             let mut _pars = parser::Parser::new(lex, &mut vars);
-            let mut ast_root = _pars.build_ast();
-            if let Ok(result) = calc(ast_root) {
-                println!("resutl: {}", result);
-            } else {
-                println!("failed");
+            let ast_root = match _pars.build_ast() {
+                Ok(ast) => ast,
+                Err(e) => {
+                    println!("Err: {}", e);
+                    continue;
+                },
+            };
+            match calc(ast_root) {
+                Ok(result) => println!("resutl: {}", result),
+                Err(e) => println!("{}", e),
             }
         }
         return;
@@ -93,9 +126,12 @@ fn main() {
     
 }
 
+#[derive(Debug, Error)]
 enum CalcError {
+    #[error("Broken AST")]
     BrokenAstErr,
-    UDcommandErr,
+    #[error("Undiffined command: {0}")]
+    UDcommandErr(String),
 }
 
 fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
@@ -119,7 +155,7 @@ fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
     if let Some(right) = (*node).right_node {
         roperand = getoperand(right)?;
     } else {
-        // NdNum以外でleftがNoneはありえる
+        // NdNum以外でrightがNoneはありえる
         // 前置, 1引数のノードの場合 => 正常
         // それ以外 => 不正なAST
         match (*node).node_kind {
@@ -140,7 +176,7 @@ fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
         parser::NodeKind::NdSub => Ok(loperand - roperand),
         parser::NodeKind::NdMul => Ok(loperand * roperand),
         parser::NodeKind::NdDiv => Ok(loperand / roperand),
-        _  => Err(CalcError::UDcommandErr),
+        _  => Err(CalcError::UDcommandErr((*node).node_kind.to_string())),
     }
 
 }
@@ -152,6 +188,6 @@ fn getoperand(node: Box<parser::Node>) -> Result<f64, CalcError> {
         parser::NodeKind::NdMul => calc(node),
         parser::NodeKind::NdDiv => calc(node),
         parser::NodeKind::NdNum => Ok((*node).val.unwrap()),
-        _  => return Err(CalcError::UDcommandErr),
+        _  => return Err(CalcError::UDcommandErr((*node).node_kind.to_string())),
     }
 }

@@ -1,6 +1,9 @@
 
+use clap::Error;
 use regex::Regex;
 use std::collections::HashMap;
+use thiserror::Error;
+use std::fmt;
 
 pub enum TokenKind {
     TkTexCommand,
@@ -9,6 +12,19 @@ pub enum TokenKind {
     TkNum,
     TkBrace,
     TkEOT,
+}
+
+impl fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TokenKind::TkTexCommand  => write!(f, "kTexCommand"),
+            TokenKind::TkOperator    => write!(f, "TkOperator"),
+            TokenKind::TkVariable    => write!(f, "TkVariable"),
+            TokenKind::TkNum         => write!(f, "TkNum"),
+            TokenKind::TkBrace       => write!(f, "TkBrace"),
+            TokenKind::TkEOT         => write!(f, "TkEOT"),
+        }
+    }
 }
 
 pub struct Token {
@@ -22,12 +38,24 @@ pub struct Lexer {
     pub token_idx: usize
 }
 
+#[derive(Debug, Error)]
 pub enum TkError {
-    NotTkNumber,
-    NotTkOperator,
-    NotExpected,
-    Succsess,
-    UndiffinedVar,
+    #[error("expected TkNumber but {0}")]
+    NotTkNumber(String),
+    #[error("expected TkOperator but {0}")]
+    NotTkOperator(String),
+    #[error("undiffined variable: {0}")]
+    UndiffinedVar(String),
+    #[error("expected {0} but {1}")]
+    NotExpected(String, String),
+}
+
+#[derive(Debug, Error)]
+pub enum LexerError {
+    #[error("invalid input {0}")]
+    InvalidInput(String),
+    #[error("expected TkOperator but {0}")]
+    NotTkOperator(String),
 }
 
 /*
@@ -71,17 +99,17 @@ impl Lexer {
         }
     }
 
-    pub fn expect(&mut self, op: String) -> TkError {
+    pub fn expect(&mut self, op: String) -> Result<(), TkError> {
         match self.tokens[self.token_idx].token_kind {
             TokenKind::TkOperator => {
                 if self.tokens[self.token_idx].token == op {
                     self.token_idx += 1;
-                    TkError::Succsess
+                    return Ok(());
                 } else {
-                    TkError::NotExpected
+                    Err(TkError::NotExpected(op, self.tokens[self.token_idx].token.to_string()))
                 }
             },
-            _ => TkError::NotTkOperator,
+            _ => Err(TkError::NotTkOperator(self.tokens[self.token_idx].token_kind.to_string())),
         }
     }
 
@@ -99,12 +127,11 @@ impl Lexer {
                         Ok(v.to_string())
                     },
                     None => {
-                        println!("var: {} is not diffined", self.tokens[self.token_idx-1].token);
-                        Err(TkError::UndiffinedVar)
+                        Err(TkError::UndiffinedVar(self.tokens[self.token_idx-1].token.to_string()))
                     },
                 }
             },
-            _ => Err(TkError::NotTkNumber),
+            _ => Err(TkError::NotTkNumber(self.tokens[self.token_idx].token_kind.to_string())),
         }
     }
 
@@ -115,7 +142,7 @@ impl Lexer {
         }
     }
 
-    pub fn analyze(&mut self) {
+    pub fn analyze(&mut self) -> Result<(), LexerError> {
         let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap(); // OK
         let operator = Regex::new(r"\+|-|\*|=|/|!|_|,|\^|\|").unwrap(); // OK
         let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap(); // OK
@@ -160,7 +187,7 @@ impl Lexer {
                     ismatch = true;
                 }
             } else if let Some(caps) = var.captures(&self.formulas) {
-                if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() { panic!("invalid input \"{}\"", c); }
+                if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() { return Err(LexerError::InvalidInput(c.to_string())); }
                 let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
                 if token == "e" {
                     self.tokens.push(Token {token: std::f64::consts::E.to_string(), token_kind: TokenKind::TkNum});
@@ -171,7 +198,7 @@ impl Lexer {
                 ismatch = true;
             } 
             if !ismatch {
-                panic!("hoge");
+                return Err(LexerError::InvalidInput(c.to_string()));
             }
 
             if self.formulas.len() == 0 {
@@ -191,6 +218,7 @@ impl Lexer {
             println!("<<< match '{}' >>>", caps.get(0).unwrap().as_str());
             // if let Some(hoge) = caps.get(0)
         }
+        return Ok(());
 
     }
 }
