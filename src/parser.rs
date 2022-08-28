@@ -1,6 +1,9 @@
 
 use std::collections::HashMap;
+use std::num::ParseFloatError;
 use std::str::FromStr;
+use std::error;
+use thiserror::Error;
 
 pub mod lexer;
 
@@ -38,10 +41,14 @@ pub struct Parser<'a> {
     vars: &'a HashMap<String, f64>,
 }
 
-enum ParseNumLiteralError {
-    DivisionByZero,
-    InvalidHexFormat,
-    InvalidBinFormat,
+#[derive(Debug, Error)]
+enum ParseNumError {
+    #[error("Invalid hex format: {0}")]
+    InvalidHexFormat(String),
+    #[error("Invalid binary format: {0}")]
+    InvalidBinFormat(String),
+    #[error("{0}")]
+    CantParse(#[from] ParseFloatError)
 }
 
 impl Parser<'_> {
@@ -52,7 +59,7 @@ impl Parser<'_> {
         }
     }
 
-    fn hex2dec(num_str: &str) -> Result<f64, ParseNumLiteralError> {
+    fn hex2dec(num_str: &str) -> Result<f64, ParseNumError> {
         let mut num: f64 = 0.0;
         let mut figure: f64 = 1.0;
         for i in num_str.chars() {
@@ -60,7 +67,7 @@ impl Parser<'_> {
             match f64::from_str(&i.to_string()) {
                 Ok(n) => {
                     num += n * 16.0_f64.powf(num_str.len() as f64 - figure);
-                    figure = figure + 1.0;
+                    figure += 1.0;
                 },
                 Err(_) => {
                     let n: f64 = match &i.to_string()[0..1] {
@@ -70,7 +77,7 @@ impl Parser<'_> {
                         "d" | "D" => 13.0,
                         "e" | "E" => 14.0,
                         "f" | "F" => 15.0,
-                        _ => return Err(ParseNumLiteralError::InvalidHexFormat),
+                        _ => return Err(ParseNumError::InvalidHexFormat(num_str.to_string())),
                     };
                     num += n * 16.0_f64.powf(num_str.len() as f64 - figure);
                     figure = figure + 1.0;
@@ -81,61 +88,42 @@ impl Parser<'_> {
         Ok(num)
     }
 
-    fn bin2dec(num_str: &str) -> Result<f64, ParseNumLiteralError> {
+    fn bin2dec(num_str: &str) -> Result<f64, ParseNumError> {
         let mut num: f64 = 0.0;
         let mut figure: f64 = 1.0;
         for i in num_str.chars() {
             match f64::from_str(&i.to_string()) {
                 Ok(n) => {
-                    if n > 1.0_f64 { return Err(ParseNumLiteralError::InvalidBinFormat) }
+                    if n > 1.0_f64 { return Err(ParseNumError::InvalidBinFormat(num_str.to_string())) }
                     num += n * 2.0_f64.powf(num_str.len() as f64 - figure);
                     figure = figure + 1.0;
                 },
-                Err(_) => return Err(ParseNumLiteralError::DivisionByZero),
+                Err(e) => return Err(ParseNumError::CantParse(e)),
             }
         }
         Ok(num)
     }
     
-    fn f64_from_str(num_str: &str) -> Result<f64, ParseNumLiteralError> {
+    fn f64_from_str(num_str: &str) -> Result<f64, ParseNumError> {
         if num_str.len() < 2 {
             match f64::from_str(num_str) {
                 Ok(num) => {
                     return Ok(num);
                 },
-                Err(_) => {
-                    return Err(ParseNumLiteralError::DivisionByZero);
-                },
+                Err(e) => return Err(ParseNumError::CantParse(e)),
             }
         } else {
             match &num_str[0..2] {
-                "0x" => match Parser::hex2dec(&num_str[2..]) {
-                    Ok(num) => {
-                        Ok(num)
-                    },
-                    Err(_) => {
-                        Err(ParseNumLiteralError::DivisionByZero)
-                    },
-                },
-                "0b" => match Parser::bin2dec(&num_str[2..]) {
-                    Ok(num) => {
-                        Ok(num)
-                    },
-                    Err(_) => {
-                        Err(ParseNumLiteralError::DivisionByZero)
-                    },
-                },
+                "0x" => Parser::hex2dec(&num_str[2..]),
+                "0b" => Parser::bin2dec(&num_str[2..]),
                 _ => match f64::from_str(num_str) {
                     Ok(num) => {
                         Ok(num)
                     },
-                    Err(_) => {
-                        Err(ParseNumLiteralError::DivisionByZero)
-                    },
+                    Err(e) => return Err(ParseNumError::CantParse(e)),
                 },
             }
-    }
-        
+        }
     }
 
     pub fn new(mut lex: lexer::Lexer, vars: &mut HashMap<String, f64>) -> Parser {
