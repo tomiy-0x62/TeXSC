@@ -95,6 +95,14 @@ impl Lexer {
                     false
                 }
             },
+            TokenKind::TkBrace => {
+                if self.tokens[self.token_idx].token == op {
+                    self.token_idx += 1;
+                    true
+                } else {
+                    false
+                }
+            },
             _ => false,
         }
     }
@@ -102,6 +110,14 @@ impl Lexer {
     pub fn expect(&mut self, op: String) -> Result<(), TkError> {
         match self.tokens[self.token_idx].token_kind {
             TokenKind::TkOperator => {
+                if self.tokens[self.token_idx].token == op {
+                    self.token_idx += 1;
+                    return Ok(());
+                } else {
+                    Err(TkError::NotExpected(op, self.tokens[self.token_idx].token.to_string()))
+                }
+            },
+            TokenKind::TkBrace => {
                 if self.tokens[self.token_idx].token == op {
                     self.token_idx += 1;
                     return Ok(());

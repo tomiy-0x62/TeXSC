@@ -6,6 +6,7 @@ use std::io::{BufReader, BufRead, stdout, Write};
 use std::io;
 use std::collections::HashMap;
 use thiserror::Error;
+use parser::ParserError;
 
 // mod lexer;
 mod parser;
@@ -34,9 +35,12 @@ fn main_loop() {
         _pars.print_vars();
         let ast_root = match _pars.build_ast() {
             Ok(ast) => ast,
-            Err(e) => {
-                println!("Err: {}", e);
-                continue;
+            Err(e) => match e {
+                ParserError::NoToken => continue,
+                _ => {
+                    println!("{}", e);
+                    continue;
+                },
             },
         };
         match calc(ast_root) {
@@ -78,9 +82,12 @@ fn main() {
         let mut _pars = parser::Parser::new(lex, &mut vars);
         let ast_root = match _pars.build_ast() {
             Ok(ast) => ast,
-            Err(e) => {
-                println!("Err: {}", e);
-                return;
+            Err(e) => match e {
+                ParserError::NoToken => return,
+                _ => {
+                    println!("{}", e);
+                    return;
+                },
             },
         };
         match calc(ast_root) {
@@ -108,9 +115,12 @@ fn main() {
             let mut _pars = parser::Parser::new(lex, &mut vars);
             let ast_root = match _pars.build_ast() {
                 Ok(ast) => ast,
-                Err(e) => {
-                    println!("Err: {}", e);
-                    continue;
+                Err(e) => match e {
+                    ParserError::NoToken => continue,
+                    _ => {
+                        println!("{}", e);
+                        continue;
+                    },
                 },
             };
             match calc(ast_root) {

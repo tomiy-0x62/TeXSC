@@ -81,6 +81,8 @@ pub enum ParserError {
     UDcommandErr(String),
     #[error("{0}")]
     CantParse(#[from] ParseNumError),
+    #[error("There is no token to process")]
+    NoToken,
 }
 
 impl Parser<'_> {
@@ -195,8 +197,11 @@ impl Parser<'_> {
     }
 
     pub fn build_ast(&mut self) -> Result<Box<Node>, ParserError> {
+        if self.lex.is_eot() {
+            return Err(ParserError::NoToken);
+        }
         let ast = self.expr();
-        if  !self.lex.is_eot() {
+        if !self.lex.is_eot() {
             return Err(ParserError::UDcommandErr(self.lex.now_token().to_string()));
         }
         ast
