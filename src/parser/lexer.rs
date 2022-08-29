@@ -142,6 +142,10 @@ impl Lexer {
         }
     }
 
+    pub fn now_token(&self) -> &str {
+        &self.tokens[self.token_idx].token
+    }
+
     pub fn analyze(&mut self) -> Result<(), LexerError> {
         let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap(); // OK
         let operator = Regex::new(r"\+|-|\*|=|/|!|_|,|\^|\|").unwrap(); // OK
