@@ -210,6 +210,12 @@ impl Parser<'_> {
         println!("{}: create {{ Kind: {}, Val: {:?} }}", place, node.node_kind.to_string(), node.val)
     }
 
+    /*
+    expr    = mul ("+" mul | "-" mul)*
+    mul     = primary ("*" primary | "/" primary | "\cdto" primary | "\times" primary | "\div" primary)*
+    primary = num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "}"
+    */
+
     fn expr(&mut self) -> Result<Box<Node>, ParserError> {
         let mut node: Box<Node> = self.mul()?;
         loop {
@@ -252,6 +258,28 @@ impl Parser<'_> {
                 Ok(_) => (),
                 Err(e) => return Err(ParserError::UnExpectedToken(e)),
             };
+            return Ok(node);
+        }
+        if self.lex.consume("\\frac".to_string()) {
+            match self.lex.expect("{".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let lnode: Box<Node> = self.expr()?;
+            match self.lex.expect("}".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            match self.lex.expect("{".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let rnode: Box<Node> = self.expr()?;
+            match self.lex.expect("}".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let node = Parser::new_node(NodeKind::NdFrac, lnode, rnode);
             return Ok(node);
         }
         let val:f64 = match self.lex.expect_number(self.vars) {
