@@ -81,6 +81,8 @@ pub enum ParserError {
     UDcommandErr(String),
     #[error("{0}")]
     CantParse(#[from] ParseNumError),
+    #[error("There is no token to process")]
+    NoToken,
 }
 
 impl Parser<'_> {
@@ -195,7 +197,14 @@ impl Parser<'_> {
     }
 
     pub fn build_ast(&mut self) -> Result<Box<Node>, ParserError> {
-        self.expr()
+        if self.lex.is_eot() {
+            return Err(ParserError::NoToken);
+        }
+        let ast = self.expr();
+        if !self.lex.is_eot() {
+            return Err(ParserError::UDcommandErr(self.lex.now_token().to_string()));
+        }
+        ast
     }
 
     fn new_node(kind: NodeKind, left: Box<Node>, right: Box<Node>) -> Box<Node> {
@@ -233,7 +242,7 @@ impl Parser<'_> {
     fn mul(&mut self) -> Result<Box<Node>, ParserError> {
         let mut node: Box<Node> = self.primary()?;
         Parser::show_node("primary".to_string(), &node);
-        loop {
+        loop { // why loop?
             if self.lex.consume("*".to_string()) {
                 node = Parser::new_node(NodeKind::NdMul, node, self.primary()?);
             } else if self.lex.consume("\\times".to_string()) {
