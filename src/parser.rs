@@ -18,8 +18,6 @@ pub enum NodeKind {
     NdSqrt,
     NdLog,
     NdAbs,
-    // 前置, 2引数
-    NdFrac,
     // 中置
     NdAdd,
     NdSub,
@@ -41,7 +39,6 @@ impl fmt::Display for NodeKind {
             NodeKind::NdSqrt => write!(f, "NdSqrt"),
             NodeKind::NdLog =>  write!(f, "NdLog"),
             NodeKind::NdAbs =>  write!(f, "NdAbs"),
-            NodeKind::NdFrac => write!(f, "NdFrac"),
             NodeKind::NdAdd =>  write!(f, "NdAdd"),
             NodeKind::NdSub =>  write!(f, "NdSub"),
             NodeKind::NdMul =>  write!(f, "NdMul"),
@@ -162,7 +159,6 @@ impl Parser<'_> {
 
     pub fn new(mut lex: lexer::Lexer, vars: &mut HashMap<String, f64>) -> Parser {
         // lex から varsを構築
-        // TODO: lex.tokensから変数部分を削除
         let mut to_delete_el = Vec::<usize>::new();
         for i in 0..lex.tokens.len() {
             if lex.tokens[i].token == "," {
@@ -211,6 +207,10 @@ impl Parser<'_> {
         Box::new(Node { node_kind: kind, right_node: Some(right), left_node: Some(left), val: None })
     }
 
+    fn new_unary_node(kind: NodeKind, left: Box<Node>) -> Box<Node> {
+        Box::new(Node { node_kind: kind, right_node: None, left_node: Some(left), val: None })
+    }
+
     fn new_node_num(val: f64) -> Box<Node> {
         Box::new(Node { node_kind: NodeKind::NdNum, right_node: None, left_node: None, val: Some(val) })
     }
@@ -222,7 +222,7 @@ impl Parser<'_> {
     /*
     expr    = mul ("+" mul | "-" mul)*
     mul     = primary ("*" primary | "/" primary | "\cdto" primary | "\times" primary | "\div" primary)*
-    primary = num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "}"
+    primary = num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\log" "{" expr "} | "\sin" "{" expr "} | "\cos" "{" expr "} | "\tan" "{" expr "}
     */
 
     fn expr(&mut self) -> Result<Box<Node>, ParserError> {
@@ -288,7 +288,72 @@ impl Parser<'_> {
                 Ok(_) => (),
                 Err(e) => return Err(ParserError::UnExpectedToken(e)),
             };
-            let node = Parser::new_node(NodeKind::NdFrac, lnode, rnode);
+            let node = Parser::new_node(NodeKind::NdDiv, lnode, rnode);
+            return Ok(node);
+        }
+        if self.lex.consume("\\sqrt".to_string()) {
+            match self.lex.expect("{".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let node: Box<Node> = self.expr()?;
+            match self.lex.expect("}".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let node = Parser::new_unary_node(NodeKind::NdSqrt, node);
+            return Ok(node);
+        }
+        if self.lex.consume("\\log".to_string()) {
+            match self.lex.expect("{".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let node: Box<Node> = self.expr()?;
+            match self.lex.expect("}".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let node = Parser::new_unary_node(NodeKind::NdLog, node);
+            return Ok(node);
+        }
+        if self.lex.consume("\\sin".to_string()) {
+            match self.lex.expect("{".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let node: Box<Node> = self.expr()?;
+            match self.lex.expect("}".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let node = Parser::new_unary_node(NodeKind::NdSin, node);
+            return Ok(node);
+        }
+        if self.lex.consume("\\cos".to_string()) {
+            match self.lex.expect("{".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let node: Box<Node> = self.expr()?;
+            match self.lex.expect("}".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let node = Parser::new_unary_node(NodeKind::NdCos, node);
+            return Ok(node);
+        }
+        if self.lex.consume("\\tan".to_string()) {
+            match self.lex.expect("{".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let node: Box<Node> = self.expr()?;
+            match self.lex.expect("}".to_string()) {
+                Ok(_) => (),
+                Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            };
+            let node = Parser::new_unary_node(NodeKind::NdTan, node);
             return Ok(node);
         }
         let val:f64 = match self.lex.expect_number(self.vars) {

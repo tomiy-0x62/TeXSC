@@ -103,6 +103,14 @@ impl Lexer {
                     false
                 }
             },
+            TokenKind::TkTexCommand => {
+                if self.tokens[self.token_idx].token == op {
+                    self.token_idx += 1;
+                    true
+                } else {
+                    false
+                }
+            },
             _ => false,
         }
     }
@@ -161,7 +169,6 @@ impl Lexer {
     pub fn now_token(&self) -> &str {
         &self.tokens[self.token_idx].token
     }
-
     pub fn analyze(&mut self) -> Result<(), LexerError> {
         let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap(); // OK
         let operator = Regex::new(r"\+|-|\*|=|/|!|_|,|\^|\|").unwrap(); // OK
@@ -169,6 +176,7 @@ impl Lexer {
         let num = Regex::new(r"0x[0-9a-fA-F]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap(); // OK
         let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap(); // OK
 
+        'search:
         loop {
             // TODO: 0b423 -> num:"0", var"b423"と分割失敗してるのを修正
             // 0b423みたいなのがきたらエラーにしたい
@@ -176,7 +184,14 @@ impl Lexer {
             let mut c = self.formulas.chars().nth(0).unwrap();
             while c == ' ' {
                 self.formulas = self.formulas.replacen(" ", "", 1);
-                c = self.formulas.chars().nth(0).unwrap();
+                c = match self.formulas.chars().nth(0) {
+                    Some(c) => c,
+                    None => {
+                        self.tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
+                        self.print_token();
+                        break 'search
+                    },
+                }
             }
             let mut ismatch = false;
             if c == '\\' {

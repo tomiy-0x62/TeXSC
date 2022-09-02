@@ -10,9 +10,11 @@ use parser::ParserError;
 
 // mod lexer;
 mod parser;
+mod input;
 
 fn main_loop() {
     let mut vars: HashMap<String, f64> = HashMap::new();
+    input::set_RawMode();
     loop {
         print!("tsc> ");
         stdout().flush().unwrap();
@@ -186,6 +188,11 @@ fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
         parser::NodeKind::NdSub => Ok(loperand - roperand),
         parser::NodeKind::NdMul => Ok(loperand * roperand),
         parser::NodeKind::NdDiv => Ok(loperand / roperand),
+        parser::NodeKind::NdSqrt => Ok(loperand.sqrt()), // TODO: sqrtの中が負のときの処理を実装
+        parser::NodeKind::NdLog => Ok(loperand.log(std::f64::consts::E)),
+        parser::NodeKind::NdSin => Ok(loperand.sin()),
+        parser::NodeKind::NdCos => Ok(loperand.cos()),
+        parser::NodeKind::NdTan => Ok(loperand.tan()),
         _  => Err(CalcError::UDcommandErr((*node).node_kind.to_string())),
     }
 
@@ -197,6 +204,11 @@ fn getoperand(node: Box<parser::Node>) -> Result<f64, CalcError> {
         parser::NodeKind::NdSub => calc(node),
         parser::NodeKind::NdMul => calc(node),
         parser::NodeKind::NdDiv => calc(node),
+        parser::NodeKind::NdSqrt => calc(node),
+        parser::NodeKind::NdLog => calc(node),
+        parser::NodeKind::NdSin => calc(node),
+        parser::NodeKind::NdCos => calc(node),
+        parser::NodeKind::NdTan => calc(node),
         parser::NodeKind::NdNum => Ok((*node).val.unwrap()),
         _  => return Err(CalcError::UDcommandErr((*node).node_kind.to_string())),
     }
