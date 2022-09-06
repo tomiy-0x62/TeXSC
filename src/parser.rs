@@ -304,34 +304,34 @@ impl Parser<'_> {
         }
 
         if self.lex.consume("\\sqrt".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdSqrt, self.arg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdSqrt, self.parg_node()?));
         }
         if self.lex.consume("\\log".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdLog, self.arg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdLog, self.expr()?));
         }
         if self.lex.consume("\\ln".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdLn, self.arg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdLn, self.expr()?));
         }
         if self.lex.consume("\\exp".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdExp, self.arg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdExp, self.carg_node()?));
         }
         if self.lex.consume("\\sin".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdSin, self.arg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdSin, self.expr()?));
         }
         if self.lex.consume("\\cos".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdCos, self.arg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdCos, self.expr()?));
         }
         if self.lex.consume("\\tan".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdTan, self.arg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdTan, self.expr()?));
         }
         if self.lex.consume("\\arcsin".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdAcSin, self.arg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdAcSin, self.expr()?));
         }
         if self.lex.consume("\\arccos".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdAcCos, self.arg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdAcCos, self.expr()?));
         }
         if self.lex.consume("\\arctan".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdAcTan, self.arg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdAcTan, self.expr()?));
         }
         let val:f64 = match self.lex.expect_number(self.vars) {
             Ok(v) => {
@@ -346,13 +346,26 @@ impl Parser<'_> {
 
     }
 
-    fn arg_node(&mut self) -> Result<Box<Node>, ParserError> {
+    fn parg_node(&mut self) -> Result<Box<Node>, ParserError> {
         match self.lex.expect("{".to_string()) {
             Ok(_) => (),
             Err(e) => return Err(ParserError::UnExpectedToken(e)),
         };
         let node: Box<Node> = self.expr()?;
         match self.lex.expect("}".to_string()) {
+            Ok(_) => (),
+            Err(e) => return Err(ParserError::UnExpectedToken(e)),
+        };
+        Ok(node)
+    }
+
+    fn carg_node(&mut self) -> Result<Box<Node>, ParserError> {
+        match self.lex.expect("(".to_string()) {
+            Ok(_) => (),
+            Err(e) => return Err(ParserError::UnExpectedToken(e)),
+        };
+        let node: Box<Node> = self.expr()?;
+        match self.lex.expect(")".to_string()) {
             Ok(_) => (),
             Err(e) => return Err(ParserError::UnExpectedToken(e)),
         };
