@@ -10,11 +10,9 @@ use parser::ParserError;
 
 // mod lexer;
 mod parser;
-mod input;
 
 fn main_loop() {
     let mut vars: HashMap<String, f64> = HashMap::new();
-    input::set_RawMode();
     loop {
         print!("tsc> ");
         stdout().flush().unwrap();
@@ -177,8 +175,13 @@ fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
             parser::NodeKind::NdCsc => (),
             parser::NodeKind::NdSec => (),
             parser::NodeKind::NdCot => (),
+            parser::NodeKind::NdAcSin => (),
+            parser::NodeKind::NdAcCos => (),
+            parser::NodeKind::NdAcTan => (),
             parser::NodeKind::NdSqrt => (),
             parser::NodeKind::NdLog => (),
+            parser::NodeKind::NdLn => (),
+            parser::NodeKind::NdExp => (),
             _ => return Err(CalcError::BrokenAstErr),
         }
     }
@@ -190,9 +193,14 @@ fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
         parser::NodeKind::NdDiv => Ok(loperand / roperand),
         parser::NodeKind::NdSqrt => Ok(loperand.sqrt()), // TODO: sqrtの中が負のときの処理を実装
         parser::NodeKind::NdLog => Ok(loperand.log(std::f64::consts::E)),
+        parser::NodeKind::NdLn => Ok(loperand.log(std::f64::consts::E)),
+        parser::NodeKind::NdExp => Ok(std::f64::consts::E.powf(loperand)),
         parser::NodeKind::NdSin => Ok(loperand.sin()),
         parser::NodeKind::NdCos => Ok(loperand.cos()),
         parser::NodeKind::NdTan => Ok(loperand.tan()),
+        parser::NodeKind::NdAcSin => Ok(loperand.asin()),
+        parser::NodeKind::NdAcCos => Ok(loperand.acos()),
+        parser::NodeKind::NdAcTan => Ok(loperand.atan()),
         _  => Err(CalcError::UDcommandErr((*node).node_kind.to_string())),
     }
 
@@ -206,9 +214,14 @@ fn getoperand(node: Box<parser::Node>) -> Result<f64, CalcError> {
         parser::NodeKind::NdDiv => calc(node),
         parser::NodeKind::NdSqrt => calc(node),
         parser::NodeKind::NdLog => calc(node),
+        parser::NodeKind::NdLn => calc(node),
+        parser::NodeKind::NdExp => calc(node),
         parser::NodeKind::NdSin => calc(node),
         parser::NodeKind::NdCos => calc(node),
         parser::NodeKind::NdTan => calc(node),
+        parser::NodeKind::NdAcSin => calc(node),
+        parser::NodeKind::NdAcCos => calc(node),
+        parser::NodeKind::NdAcTan => calc(node),
         parser::NodeKind::NdNum => Ok((*node).val.unwrap()),
         _  => return Err(CalcError::UDcommandErr((*node).node_kind.to_string())),
     }
