@@ -178,9 +178,6 @@ impl Lexer {
 
         'search:
         loop {
-            // TODO: 0b423 -> num:"0", var"b423"と分割失敗してるのを修正
-            // 0b423みたいなのがきたらエラーにしたい
-            // TODO: a\sindsをどう扱うか決める -> 'a', '\sin', 'ds' or '\sinds'(構文解析のときにpanic)
             let mut c = self.formulas.chars().nth(0).unwrap();
             while c == ' ' {
                 self.formulas = self.formulas.replacen(" ", "", 1);
