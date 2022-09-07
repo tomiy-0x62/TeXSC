@@ -147,7 +147,7 @@ impl Lexer {
                 self.token_idx += 1;
                 match vars.get(&self.tokens[self.token_idx-1].token) {
                     Some(v) => {
-                        println!("var: {} = {}", self.tokens[self.token_idx-1].token, v);
+                        // println!("var: {} = {}", self.tokens[self.token_idx-1].token, v);
                         Ok(v.to_string())
                     },
                     None => {
@@ -188,7 +188,7 @@ impl Lexer {
                     Some(c) => c,
                     None => {
                         self.tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
-                        self.print_token();
+                        // self.print_token();
                         break 'search
                     },
                 }
@@ -238,7 +238,7 @@ impl Lexer {
 
             if self.formulas.len() == 0 {
                 self.tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
-                self.print_token();
+                // self.print_token();
                 break;
             }
         }

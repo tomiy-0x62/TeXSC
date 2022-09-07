@@ -23,7 +23,7 @@ fn main_loop() {
             return;
         }
         let mut lex = parser::lexer::Lexer::new(form.to_string());
-        lex.print_form();
+        // lex.print_form();
         match lex.analyze() {
             Ok(_) => (),
             Err(e) => {
@@ -32,7 +32,7 @@ fn main_loop() {
             }
         };
         let mut _pars = parser::Parser::new(lex, &mut vars);
-        _pars.print_vars();
+        // _pars.print_vars();
         let ast_root = match _pars.build_ast() {
             Ok(ast) => ast,
             Err(e) => match e {
@@ -44,7 +44,7 @@ fn main_loop() {
             },
         };
         match calc(ast_root) {
-            Ok(result) => println!("resutl: {}", result),
+            Ok(result) => println!("{}", result),
             Err(e) => println!("{}", e),
         }
     }
@@ -70,7 +70,7 @@ fn main() {
     // formulas from command line arg
     if let Some(form) = matches.value_of("tex formulas") {
         let mut lex = parser::lexer::Lexer::new(form.to_string());
-        lex.print_form();
+        // lex.print_form();
         match lex.analyze() {
             Ok(_) => (),
             Err(e) => {
@@ -91,7 +91,7 @@ fn main() {
             },
         };
         match calc(ast_root) {
-            Ok(result) => println!("resutl: {}", result),
+            Ok(result) => println!("{}", result),
             Err(e) => println!("{}", e),
         }
         return;
@@ -103,7 +103,7 @@ fn main() {
         let reader: BufReader<File> = BufReader::new(f);
         for result in reader.lines() {
             let mut lex = parser::lexer::Lexer::new(result.unwrap());
-            lex.print_form();
+            // lex.print_form();
             match lex.analyze() {
                 Ok(_) => (),
                 Err(e) => {
@@ -124,7 +124,7 @@ fn main() {
                 },
             };
             match calc(ast_root) {
-                Ok(result) => println!("resutl: {}", result),
+                Ok(result) => println!("{}", result),
                 Err(e) => println!("{}", e),
             }
         }

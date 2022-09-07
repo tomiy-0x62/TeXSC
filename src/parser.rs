@@ -104,7 +104,7 @@ impl Parser<'_> {
         let mut num: f64 = 0.0;
         let mut figure: f64 = 1.0;
         for i in num_str.chars() {
-            println!("f64::from_str({})", &i.to_string());
+            // println!("f64::from_str({})", &i.to_string());
             match f64::from_str(&i.to_string()) {
                 Ok(n) => {
                     num += n * 16.0_f64.powf(num_str.len() as f64 - figure);
@@ -124,7 +124,7 @@ impl Parser<'_> {
                     figure = figure + 1.0;
                 },
             }
-            println!("num: {}", num);
+            // println!("num: {}", num);
         }
         Ok(num)
     }
@@ -244,7 +244,7 @@ impl Parser<'_> {
             } else if self.lex.consume("-".to_string()) {
                 node = Parser::new_node(NodeKind::NdSub, node, self.mul()?);
             } else {
-                Parser::show_node("expr".to_string(), &node);
+                // Parser::show_node("expr".to_string(), &node);
                 return Ok(node);
             }
         }
@@ -252,7 +252,7 @@ impl Parser<'_> {
 
     fn mul(&mut self) -> Result<Box<Node>, ParserError> {
         let mut node: Box<Node> = self.primary()?;
-        Parser::show_node("primary".to_string(), &node);
+        // Parser::show_node("primary".to_string(), &node);
         loop { // why loop?
             if self.lex.consume("*".to_string()) {
                 node = Parser::new_node(NodeKind::NdMul, node, self.primary()?);
@@ -265,7 +265,7 @@ impl Parser<'_> {
             } else if self.lex.consume("/".to_string()) {
                 node = Parser::new_node(NodeKind::NdDiv, node, self.primary()?);
             } else {
-                Parser::show_node("mul".to_string(), &node);
+                // Parser::show_node("mul".to_string(), &node);
                 return Ok(node);
             }
         }
