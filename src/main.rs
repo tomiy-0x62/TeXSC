@@ -9,6 +9,8 @@ use thiserror::Error;
 use lazy_static::lazy_static;
 use std::sync::RwLock;
 
+use text_colorizer::*;
+
 // mod lexer;
 mod parser;
 mod config;
@@ -16,6 +18,12 @@ mod error;
 
 use config::*;
 use error::*;
+
+macro_rules! eprintlnc {
+    ($e:expr) => {
+        eprintln!("{}: {}", "Error".red(), $e);
+    };
+}
 
 lazy_static! {
     pub static ref CONFIG: RwLock<Config> = {
@@ -40,32 +48,32 @@ fn main_loop() {
         match lex.analyze() {
             Ok(_) => (),
             Err(e) => {
-                println!("{}", e);
+                eprintlnc!(e);
                 continue;
             }
         };
         let mut _pars = match parser::Parser::new(lex, &mut vars) {
             Ok(p) => p,
             Err(e) => {
-                println!("{}", e);
+                eprintlnc!(e);
                 continue;
             },
         };
         // _pars.print_vars();
         let ast_root = match _pars.build_ast() {
             Ok(ast) => ast,
-            Err(e) => match e {
-                ParserError::NoToken => continue,
+            Err(e) => match e { 
+                MyError::NoToken => continue,
                 _ => {
-                    println!("{}", e);
+                    eprintlnc!(e);
                     continue;
                 },
             },
         };
         match calc(ast_root) {
             Ok(result) => println!("{}", result),
-            Err(e) => println!("{}", e),
-        }
+            Err(e) => eprintlnc!(e),
+        };
     }
 }
 
@@ -93,7 +101,7 @@ fn main() {
         match lex.analyze() {
             Ok(_) => (),
             Err(e) => {
-                println!("{}", e);
+                eprintlnc!(e);
                 return;
             }
         };
@@ -101,23 +109,23 @@ fn main() {
         let mut _pars = match parser::Parser::new(lex, &mut vars) {
             Ok(p) => p,
             Err(e) => {
-                println!("{}", e);
+                eprintlnc!(e);
                 return;
             },
         };
         let ast_root = match _pars.build_ast() {
             Ok(ast) => ast,
             Err(e) => match e {
-                ParserError::NoToken => return,
+                MyError::NoToken => return,
                 _ => {
-                    println!("{}", e);
+                    eprintlnc!(e);
                     return;
                 },
             },
         };
         match calc(ast_root) {
             Ok(result) => println!("{}", result),
-            Err(e) => println!("{}", e),
+            Err(e) => eprintlnc!(e),
         }
         return;
     }
@@ -132,7 +140,7 @@ fn main() {
             match lex.analyze() {
                 Ok(_) => (),
                 Err(e) => {
-                    println!("{}", e);
+                    eprintlnc!(e);
                     continue;
                 }
             };
@@ -140,23 +148,23 @@ fn main() {
             let mut _pars = match parser::Parser::new(lex, &mut vars) {
                 Ok(p) => p,
                 Err(e) => {
-                    println!("{}", e);
+                    eprintlnc!(e);
                     continue;
                 },
             };
             let ast_root = match _pars.build_ast() {
                 Ok(ast) => ast,
                 Err(e) => match e {
-                    ParserError::NoToken => continue,
+                    MyError::NoToken => continue,
                     _ => {
-                        println!("{}", e);
+                        eprintlnc!(e);
                         continue;
                     },
                 },
             };
             match calc(ast_root) {
                 Ok(result) => println!("{}", result),
-                Err(e) => println!("{}", e),
+                Err(e) => eprintlnc!(e),
             }
         }
         return;
@@ -167,7 +175,7 @@ fn main() {
     
 }
 
-fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
+fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
 
     match (*node).node_kind {
         parser::NodeKind::NdNum => return Ok((*node).val.unwrap()),
@@ -182,7 +190,7 @@ fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
     } else {
         // NdNum以外でleftがNoneはエラー
         // ここに到達した => 不正なAST
-        return Err(CalcError::BrokenAstErr);
+        return Err(MyError::BrokenAstErr);
     }
 
     if let Some(right) = (*node).right_node {
@@ -205,13 +213,13 @@ fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
             parser::NodeKind::NdLog => (),
             parser::NodeKind::NdLn => (),
             parser::NodeKind::NdExp => (),
-            _ => return Err(CalcError::BrokenAstErr),
+            _ => return Err(MyError::BrokenAstErr),
         }
     }
 
     let conf = match read_config() {
         Ok(c) => c,
-        Err(_) => panic!(),
+        Err(e) => return Err(MyError::ConfigReadErr(e.to_string())),
     };
 
     match (*node).node_kind {
@@ -246,12 +254,12 @@ fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
         parser::NodeKind::NdAcSin => Ok(loperand.asin()),
         parser::NodeKind::NdAcCos => Ok(loperand.acos()),
         parser::NodeKind::NdAcTan => Ok(loperand.atan()),
-        _  => Err(CalcError::UDcommandErr((*node).node_kind.to_string())),
+        _  => Err(MyError::UDcommandErr((*node).node_kind.to_string())),
     }
 
 }
 
-fn getoperand(node: Box<parser::Node>) -> Result<f64, CalcError> {
+fn getoperand(node: Box<parser::Node>) -> Result<f64, MyError> {
     match &(*node).node_kind {
         parser::NodeKind::NdAdd => calc(node),
         parser::NodeKind::NdSub => calc(node),
@@ -268,6 +276,6 @@ fn getoperand(node: Box<parser::Node>) -> Result<f64, CalcError> {
         parser::NodeKind::NdAcCos => calc(node),
         parser::NodeKind::NdAcTan => calc(node),
         parser::NodeKind::NdNum => Ok((*node).val.unwrap()),
-        _  => return Err(CalcError::UDcommandErr((*node).node_kind.to_string())),
+        _  => return Err(MyError::UDcommandErr((*node).node_kind.to_string())),
     }
 }

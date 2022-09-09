@@ -76,15 +76,15 @@ impl Parser<'_> {
 
     pub fn print_vars(&self) {
         for i in self.vars.into_iter() {
-            println!("{:?}", i);
+            eprintln!("{:?}", i);
         }
     }
 
-    fn hex2dec(num_str: &str) -> Result<f64, ParseNumError> {
+    fn hex2dec(num_str: &str) -> Result<f64, MyError> {
         let mut num: f64 = 0.0;
         let mut figure: f64 = 1.0;
         for i in num_str.chars() {
-            // println!("f64::from_str({})", &i.to_string());
+            // eprintln!("f64::from_str({})", &i.to_string());
             match f64::from_str(&i.to_string()) {
                 Ok(n) => {
                     num += n * 16.0_f64.powf(num_str.len() as f64 - figure);
@@ -98,40 +98,40 @@ impl Parser<'_> {
                         "d" | "D" => 13.0,
                         "e" | "E" => 14.0,
                         "f" | "F" => 15.0,
-                        _ => return Err(ParseNumError::InvalidHexFormat(num_str.to_string())),
+                        _ => return Err(MyError::InvalidHexFormat(num_str.to_string())),
                     };
                     num += n * 16.0_f64.powf(num_str.len() as f64 - figure);
                     figure = figure + 1.0;
                 },
             }
-            // println!("num: {}", num);
+            // eprintln!("num: {}", num);
         }
         Ok(num)
     }
 
-    fn bin2dec(num_str: &str) -> Result<f64, ParseNumError> {
+    fn bin2dec(num_str: &str) -> Result<f64, MyError> {
         let mut num: f64 = 0.0;
         let mut figure: f64 = 1.0;
         for i in num_str.chars() {
             match f64::from_str(&i.to_string()) {
                 Ok(n) => {
-                    if n > 1.0_f64 { return Err(ParseNumError::InvalidBinFormat(num_str.to_string())) }
+                    if n > 1.0_f64 { return Err(MyError::InvalidBinFormat(num_str.to_string())) }
                     num += n * 2.0_f64.powf(num_str.len() as f64 - figure);
                     figure = figure + 1.0;
                 },
-                Err(e) => return Err(ParseNumError::CantParse(e)),
+                Err(e) => return Err(MyError::ParseFloatError(e)),
             }
         }
         Ok(num)
     }
     
-    fn f64_from_str(num_str: &str) -> Result<f64, ParseNumError> {
+    fn f64_from_str(num_str: &str) -> Result<f64, MyError> {
         if num_str.len() < 2 {
             match f64::from_str(num_str) {
                 Ok(num) => {
                     return Ok(num);
                 },
-                Err(e) => return Err(ParseNumError::CantParse(e)),
+                Err(e) => return Err(MyError::ParseFloatError(e)),
             }
         } else {
             match &num_str[0..2] {
@@ -141,13 +141,13 @@ impl Parser<'_> {
                     Ok(num) => {
                         Ok(num)
                     },
-                    Err(e) => return Err(ParseNumError::CantParse(e)),
+                    Err(e) => return Err(MyError::ParseFloatError(e)),
                 },
             }
         }
     }
 
-    pub fn new(mut lex: lexer::Lexer, vars: &mut HashMap<String, f64>) -> Result<Parser, String> {
+    pub fn new(mut lex: lexer::Lexer, vars: &mut HashMap<String, f64>) -> Result<Parser, MyError> {
         // lex から varsを構築
         let mut to_delete_el = Vec::<usize>::new();
         for i in 0..lex.tokens.len() {
@@ -155,10 +155,10 @@ impl Parser<'_> {
                 to_delete_el.push(i);
                 match lex.tokens[i+1].token_kind {
                     lexer::TokenKind::TkVariable => to_delete_el.push(i+1),
-                    _ => panic!(),
+                    _ => return Err(MyError::NotTkVariable(lex.tokens[i+1].token_kind.to_string())),
                 }
                 if !(lex.tokens[i+2].token == "=") {
-                    panic!();
+                    return Err(MyError::UnexpectedToken("=".to_string(), lex.tokens[i+2].token.clone()));
                 } 
                 to_delete_el.push(i+2);
                 match lex.tokens[i+3].token_kind {
@@ -167,10 +167,10 @@ impl Parser<'_> {
                             Ok(num) => {
                                 vars.insert(lex.tokens[i+1].token.clone(), num);
                             },
-                            Err(_) => panic!("f64::from_str(\"{}\") failed", &lex.tokens[i+3].token),
+                            Err(e) => return Err(e),
                         }
                     },
-                    _ => panic!(),
+                    _ => return Err(MyError::NotTkNumber(lex.tokens[i+3].token_kind.to_string())),
                 }
                 to_delete_el.push(i+3);
             } else {
@@ -182,7 +182,7 @@ impl Parser<'_> {
                                 match &*lex.tokens[i+1].token {
                                     "true" => set_dbconfig(true)?,
                                     "false" => set_dbconfig(false)?,
-                                    _ => panic!(),
+                                    _ => return Err(MyError::UnexpectedInput("true/false".to_string(), lex.tokens[i+1].token.clone())),
                                 }
                             },
                             ":logbase" => {
@@ -192,10 +192,10 @@ impl Parser<'_> {
                                             Ok(num) => {
                                                 set_lbconf(num)?;
                                             },
-                                            Err(_) => panic!("f64::from_str(\"{}\") failed", &lex.tokens[i+1].token),
+                                            Err(e) => return Err(e),
                                         }
                                     },
-                                    _ => panic!(),
+                                    _ => return Err(MyError::NotTkNumber(lex.tokens[i+1].token_kind.to_string())),
                                 }
                             },
                             ":rfotmat" => {
@@ -203,20 +203,20 @@ impl Parser<'_> {
                                     "bin" => set_rfconf(ResultFormat::binary)?,
                                     "dec" => set_rfconf(ResultFormat::decimal)?,
                                     "hex" => set_rfconf(ResultFormat::hexadecimal)?,
-                                    _ => panic!(),
+                                    _ => return Err(MyError::UnexpectedInput("bin/dec/hex".to_string(), lex.tokens[i+1].token.clone())),
                                 }
                             },
                             ":rlen" => {
                                 match lex.tokens[i+1].token_kind {
                                     lexer::TokenKind::TkNum => (),
-                                    _ => panic!(),
+                                    _ => return Err(MyError::NotTkNumber(lex.tokens[i+1].token_kind.to_string())),
                                 }
                             },
                             ":trarg" => {
                                 match &*lex.tokens[i+1].token {
                                     "rad" => set_tfconf(TrigFuncArg::radian)?,
                                     "deg" => set_tfconf(TrigFuncArg::degree)?,
-                                    _ => panic!(),
+                                    _ => return Err(MyError::UnexpectedInput("rad/deg".to_string(), lex.tokens[i+1].token.clone())),
                                 }
                             },
                             ":help" => (),
@@ -225,10 +225,10 @@ impl Parser<'_> {
                                     "var" => (),
                                     "const" => (),
                                     "config" => (),
-                                    _ => panic!(),
+                                    _ => return Err(MyError::UnexpectedInput("var/const/config".to_string(), lex.tokens[i+1].token.clone())),
                                 }
                             },
-                            _ => panic!(),
+                            _ => return Err(MyError::UDtsccommand(lex.tokens[i].token.clone())),
                         }
                         to_delete_el.push(i+1);
                     },
@@ -243,13 +243,13 @@ impl Parser<'_> {
         Ok(Parser { lex: lex, vars: vars })
     }
 
-    pub fn build_ast(&mut self) -> Result<Box<Node>, ParserError> {
+    pub fn build_ast(&mut self) -> Result<Box<Node>, MyError> {
         if self.lex.is_eot() {
-            return Err(ParserError::NoToken);
+            return Err(MyError::NoToken);
         }
         let ast = self.expr();
         if !self.lex.is_eot() {
-            return Err(ParserError::UDcommandErr(self.lex.now_token().to_string()));
+            return Err(MyError::UDcommandErr(self.lex.now_token().to_string()));
         }
         ast
     }
@@ -267,7 +267,7 @@ impl Parser<'_> {
     }
 
     fn show_node(place: String, node: &Node) {
-        println!("{}: create {{ Kind: {}, Val: {:?} }}", place, node.node_kind.to_string(), node.val)
+        eprintln!("{}: create {{ Kind: {}, Val: {:?} }}", place, node.node_kind.to_string(), node.val)
     }
 
     /*
@@ -277,7 +277,7 @@ impl Parser<'_> {
                 | "\exp" "{" expr "}
     */
 
-    fn expr(&mut self) -> Result<Box<Node>, ParserError> {
+    fn expr(&mut self) -> Result<Box<Node>, MyError> {
         let mut node: Box<Node> = self.mul()?;
         loop {
             if self.lex.consume("+".to_string()) {
@@ -291,7 +291,7 @@ impl Parser<'_> {
         }
     }
 
-    fn mul(&mut self) -> Result<Box<Node>, ParserError> {
+    fn mul(&mut self) -> Result<Box<Node>, MyError> {
         let mut node: Box<Node> = self.primary()?;
         // Parser::show_node("primary".to_string(), &node);
         loop { // why loop?
@@ -312,34 +312,19 @@ impl Parser<'_> {
         }
     }
 
-    fn primary(&mut self) -> Result<Box<Node>, ParserError> {
+    fn primary(&mut self) -> Result<Box<Node>, MyError> {
         if self.lex.consume("(".to_string()) {
             let node: Box<Node> = self.expr()?;
-            match self.lex.expect(")".to_string()) {
-                Ok(_) => (),
-                Err(e) => return Err(ParserError::UnExpectedToken(e)),
-            };
+            self.lex.expect(")".to_string())?;
             return Ok(node);
         }
         if self.lex.consume("\\frac".to_string()) {
-            match self.lex.expect("{".to_string()) {
-                Ok(_) => (),
-                Err(e) => return Err(ParserError::UnExpectedToken(e)),
-            };
+            self.lex.expect("{".to_string())?;
             let lnode: Box<Node> = self.expr()?;
-            match self.lex.expect("}".to_string()) {
-                Ok(_) => (),
-                Err(e) => return Err(ParserError::UnExpectedToken(e)),
-            };
-            match self.lex.expect("{".to_string()) {
-                Ok(_) => (),
-                Err(e) => return Err(ParserError::UnExpectedToken(e)),
-            };
+            self.lex.expect("}".to_string())?;
+            self.lex.expect("{".to_string())?;
             let rnode: Box<Node> = self.expr()?;
-            match self.lex.expect("}".to_string()) {
-                Ok(_) => (),
-                Err(e) => return Err(ParserError::UnExpectedToken(e)),
-            };
+            self.lex.expect("}".to_string())?;
             let node = Parser::new_node(NodeKind::NdDiv, lnode, rnode);
             return Ok(node);
         }
@@ -376,40 +361,25 @@ impl Parser<'_> {
         }
         let val:f64 = match self.lex.expect_number(self.vars) {
             Ok(v) => {
-                match Parser::f64_from_str(&v) {
-                    Ok(v) => v,
-                    Err(e) => return Err(ParserError::CantParse(e)),
-                }
+                Parser::f64_from_str(&v)?
             },
-            Err(e) => return Err(ParserError::UnExpectedToken(e)),
+            Err(e) => return Err(e),
         };
         return Ok(Parser::new_node_num(val));
 
     }
 
-    fn parg_node(&mut self) -> Result<Box<Node>, ParserError> {
-        match self.lex.expect("{".to_string()) {
-            Ok(_) => (),
-            Err(e) => return Err(ParserError::UnExpectedToken(e)),
-        };
+    fn parg_node(&mut self) -> Result<Box<Node>, MyError> {
+        self.lex.expect("{".to_string())?;
         let node: Box<Node> = self.expr()?;
-        match self.lex.expect("}".to_string()) {
-            Ok(_) => (),
-            Err(e) => return Err(ParserError::UnExpectedToken(e)),
-        };
+        self.lex.expect("}".to_string())?;
         Ok(node)
     }
 
-    fn carg_node(&mut self) -> Result<Box<Node>, ParserError> {
-        match self.lex.expect("(".to_string()) {
-            Ok(_) => (),
-            Err(e) => return Err(ParserError::UnExpectedToken(e)),
-        };
+    fn carg_node(&mut self) -> Result<Box<Node>, MyError> {
+        self.lex.expect("(".to_string())?;
         let node: Box<Node> = self.expr()?;
-        match self.lex.expect(")".to_string()) {
-            Ok(_) => (),
-            Err(e) => return Err(ParserError::UnExpectedToken(e)),
-        };
+        self.lex.expect(")".to_string())?;
         Ok(node)
     }
 }

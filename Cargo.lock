@@ -59,6 +59,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "colored"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
+dependencies = [
+ "atty",
+ "lazy_static",
+ "winapi",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -169,6 +180,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "text-colorizer"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b30f9b94bd367aacc3f62cd28668b10c7ae1784c7d27e223a1c21646221a9166"
+dependencies = [
+ "colored",
+]
+
+[[package]]
 name = "textwrap"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -201,6 +221,7 @@ dependencies = [
  "clap",
  "lazy_static",
  "regex",
+ "text-colorizer",
  "thiserror",
 ]
 

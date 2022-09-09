@@ -58,15 +58,15 @@ impl Lexer {
     }
 
     pub fn print_form(&self) {
-        println!("form: {}", self.formulas.replace("\n", " "));
+        eprintln!("form: {}", self.formulas.replace("\n", " "));
     }
 
     fn print_token(&self) {
         for token in self.tokens.iter() {
             // {}でした
-            print!("'{}', ", token.token);
+            eprint!("'{}', ", token.token);
         }
-        println!("");
+        eprintln!("");
     }
 
     pub fn consume(&mut self, op: String) -> bool {
@@ -99,14 +99,14 @@ impl Lexer {
         }
     }
 
-    pub fn expect(&mut self, op: String) -> Result<(), TkError> {
+    pub fn expect(&mut self, op: String) -> Result<(), MyError> {
         match self.tokens[self.token_idx].token_kind {
             TokenKind::TkOperator => {
                 if self.tokens[self.token_idx].token == op {
                     self.token_idx += 1;
                     return Ok(());
                 } else {
-                    Err(TkError::NotExpected(op, self.tokens[self.token_idx].token.to_string()))
+                    Err(MyError::UnexpectedToken(op, self.tokens[self.token_idx].token.to_string()))
                 }
             },
             TokenKind::TkBrace => {
@@ -114,14 +114,14 @@ impl Lexer {
                     self.token_idx += 1;
                     return Ok(());
                 } else {
-                    Err(TkError::NotExpected(op, self.tokens[self.token_idx].token.to_string()))
+                    Err(MyError::UnexpectedToken(op, self.tokens[self.token_idx].token.to_string()))
                 }
             },
-            _ => Err(TkError::NotTkOperator(self.tokens[self.token_idx].token_kind.to_string())),
+            _ => Err(MyError::NotTkOperator(self.tokens[self.token_idx].token_kind.to_string())),
         }
     }
 
-    pub fn expect_number(&mut self, vars: &HashMap<String, f64>) -> Result<String, TkError> {
+    pub fn expect_number(&mut self, vars: &HashMap<String, f64>) -> Result<String, MyError> {
         match self.tokens[self.token_idx].token_kind {
             TokenKind::TkNum => {
                 self.token_idx += 1;
@@ -131,15 +131,15 @@ impl Lexer {
                 self.token_idx += 1;
                 match vars.get(&self.tokens[self.token_idx-1].token) {
                     Some(v) => {
-                        // println!("var: {} = {}", self.tokens[self.token_idx-1].token, v);
+                        // eprintln!("var: {} = {}", self.tokens[self.token_idx-1].token, v);
                         Ok(v.to_string())
                     },
                     None => {
-                        Err(TkError::UndefinedVar(self.tokens[self.token_idx-1].token.to_string()))
+                        Err(MyError::UDvariableErr(self.tokens[self.token_idx-1].token.to_string()))
                     },
                 }
             },
-            _ => Err(TkError::NotTkNumber(self.tokens[self.token_idx].token_kind.to_string())),
+            _ => Err(MyError::NotTkNumber(self.tokens[self.token_idx].token_kind.to_string())),
         }
     }
 
@@ -154,7 +154,7 @@ impl Lexer {
         &self.tokens[self.token_idx].token
     }
 
-    pub fn analyze(&mut self) -> Result<(), LexerError> {
+    pub fn analyze(&mut self) -> Result<(), MyError> {
         let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap(); // OK
         let tsc_command = Regex::new(r":[A-Za-z]*").unwrap(); // OK
         let operator = Regex::new(r"\+|-|\*|=|/|!|_|,|\^|\|").unwrap(); // OK
@@ -212,7 +212,7 @@ impl Lexer {
                     ismatch = true;
                 }
             } else if let Some(caps) = var.captures(&self.formulas) {
-                if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() { return Err(LexerError::InvalidInput(c.to_string())); }
+                if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() { return Err(MyError::InvalidInput(c.to_string())); }
                 let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
                 if token == "e" {
                     self.tokens.push(Token {token: std::f64::consts::E.to_string(), token_kind: TokenKind::TkNum});
@@ -223,7 +223,7 @@ impl Lexer {
                 ismatch = true;
             } 
             if !ismatch {
-                return Err(LexerError::InvalidInput(c.to_string()));
+                return Err(MyError::InvalidInput(c.to_string()));
             }
 
             if self.formulas.len() == 0 {
@@ -236,11 +236,11 @@ impl Lexer {
         
         /*
         for caps in tex_command.captures_iter(&self.formulas) {
-            println!("match '{}'", &caps[0]);
+            eprintln!("match '{}'", &caps[0]);
         }*/
         
         if let Some(caps) = operator.captures(&self.formulas) {
-            println!("<<< match '{}' >>>", caps.get(0).unwrap().as_str());
+            eprintln!("<<< match '{}' >>>", caps.get(0).unwrap().as_str());
             // if let Some(hoge) = caps.get(0)
         }
         return Ok(());
