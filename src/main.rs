@@ -41,7 +41,7 @@ fn main_loop() {
         let mut form: String = String::new();
         io::stdin().read_line(&mut form)
         .expect("stdin");
-        if form.replace("\n", "").as_str() == "exit" {
+        if form.trim() == "exit" {
             return;
         }
         let mut lex = parser::lexer::Lexer::new(form.to_string());

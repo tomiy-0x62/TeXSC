@@ -55,7 +55,7 @@ tokenの種類
 
 impl Lexer {
     pub fn new(form: String) -> Lexer {
-        let form = form.replace("\n", "").replace("\t", "");
+        let form = form.replace("\n", "").replace("\t", "").replace("\r", "");
         Lexer { formulas: form, tokens: Vec::new(), token_idx: 0 }
     }
 
