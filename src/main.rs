@@ -140,7 +140,7 @@ fn main() {
 enum CalcError {
     #[error("Broken AST")]
     BrokenAstErr,
-    #[error("Undiffined command: {0}")]
+    #[error("Undefined command: {0}")]
     UDcommandErr(String),
 }
 

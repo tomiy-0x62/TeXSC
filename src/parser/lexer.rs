@@ -44,8 +44,8 @@ pub enum TkError {
     NotTkNumber(String),
     #[error("expected TkOperator but {0}")]
     NotTkOperator(String),
-    #[error("undiffined variable: {0}")]
-    UndiffinedVar(String),
+    #[error("undefined variable: {0}")]
+    UndefinedVar(String),
     #[error("expected {0} but {1}")]
     NotExpected(String, String),
 }
@@ -151,7 +151,7 @@ impl Lexer {
                         Ok(v.to_string())
                     },
                     None => {
-                        Err(TkError::UndiffinedVar(self.tokens[self.token_idx-1].token.to_string()))
+                        Err(TkError::UndefinedVar(self.tokens[self.token_idx-1].token.to_string()))
                     },
                 }
             },

@@ -84,7 +84,7 @@ enum ParseNumError {
 pub enum ParserError {
     #[error("{0}")]
     UnExpectedToken(#[from] lexer::TkError),
-    #[error("Undiffined command: {0}")]
+    #[error("Undefined command: {0}")]
     UDcommandErr(String),
     #[error("{0}")]
     CantParse(#[from] ParseNumError),
