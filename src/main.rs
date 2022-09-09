@@ -6,10 +6,23 @@ use std::io::{BufReader, BufRead, stdout, Write};
 use std::io;
 use std::collections::HashMap;
 use thiserror::Error;
-use parser::ParserError;
+use lazy_static::lazy_static;
+use std::sync::RwLock;
 
 // mod lexer;
 mod parser;
+mod config;
+mod error;
+
+use config::*;
+use error::*;
+
+lazy_static! {
+    pub static ref CONFIG: RwLock<Config> = {
+        RwLock::new(config::Config { result_format: ResultFormat::decimal, debug: false, trig_func_arg: TrigFuncArg::radian, log_base: std::f64::consts::E, num_of_digit: 12 })
+    };
+}
+
 
 fn main_loop() {
     let mut vars: HashMap<String, f64> = HashMap::new();
@@ -31,7 +44,13 @@ fn main_loop() {
                 continue;
             }
         };
-        let mut _pars = parser::Parser::new(lex, &mut vars);
+        let mut _pars = match parser::Parser::new(lex, &mut vars) {
+            Ok(p) => p,
+            Err(e) => {
+                println!("{}", e);
+                continue;
+            },
+        };
         // _pars.print_vars();
         let ast_root = match _pars.build_ast() {
             Ok(ast) => ast,
@@ -79,7 +98,13 @@ fn main() {
             }
         };
         let mut vars: HashMap<String, f64> = HashMap::new();
-        let mut _pars = parser::Parser::new(lex, &mut vars);
+        let mut _pars = match parser::Parser::new(lex, &mut vars) {
+            Ok(p) => p,
+            Err(e) => {
+                println!("{}", e);
+                return;
+            },
+        };
         let ast_root = match _pars.build_ast() {
             Ok(ast) => ast,
             Err(e) => match e {
@@ -112,7 +137,13 @@ fn main() {
                 }
             };
             let mut vars: HashMap<String, f64> = HashMap::new();
-            let mut _pars = parser::Parser::new(lex, &mut vars);
+            let mut _pars = match parser::Parser::new(lex, &mut vars) {
+                Ok(p) => p,
+                Err(e) => {
+                    println!("{}", e);
+                    continue;
+                },
+            };
             let ast_root = match _pars.build_ast() {
                 Ok(ast) => ast,
                 Err(e) => match e {
@@ -134,14 +165,6 @@ fn main() {
     // REPL
     main_loop();
     
-}
-
-#[derive(Debug, Error)]
-enum CalcError {
-    #[error("Broken AST")]
-    BrokenAstErr,
-    #[error("Undefined command: {0}")]
-    UDcommandErr(String),
 }
 
 fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
@@ -186,18 +209,40 @@ fn calc(node: Box<parser::Node>) -> Result<f64, CalcError> {
         }
     }
 
+    let conf = match read_config() {
+        Ok(c) => c,
+        Err(_) => panic!(),
+    };
+
     match (*node).node_kind {
         parser::NodeKind::NdAdd => Ok(loperand + roperand),
         parser::NodeKind::NdSub => Ok(loperand - roperand),
         parser::NodeKind::NdMul => Ok(loperand * roperand),
         parser::NodeKind::NdDiv => Ok(loperand / roperand),
         parser::NodeKind::NdSqrt => Ok(loperand.sqrt()), // TODO: sqrtの中が負のときの処理を実装
-        parser::NodeKind::NdLog => Ok(loperand.log(std::f64::consts::E)),
+        parser::NodeKind::NdLog => {
+            Ok(loperand.log(conf.log_base))
+        },
         parser::NodeKind::NdLn => Ok(loperand.log(std::f64::consts::E)),
         parser::NodeKind::NdExp => Ok(std::f64::consts::E.powf(loperand)),
-        parser::NodeKind::NdSin => Ok(loperand.sin()),
-        parser::NodeKind::NdCos => Ok(loperand.cos()),
-        parser::NodeKind::NdTan => Ok(loperand.tan()),
+        parser::NodeKind::NdSin => {
+            match conf.trig_func_arg {
+                TrigFuncArg::radian => Ok(loperand.sin()),
+                TrigFuncArg::degree => Ok(loperand.to_radians().sin()),
+            }
+        },
+        parser::NodeKind::NdCos =>  {
+            match conf.trig_func_arg {
+                TrigFuncArg::radian => Ok(loperand.cos()),
+                TrigFuncArg::degree => Ok(loperand.to_radians().cos()),
+            }
+        },
+        parser::NodeKind::NdTan =>  {
+            match conf.trig_func_arg {
+                TrigFuncArg::radian => Ok(loperand.tan()),
+                TrigFuncArg::degree => Ok(loperand.to_radians().tan()),
+            }
+        },
         parser::NodeKind::NdAcSin => Ok(loperand.asin()),
         parser::NodeKind::NdAcCos => Ok(loperand.acos()),
         parser::NodeKind::NdAcTan => Ok(loperand.atan()),

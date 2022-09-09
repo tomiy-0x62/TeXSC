@@ -4,6 +4,8 @@ use std::num::ParseFloatError;
 use std::str::FromStr;
 use thiserror::Error;
 use std::fmt;
+use super::config::*;
+use super::error::*;
 
 pub mod lexer;
 
@@ -68,28 +70,6 @@ pub struct Node {
 pub struct Parser<'a> {
     lex: lexer::Lexer,
     vars: &'a HashMap<String, f64>,
-}
-
-#[derive(Debug, Error)]
-enum ParseNumError {
-    #[error("Invalid hex format: {0}")]
-    InvalidHexFormat(String),
-    #[error("Invalid binary format: {0}")]
-    InvalidBinFormat(String),
-    #[error("{0}")]
-    CantParse(#[from] ParseFloatError)
-}
-
-#[derive(Debug, Error)]
-pub enum ParserError {
-    #[error("{0}")]
-    UnExpectedToken(#[from] lexer::TkError),
-    #[error("Undefined command: {0}")]
-    UDcommandErr(String),
-    #[error("{0}")]
-    CantParse(#[from] ParseNumError),
-    #[error("There is no token to process")]
-    NoToken,
 }
 
 impl Parser<'_> {
@@ -167,7 +147,7 @@ impl Parser<'_> {
         }
     }
 
-    pub fn new(mut lex: lexer::Lexer, vars: &mut HashMap<String, f64>) -> Parser {
+    pub fn new(mut lex: lexer::Lexer, vars: &mut HashMap<String, f64>) -> Result<Parser, String> {
         // lex から varsを構築
         let mut to_delete_el = Vec::<usize>::new();
         for i in 0..lex.tokens.len() {
@@ -193,13 +173,74 @@ impl Parser<'_> {
                     _ => panic!(),
                 }
                 to_delete_el.push(i+3);
+            } else {
+                match lex.tokens[i].token_kind {
+                    lexer::TokenKind::TkTscCommand => {
+                        to_delete_el.push(i);
+                        match &*lex.tokens[i].token {
+                            ":debug" => {
+                                match &*lex.tokens[i+1].token {
+                                    "true" => set_dbconfig(true)?,
+                                    "false" => set_dbconfig(false)?,
+                                    _ => panic!(),
+                                }
+                            },
+                            ":logbase" => {
+                                match lex.tokens[i+1].token_kind {
+                                    lexer::TokenKind::TkNum => {
+                                        match Parser::f64_from_str(&lex.tokens[i+1].token) {
+                                            Ok(num) => {
+                                                set_lbconf(num)?;
+                                            },
+                                            Err(_) => panic!("f64::from_str(\"{}\") failed", &lex.tokens[i+1].token),
+                                        }
+                                    },
+                                    _ => panic!(),
+                                }
+                            },
+                            ":rfotmat" => {
+                                match &*lex.tokens[i+1].token {
+                                    "bin" => set_rfconf(ResultFormat::binary)?,
+                                    "dec" => set_rfconf(ResultFormat::decimal)?,
+                                    "hex" => set_rfconf(ResultFormat::hexadecimal)?,
+                                    _ => panic!(),
+                                }
+                            },
+                            ":rlen" => {
+                                match lex.tokens[i+1].token_kind {
+                                    lexer::TokenKind::TkNum => (),
+                                    _ => panic!(),
+                                }
+                            },
+                            ":trarg" => {
+                                match &*lex.tokens[i+1].token {
+                                    "rad" => set_tfconf(TrigFuncArg::radian)?,
+                                    "deg" => set_tfconf(TrigFuncArg::degree)?,
+                                    _ => panic!(),
+                                }
+                            },
+                            ":help" => (),
+                            ":show" => {
+                                match &*lex.tokens[i+1].token {
+                                    "var" => (),
+                                    "const" => (),
+                                    "config" => (),
+                                    _ => panic!(),
+                                }
+                            },
+                            _ => panic!(),
+                        }
+                        to_delete_el.push(i+1);
+                    },
+                    _ => (),
+                }
             }
         }
         to_delete_el.sort_by(|a, b| b.cmp(a));
         for i in to_delete_el.into_iter() {
             lex.tokens.remove(i);
         }
-        Parser { lex: lex, vars: vars }
+        Ok(Parser { lex: lex, vars: vars })
     }
 
     pub fn build_ast(&mut self) -> Result<Box<Node>, ParserError> {

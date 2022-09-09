@@ -5,8 +5,11 @@ use std::collections::HashMap;
 use thiserror::Error;
 use std::fmt;
 
+use super::super::error::*;
+
 pub enum TokenKind {
     TkTexCommand,
+    TkTscCommand,
     TkOperator,
     TkVariable,
     TkNum,
@@ -18,6 +21,7 @@ impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TokenKind::TkTexCommand  => write!(f, "kTexCommand"),
+            TokenKind::TkTscCommand  => write!(f, "kTscCommand"),
             TokenKind::TkOperator    => write!(f, "TkOperator"),
             TokenKind::TkVariable    => write!(f, "TkVariable"),
             TokenKind::TkNum         => write!(f, "TkNum"),
@@ -36,26 +40,6 @@ pub struct Lexer {
     formulas: String,
     pub tokens: Vec<Token>,
     pub token_idx: usize
-}
-
-#[derive(Debug, Error)]
-pub enum TkError {
-    #[error("expected TkNumber but {0}")]
-    NotTkNumber(String),
-    #[error("expected TkOperator but {0}")]
-    NotTkOperator(String),
-    #[error("undefined variable: {0}")]
-    UndefinedVar(String),
-    #[error("expected {0} but {1}")]
-    NotExpected(String, String),
-}
-
-#[derive(Debug, Error)]
-pub enum LexerError {
-    #[error("invalid input {0}")]
-    InvalidInput(String),
-    #[error("expected TkOperator but {0}")]
-    NotTkOperator(String),
 }
 
 /*
@@ -169,8 +153,10 @@ impl Lexer {
     pub fn now_token(&self) -> &str {
         &self.tokens[self.token_idx].token
     }
+
     pub fn analyze(&mut self) -> Result<(), LexerError> {
         let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap(); // OK
+        let tsc_command = Regex::new(r":[A-Za-z]*").unwrap(); // OK
         let operator = Regex::new(r"\+|-|\*|=|/|!|_|,|\^|\|").unwrap(); // OK
         let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap(); // OK
         let num = Regex::new(r"0x[0-9a-fA-F]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap(); // OK
@@ -201,6 +187,13 @@ impl Lexer {
                         "\\pi" => self.tokens.push(Token {token: std::f64::consts::PI.to_string(), token_kind: TokenKind::TkNum}),
                         _ => self.tokens.push(Token {token: token, token_kind: TokenKind::TkTexCommand}),
                     }
+                    self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                    ismatch = true;
+                }
+            } else if c == ':' {
+                if let Some(caps) = tsc_command.captures(&self.formulas) {
+                    let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
+                    self.tokens.push(Token {token: token, token_kind: TokenKind::TkTscCommand});
                     self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     ismatch = true;
                 }
