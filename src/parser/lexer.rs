@@ -22,8 +22,8 @@ pub enum TokenKind {
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TokenKind::TkTexCommand  => write!(f, "kTexCommand"),
-            TokenKind::TkTscCommand  => write!(f, "kTscCommand"),
+            TokenKind::TkTexCommand  => write!(f, "TkTexCommand"),
+            TokenKind::TkTscCommand  => write!(f, "TkTscCommand"),
             TokenKind::TkOperator    => write!(f, "TkOperator"),
             TokenKind::TkVariable    => write!(f, "TkVariable"),
             TokenKind::TkNum         => write!(f, "TkNum"),
