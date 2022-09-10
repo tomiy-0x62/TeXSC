@@ -250,11 +250,11 @@ impl Parser<'_> {
         if self.lex.is_eot() {
             return Err(MyError::NoToken);
         }
-        let ast = self.expr();
+        let ast = self.expr()?;
         if !self.lex.is_eot() {
             return Err(MyError::UDcommandErr(self.lex.now_token().to_string()));
         }
-        ast
+        Ok(ast)
     }
 
     fn new_node(kind: NodeKind, left: Box<Node>, right: Box<Node>) -> Box<Node> {
