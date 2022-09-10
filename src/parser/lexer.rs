@@ -106,12 +106,8 @@ impl Lexer {
             TokenKind::TkVariable => {
                 self.token_idx += 1;
                 match vars.get(&self.tokens[self.token_idx-1].token) {
-                    Some(v) => {
-                        Ok(v.to_string())
-                    },
-                    None => {
-                        Err(MyError::UDvariableErr(self.tokens[self.token_idx-1].token.to_string()))
-                    },
+                    Some(v) => Ok(v.to_string()),
+                    None => Err(MyError::UDvariableErr(self.tokens[self.token_idx-1].token.to_string())),
                 }
             },
             _ => Err(MyError::NotTkNumber(self.tokens[self.token_idx].token_kind.to_string())),

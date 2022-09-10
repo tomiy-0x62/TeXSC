@@ -136,19 +136,6 @@ impl Parser<'_> {
         }
         Ok(ast)
     }
-    /*
-    TokenKind::TkVariable => {
-                self.token_idx += 1;
-                match vars.get(&self.tokens[self.token_idx-1].token) {
-                    Some(v) => {
-                        Ok(v.to_string())
-                    },
-                    None => {
-                        Err(MyError::UDvariableErr(self.tokens[self.token_idx-1].token.to_string()))
-                    },
-                }
-            },
-    */
 
     fn process_tsccommand(t1: &Token, t2: &Token, vars: &mut HashMap<String, f64>) -> Result<(), MyError> {
         Ok(match &*t1.token {
