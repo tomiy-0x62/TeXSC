@@ -63,7 +63,7 @@ tsc> \frac{3}{4}
 0.75
 ```
 #### 絶対値
-- \abs (x) 　// 未実装
+- \abs (x)
 ```
 tsc> \abs(-2)
 2
@@ -75,6 +75,9 @@ tsc> \abs(-2)
 - \csc x
 - \sec x
 - \cot x
+- \arcsin x
+- \arccos x
+- \arctan x
 ```
 tsc> \sin 1
 0.8414709848078965

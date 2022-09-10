@@ -9,6 +9,7 @@ use lazy_static::lazy_static;
 use std::sync::RwLock;
 
 use text_colorizer::*;
+use parser::NodeKind;
 
 mod parser;
 mod config;
@@ -113,7 +114,7 @@ fn process_form(form: String, vars: &mut HashMap<String, f64>) {
 fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
 
     match (*node).node_kind {
-        parser::NodeKind::NdNum => return Ok((*node).val.unwrap()),
+        NodeKind::NdNum => return Ok((*node).val.unwrap()),
         _ => (),
     }
 
@@ -135,20 +136,11 @@ fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
         // 前置, 1引数のノードの場合 => 正常
         // それ以外 => 不正なAST
         match (*node).node_kind {
-            parser::NodeKind::NdSin => (),
-            parser::NodeKind::NdCos => (),
-            parser::NodeKind::NdTan => (),
-            parser::NodeKind::NdCsc => (),
-            parser::NodeKind::NdSec => (),
-            parser::NodeKind::NdCot => (),
-            parser::NodeKind::NdAcSin => (),
-            parser::NodeKind::NdAcCos => (),
-            parser::NodeKind::NdAcTan => (),
-            parser::NodeKind::NdSqrt => (),
-            parser::NodeKind::NdLog => (),
-            parser::NodeKind::NdLn => (),
-            parser::NodeKind::NdExp => (),
-            _ => return Err(MyError::BrokenAstErr),
+            NodeKind::NdAdd => return Err(MyError::BrokenAstErr),
+            NodeKind::NdSub => return Err(MyError::BrokenAstErr),
+            NodeKind::NdDiv => return Err(MyError::BrokenAstErr),
+            NodeKind::NdMul => return Err(MyError::BrokenAstErr),
+            _ => (),
         }
     }
 
@@ -158,37 +150,54 @@ fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
     };
 
     match (*node).node_kind {
-        parser::NodeKind::NdAdd => Ok(loperand + roperand),
-        parser::NodeKind::NdSub => Ok(loperand - roperand),
-        parser::NodeKind::NdMul => Ok(loperand * roperand),
-        parser::NodeKind::NdDiv => Ok(loperand / roperand),
-        parser::NodeKind::NdSqrt => Ok(loperand.sqrt()),
-        parser::NodeKind::NdLog => {
-            Ok(loperand.log(conf.log_base))
-        },
-        parser::NodeKind::NdLn => Ok(loperand.log(std::f64::consts::E)),
-        parser::NodeKind::NdExp => Ok(std::f64::consts::E.powf(loperand)),
-        parser::NodeKind::NdSin => {
+        NodeKind::NdAdd => Ok(loperand + roperand),
+        NodeKind::NdSub => Ok(loperand - roperand),
+        NodeKind::NdMul => Ok(loperand * roperand),
+        NodeKind::NdDiv => Ok(loperand / roperand),
+        NodeKind::NdSqrt => Ok(loperand.sqrt()),
+        NodeKind::NdLog => Ok(loperand.log(conf.log_base)),
+        NodeKind::NdLn => Ok(loperand.log(std::f64::consts::E)),
+        NodeKind::NdAbs => Ok(loperand.abs()),
+        NodeKind::NdExp => Ok(std::f64::consts::E.powf(loperand)),
+        NodeKind::NdSin => {
             match conf.trig_func_arg {
                 TrigFuncArg::Radian => Ok(loperand.sin()),
                 TrigFuncArg::Degree => Ok(loperand.to_radians().sin()),
             }
         },
-        parser::NodeKind::NdCos =>  {
+        NodeKind::NdCos =>  {
             match conf.trig_func_arg {
                 TrigFuncArg::Radian => Ok(loperand.cos()),
                 TrigFuncArg::Degree => Ok(loperand.to_radians().cos()),
             }
         },
-        parser::NodeKind::NdTan =>  {
+        NodeKind::NdTan =>  {
             match conf.trig_func_arg {
                 TrigFuncArg::Radian => Ok(loperand.tan()),
                 TrigFuncArg::Degree => Ok(loperand.to_radians().tan()),
             }
         },
-        parser::NodeKind::NdAcSin => Ok(loperand.asin()),
-        parser::NodeKind::NdAcCos => Ok(loperand.acos()),
-        parser::NodeKind::NdAcTan => Ok(loperand.atan()),
+        NodeKind::NdCsc => {
+            match conf.trig_func_arg {
+                TrigFuncArg::Radian => Ok(1.0/loperand.sin()),
+                TrigFuncArg::Degree => Ok(1.0/loperand.to_radians().sin()),
+            }
+        },
+        NodeKind::NdSec =>  {
+            match conf.trig_func_arg {
+                TrigFuncArg::Radian => Ok(1.0/loperand.cos()),
+                TrigFuncArg::Degree => Ok(1.0/loperand.to_radians().cos()),
+            }
+        },
+        NodeKind::NdCot =>  {
+            match conf.trig_func_arg {
+                TrigFuncArg::Radian => Ok(1.0/loperand.tan()),
+                TrigFuncArg::Degree => Ok(1.0/loperand.to_radians().tan()),
+            }
+        },
+        NodeKind::NdAcSin => Ok(loperand.asin()),
+        NodeKind::NdAcCos => Ok(loperand.acos()),
+        NodeKind::NdAcTan => Ok(loperand.atan()),
         _  => Err(MyError::UDcommandErr((*node).node_kind.to_string())),
     }
 
@@ -196,21 +205,8 @@ fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
 
 fn getoperand(node: Box<parser::Node>) -> Result<f64, MyError> {
     match &(*node).node_kind {
-        parser::NodeKind::NdAdd => calc(node),
-        parser::NodeKind::NdSub => calc(node),
-        parser::NodeKind::NdMul => calc(node),
-        parser::NodeKind::NdDiv => calc(node),
-        parser::NodeKind::NdSqrt => calc(node),
-        parser::NodeKind::NdLog => calc(node),
-        parser::NodeKind::NdLn => calc(node),
-        parser::NodeKind::NdExp => calc(node),
-        parser::NodeKind::NdSin => calc(node),
-        parser::NodeKind::NdCos => calc(node),
-        parser::NodeKind::NdTan => calc(node),
-        parser::NodeKind::NdAcSin => calc(node),
-        parser::NodeKind::NdAcCos => calc(node),
-        parser::NodeKind::NdAcTan => calc(node),
-        parser::NodeKind::NdNum => Ok((*node).val.unwrap()),
-        _  => return Err(MyError::UDcommandErr((*node).node_kind.to_string())),
+        NodeKind::NdNum => return Ok((*node).val.unwrap()),
+        _ => (),
     }
+    calc(node)
 }

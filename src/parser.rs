@@ -277,9 +277,10 @@ impl Parser<'_> {
     /*
     expr    = mul ("+" mul | "-" mul)*
     mul     = primary ("*" primary | "/" primary | "\cdto" primary | "\times" primary | "\div" primary)*
-    primary = num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\log" "{" expr "} | "\ln" "{" expr "} | "\sin" "{" expr "} | "\cos" "{" expr "} | "\tan" "{" expr "}
-                | "\exp" "{" expr "}
+    primary = num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\log"  expr | "\ln" expr | "\sin" expr | "\cos" expr | "\tan" expr
+                | "\exp" "(" expr ")" | "\csc" expr | "\sec" expr | "\cot" expr | "\abs" "(" expr ")"
     */
+
 
     fn expr(&mut self) -> Result<Box<Node>, MyError> {
         let mut node: Box<Node> = self.mul()?;
@@ -342,6 +343,9 @@ impl Parser<'_> {
         if self.lex.consume("\\ln".to_string()) {
             return Ok(Parser::new_unary_node(NodeKind::NdLn, self.expr()?));
         }
+        if self.lex.consume("\\abs".to_string()) {
+            return Ok(Parser::new_unary_node(NodeKind::NdAbs, self.carg_node()?));
+        }
         if self.lex.consume("\\exp".to_string()) {
             return Ok(Parser::new_unary_node(NodeKind::NdExp, self.carg_node()?));
         }
@@ -353,6 +357,15 @@ impl Parser<'_> {
         }
         if self.lex.consume("\\tan".to_string()) {
             return Ok(Parser::new_unary_node(NodeKind::NdTan, self.expr()?));
+        }
+        if self.lex.consume("\\csc".to_string()) {
+            return Ok(Parser::new_unary_node(NodeKind::NdCsc, self.expr()?));
+        }
+        if self.lex.consume("\\sec".to_string()) {
+            return Ok(Parser::new_unary_node(NodeKind::NdSec, self.expr()?));
+        }
+        if self.lex.consume("\\cot".to_string()) {
+            return Ok(Parser::new_unary_node(NodeKind::NdCot, self.expr()?));
         }
         if self.lex.consume("\\arcsin".to_string()) {
             return Ok(Parser::new_unary_node(NodeKind::NdAcSin, self.expr()?));
