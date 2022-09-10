@@ -9,6 +9,9 @@ use super::error::*;
 
 pub mod lexer;
 
+use super::debug;
+use super::debugln;
+
 pub enum NodeKind {
     // 1引数
     NdSin,
@@ -76,7 +79,7 @@ impl Parser<'_> {
 
     pub fn print_vars(&self) {
         for i in self.vars.into_iter() {
-            eprintln!("{:?}", i);
+            debugln!("{:?}", i);
         }
     }
 
@@ -267,7 +270,7 @@ impl Parser<'_> {
     }
 
     fn show_node(place: String, node: &Node) {
-        eprintln!("{}: create {{ Kind: {}, Val: {:?} }}", place, node.node_kind.to_string(), node.val)
+        debugln!("{}: create {{ Kind: {}, Val: {:?} }}", place, node.node_kind.to_string(), node.val);
     }
 
     /*
@@ -285,7 +288,7 @@ impl Parser<'_> {
             } else if self.lex.consume("-".to_string()) {
                 node = Parser::new_node(NodeKind::NdSub, node, self.mul()?);
             } else {
-                // Parser::show_node("expr".to_string(), &node);
+                Parser::show_node("expr".to_string(), &node);
                 return Ok(node);
             }
         }
@@ -293,7 +296,7 @@ impl Parser<'_> {
 
     fn mul(&mut self) -> Result<Box<Node>, MyError> {
         let mut node: Box<Node> = self.primary()?;
-        // Parser::show_node("primary".to_string(), &node);
+        Parser::show_node("primary".to_string(), &node);
         loop { // why loop?
             if self.lex.consume("*".to_string()) {
                 node = Parser::new_node(NodeKind::NdMul, node, self.primary()?);
@@ -306,7 +309,7 @@ impl Parser<'_> {
             } else if self.lex.consume("/".to_string()) {
                 node = Parser::new_node(NodeKind::NdDiv, node, self.primary()?);
             } else {
-                // Parser::show_node("mul".to_string(), &node);
+                Parser::show_node("mul".to_string(), &node);
                 return Ok(node);
             }
         }

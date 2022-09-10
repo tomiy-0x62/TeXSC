@@ -6,6 +6,8 @@ use thiserror::Error;
 use std::fmt;
 
 use super::super::error::*;
+use super::super::debug;
+use super::super::debugln;
 
 pub enum TokenKind {
     TkTexCommand,
@@ -58,15 +60,15 @@ impl Lexer {
     }
 
     pub fn print_form(&self) {
-        eprintln!("form: {}", self.formulas.replace("\n", " "));
+        debugln!("form: {}", self.formulas.replace("\n", " "));
     }
 
     fn print_token(&self) {
         for token in self.tokens.iter() {
             // {}でした
-            eprint!("'{}', ", token.token);
+            debug!("{}:'{}', ", token.token_kind, token.token);
         }
-        eprintln!("");
+        debugln!("");
     }
 
     pub fn consume(&mut self, op: String) -> bool {
@@ -171,7 +173,7 @@ impl Lexer {
                     Some(c) => c,
                     None => {
                         self.tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
-                        // self.print_token();
+                        self.print_token();
                         break 'search
                     },
                 }
@@ -228,7 +230,7 @@ impl Lexer {
 
             if self.formulas.len() == 0 {
                 self.tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
-                // self.print_token();
+                self.print_token();
                 break;
             }
         }

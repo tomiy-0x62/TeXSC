@@ -15,13 +15,14 @@ use text_colorizer::*;
 mod parser;
 mod config;
 mod error;
+#[macro_use] mod macros;
 
 use config::*;
 use error::*;
 
 macro_rules! eprintlnc {
     ($e:expr) => {
-        eprintln!("{}: {}", "Error".red(), $e);
+        eprintln!("{}: {}", "Error".red(), $e)
     };
 }
 
@@ -44,7 +45,7 @@ fn main_loop() {
             return;
         }
         let mut lex = parser::lexer::Lexer::new(form.to_string());
-        // lex.print_form();
+        lex.print_form();
         match lex.analyze() {
             Ok(_) => (),
             Err(e) => {
@@ -59,7 +60,7 @@ fn main_loop() {
                 continue;
             },
         };
-        // _pars.print_vars();
+        _pars.print_vars();
         let ast_root = match _pars.build_ast() {
             Ok(ast) => ast,
             Err(e) => match e { 
@@ -97,7 +98,7 @@ fn main() {
     // formulas from command line arg
     if let Some(form) = matches.value_of("tex formulas") {
         let mut lex = parser::lexer::Lexer::new(form.to_string());
-        // lex.print_form();
+        lex.print_form();
         match lex.analyze() {
             Ok(_) => (),
             Err(e) => {
@@ -113,6 +114,7 @@ fn main() {
                 return;
             },
         };
+        _pars.print_vars();
         let ast_root = match _pars.build_ast() {
             Ok(ast) => ast,
             Err(e) => match e {
@@ -136,7 +138,7 @@ fn main() {
         let reader: BufReader<File> = BufReader::new(f);
         for result in reader.lines() {
             let mut lex = parser::lexer::Lexer::new(result.unwrap());
-            // lex.print_form();
+            lex.print_form();
             match lex.analyze() {
                 Ok(_) => (),
                 Err(e) => {
@@ -152,6 +154,7 @@ fn main() {
                     continue;
                 },
             };
+            _pars.print_vars();
             let ast_root = match _pars.build_ast() {
                 Ok(ast) => ast,
                 Err(e) => match e {
