@@ -112,7 +112,7 @@ impl Parser<'_> {
                 match lex.tokens[i].token_kind {
                     lexer::TokenKind::TkTscCommand => {
                         to_delete_el.push(i);
-                        Parser::process_tsccommand(&lex.tokens[i], &lex.tokens[i+1])?;
+                        Parser::process_tsccommand(&lex.tokens[i], &lex.tokens[i+1], vars)?;
                         to_delete_el.push(i+1);
                     },
                     _ => (),
@@ -136,8 +136,21 @@ impl Parser<'_> {
         }
         Ok(ast)
     }
+    /*
+    TokenKind::TkVariable => {
+                self.token_idx += 1;
+                match vars.get(&self.tokens[self.token_idx-1].token) {
+                    Some(v) => {
+                        Ok(v.to_string())
+                    },
+                    None => {
+                        Err(MyError::UDvariableErr(self.tokens[self.token_idx-1].token.to_string()))
+                    },
+                }
+            },
+    */
 
-    fn process_tsccommand(t1: &Token, t2: &Token) -> Result<(), MyError> {
+    fn process_tsccommand(t1: &Token, t2: &Token, vars: &mut HashMap<String, f64>) -> Result<(), MyError> {
         Ok(match &*t1.token {
             ":debug" => {
                 match &*t2.token {
@@ -150,12 +163,16 @@ impl Parser<'_> {
                 match t2.token_kind {
                     lexer::TokenKind::TkNum => {
                         match Parser::f64_from_str(&t2.token) {
-                            Ok(num) => {
-                                set_lbconf(num)?;
-                            },
+                            Ok(num) => set_lbconf(num)?,
                             Err(e) => return Err(e),
                         }
                     },
+                    lexer::TokenKind::TkVariable => {
+                        match vars.get(&t2.token) {
+                            Some(num) => set_lbconf(*num)?,
+                            None => return Err(MyError::UDvariableErr(t2.token.to_string())),
+                        }
+                    }
                     _ => return Err(MyError::NotTkNumber(t2.token_kind.to_string())),
                 }
             },
@@ -169,7 +186,18 @@ impl Parser<'_> {
             },
             ":rlen" => {
                 match t2.token_kind {
-                    lexer::TokenKind::TkNum => (),
+                    lexer::TokenKind::TkNum => {
+                        match Parser::f64_from_str(&t2.token) {
+                            Ok(num) => set_ndconf(num as u32)?,
+                            Err(e) => return Err(e),
+                        }
+                    },
+                    lexer::TokenKind::TkVariable => {
+                        match vars.get(&t2.token) {
+                            Some(num) => set_ndconf(*num as u32)?,
+                            None => return Err(MyError::UDvariableErr(t2.token.to_string())),
+                        }
+                    }
                     _ => return Err(MyError::NotTkNumber(t2.token_kind.to_string())),
                 }
             },
