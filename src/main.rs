@@ -136,6 +136,7 @@ fn main() {
     if let Some(file_name) = matches.value_of("file") {
         let f: File = File::open(file_name).expect(file_name);
         let reader: BufReader<File> = BufReader::new(f);
+        let mut vars: HashMap<String, f64> = HashMap::new();
         for result in reader.lines() {
             let mut lex = parser::lexer::Lexer::new(result.unwrap());
             lex.print_form();
@@ -146,7 +147,6 @@ fn main() {
                     continue;
                 }
             };
-            let mut vars: HashMap<String, f64> = HashMap::new();
             let mut _pars = match parser::Parser::new(lex, &mut vars) {
                 Ok(p) => p,
                 Err(e) => {
