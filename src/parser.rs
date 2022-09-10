@@ -252,7 +252,7 @@ impl Parser<'_> {
         }
         let ast = self.expr()?;
         if !self.lex.is_eot() {
-            return Err(MyError::UDcommandErr(self.lex.now_token().to_string()));
+            return Err(MyError::UnprocessedToekn(self.lex.now_token().to_string()));
         }
         Ok(ast)
     }

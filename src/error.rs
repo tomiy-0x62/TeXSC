@@ -11,6 +11,8 @@ pub enum MyError {
     BrokenAstErr,
     #[error("undiffined command '{0}'")]
     UDcommandErr(String),
+    #[error("un processed token '{0}'")]
+    UnprocessedToekn(String),
     #[error("Invalid hex format '{0}'")]
     InvalidHexFormat(String),
     #[error("Invalid binary format '{0}'")]
