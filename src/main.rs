@@ -5,13 +5,11 @@ use std::fs::File;
 use std::io::{BufReader, BufRead, stdout, Write};
 use std::io;
 use std::collections::HashMap;
-use thiserror::Error;
 use lazy_static::lazy_static;
 use std::sync::RwLock;
 
 use text_colorizer::*;
 
-// mod lexer;
 mod parser;
 mod config;
 mod error;
@@ -20,62 +18,10 @@ mod error;
 use config::*;
 use error::*;
 
-macro_rules! eprintlnc {
-    ($e:expr) => {
-        eprintln!("{}: {}", "Error".red(), $e)
-    };
-}
-
 lazy_static! {
     pub static ref CONFIG: RwLock<Config> = {
-        RwLock::new(config::Config { result_format: ResultFormat::decimal, debug: false, trig_func_arg: TrigFuncArg::radian, log_base: std::f64::consts::E, num_of_digit: 12 })
+        RwLock::new(config::Config { result_format: ResultFormat::Decimal, debug: false, trig_func_arg: TrigFuncArg::Radian, log_base: std::f64::consts::E, num_of_digit: 12 })
     };
-}
-
-
-fn main_loop() {
-    let mut vars: HashMap<String, f64> = HashMap::new();
-    loop {
-        print!("tsc> ");
-        stdout().flush().unwrap();
-        let mut form: String = String::new();
-        io::stdin().read_line(&mut form)
-        .expect("stdin");
-        if form.trim() == "exit" {
-            return;
-        }
-        let mut lex = parser::lexer::Lexer::new(form.to_string());
-        lex.print_form();
-        match lex.analyze() {
-            Ok(_) => (),
-            Err(e) => {
-                eprintlnc!(e);
-                continue;
-            }
-        };
-        let mut _pars = match parser::Parser::new(lex, &mut vars) {
-            Ok(p) => p,
-            Err(e) => {
-                eprintlnc!(e);
-                continue;
-            },
-        };
-        _pars.print_vars();
-        let ast_root = match _pars.build_ast() {
-            Ok(ast) => ast,
-            Err(e) => match e { 
-                MyError::NoToken => continue,
-                _ => {
-                    eprintlnc!(e);
-                    continue;
-                },
-            },
-        };
-        match calc(ast_root) {
-            Ok(result) => println!("{}", result),
-            Err(e) => eprintlnc!(e),
-        };
-    }
 }
 
 fn main() {
@@ -97,38 +43,8 @@ fn main() {
     
     // formulas from command line arg
     if let Some(form) = matches.value_of("tex formulas") {
-        let mut lex = parser::lexer::Lexer::new(form.to_string());
-        lex.print_form();
-        match lex.analyze() {
-            Ok(_) => (),
-            Err(e) => {
-                eprintlnc!(e);
-                return;
-            }
-        };
         let mut vars: HashMap<String, f64> = HashMap::new();
-        let mut _pars = match parser::Parser::new(lex, &mut vars) {
-            Ok(p) => p,
-            Err(e) => {
-                eprintlnc!(e);
-                return;
-            },
-        };
-        _pars.print_vars();
-        let ast_root = match _pars.build_ast() {
-            Ok(ast) => ast,
-            Err(e) => match e {
-                MyError::NoToken => return,
-                _ => {
-                    eprintlnc!(e);
-                    return;
-                },
-            },
-        };
-        match calc(ast_root) {
-            Ok(result) => println!("{}", result),
-            Err(e) => eprintlnc!(e),
-        }
+        process_form(form.to_string(), &mut vars);
         return;
     }
 
@@ -138,44 +54,60 @@ fn main() {
         let reader: BufReader<File> = BufReader::new(f);
         let mut vars: HashMap<String, f64> = HashMap::new();
         for result in reader.lines() {
-            let mut lex = parser::lexer::Lexer::new(result.unwrap());
-            lex.print_form();
-            match lex.analyze() {
-                Ok(_) => (),
-                Err(e) => {
-                    eprintlnc!(e);
-                    continue;
-                }
-            };
-            let mut _pars = match parser::Parser::new(lex, &mut vars) {
-                Ok(p) => p,
-                Err(e) => {
-                    eprintlnc!(e);
-                    continue;
-                },
-            };
-            _pars.print_vars();
-            let ast_root = match _pars.build_ast() {
-                Ok(ast) => ast,
-                Err(e) => match e {
-                    MyError::NoToken => continue,
-                    _ => {
-                        eprintlnc!(e);
-                        continue;
-                    },
-                },
-            };
-            match calc(ast_root) {
-                Ok(result) => println!("{}", result),
-                Err(e) => eprintlnc!(e),
-            }
+            process_form(result.unwrap(), &mut vars);
         }
         return;
     }
     
     // REPL
-    main_loop();
+    let mut vars: HashMap<String, f64> = HashMap::new();
+    loop {
+        print!("tsc> ");
+        stdout().flush().unwrap();
+        let mut form: String = String::new();
+        io::stdin().read_line(&mut form)
+        .expect("stdin");
+        if form.trim() == "exit" {
+            return;
+        }
+        process_form(form.to_string(), &mut vars);
+    }
     
+}
+
+fn process_form(form: String, vars: &mut HashMap<String, f64>) {
+    let mut lex = parser::lexer::Lexer::new(form);
+    lex.print_form();
+    match lex.analyze() {
+        Ok(_) => (),
+        Err(e) => {
+            eprintlnc!(e);
+            return;
+        }
+    };
+    let mut _pars = match parser::Parser::new(lex, vars) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintlnc!(e);
+            return;
+        },
+    };
+    _pars.print_vars();
+    let ast_root = match _pars.build_ast() {
+        Ok(ast) => ast,
+        Err(e) => match e {
+            MyError::NoToken => return,
+            _ => {
+                eprintlnc!(e);
+                return;
+            },
+        },
+    };
+    match calc(ast_root) {
+        Ok(result) => println!("{}", result),
+        Err(e) => eprintlnc!(e),
+    }
+    return;
 }
 
 fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
@@ -230,7 +162,7 @@ fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
         parser::NodeKind::NdSub => Ok(loperand - roperand),
         parser::NodeKind::NdMul => Ok(loperand * roperand),
         parser::NodeKind::NdDiv => Ok(loperand / roperand),
-        parser::NodeKind::NdSqrt => Ok(loperand.sqrt()), // TODO: sqrtの中が負のときの処理を実装
+        parser::NodeKind::NdSqrt => Ok(loperand.sqrt()),
         parser::NodeKind::NdLog => {
             Ok(loperand.log(conf.log_base))
         },
@@ -238,20 +170,20 @@ fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
         parser::NodeKind::NdExp => Ok(std::f64::consts::E.powf(loperand)),
         parser::NodeKind::NdSin => {
             match conf.trig_func_arg {
-                TrigFuncArg::radian => Ok(loperand.sin()),
-                TrigFuncArg::degree => Ok(loperand.to_radians().sin()),
+                TrigFuncArg::Radian => Ok(loperand.sin()),
+                TrigFuncArg::Degree => Ok(loperand.to_radians().sin()),
             }
         },
         parser::NodeKind::NdCos =>  {
             match conf.trig_func_arg {
-                TrigFuncArg::radian => Ok(loperand.cos()),
-                TrigFuncArg::degree => Ok(loperand.to_radians().cos()),
+                TrigFuncArg::Radian => Ok(loperand.cos()),
+                TrigFuncArg::Degree => Ok(loperand.to_radians().cos()),
             }
         },
         parser::NodeKind::NdTan =>  {
             match conf.trig_func_arg {
-                TrigFuncArg::radian => Ok(loperand.tan()),
-                TrigFuncArg::degree => Ok(loperand.to_radians().tan()),
+                TrigFuncArg::Radian => Ok(loperand.tan()),
+                TrigFuncArg::Degree => Ok(loperand.to_radians().tan()),
             }
         },
         parser::NodeKind::NdAcSin => Ok(loperand.asin()),

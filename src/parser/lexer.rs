@@ -1,8 +1,5 @@
-
-use clap::Error;
 use regex::Regex;
 use std::collections::HashMap;
-use thiserror::Error;
 use std::fmt;
 
 use super::super::error::*;
@@ -60,44 +57,21 @@ impl Lexer {
     }
 
     pub fn print_form(&self) {
-        debugln!("form: {}", self.formulas.replace("\n", " "));
-    }
-
-    fn print_token(&self) {
-        for token in self.tokens.iter() {
-            // {}でした
-            debug!("{}:'{}', ", token.token_kind, token.token);
-        }
-        debugln!("");
+        debugln!("form: {}", self.formulas);
     }
 
     pub fn consume(&mut self, op: String) -> bool {
         match self.tokens[self.token_idx].token_kind {
-            TokenKind::TkOperator => {
-                if self.tokens[self.token_idx].token == op {
-                    self.token_idx += 1;
-                    true
-                } else {
-                    false
-                }
-            },
-            TokenKind::TkBrace => {
-                if self.tokens[self.token_idx].token == op {
-                    self.token_idx += 1;
-                    true
-                } else {
-                    false
-                }
-            },
-            TokenKind::TkTexCommand => {
-                if self.tokens[self.token_idx].token == op {
-                    self.token_idx += 1;
-                    true
-                } else {
-                    false
-                }
-            },
-            _ => false,
+            TokenKind::TkOperator => (),
+            TokenKind::TkBrace => (),
+            TokenKind::TkTexCommand => (),
+            _ => return false,
+        }
+        if self.tokens[self.token_idx].token == op {
+            self.token_idx += 1;
+            true
+        } else {
+            false
         }
     }
 
@@ -133,7 +107,6 @@ impl Lexer {
                 self.token_idx += 1;
                 match vars.get(&self.tokens[self.token_idx-1].token) {
                     Some(v) => {
-                        // eprintln!("var: {} = {}", self.tokens[self.token_idx-1].token, v);
                         Ok(v.to_string())
                     },
                     None => {
@@ -157,12 +130,12 @@ impl Lexer {
     }
 
     pub fn analyze(&mut self) -> Result<(), MyError> {
-        let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap(); // OK
-        let tsc_command = Regex::new(r":[A-Za-z]*").unwrap(); // OK
-        let operator = Regex::new(r"\+|-|\*|=|/|!|_|,|\^|\|").unwrap(); // OK
-        let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap(); // OK
-        let num = Regex::new(r"0x[0-9a-fA-F]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap(); // OK
-        let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap(); // OK
+        let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap();
+        let tsc_command = Regex::new(r":[A-Za-z]*").unwrap();
+        let operator = Regex::new(r"\+|-|\*|=|/|!|_|,|\^|\|").unwrap();
+        let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap();
+        let num = Regex::new(r"0x[0-9a-fA-F]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap();
+        let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap();
 
         'search:
         loop {
@@ -235,17 +208,14 @@ impl Lexer {
             }
         }
 
-        
-        /*
-        for caps in tex_command.captures_iter(&self.formulas) {
-            eprintln!("match '{}'", &caps[0]);
-        }*/
-        
-        if let Some(caps) = operator.captures(&self.formulas) {
-            eprintln!("<<< match '{}' >>>", caps.get(0).unwrap().as_str());
-            // if let Some(hoge) = caps.get(0)
-        }
         return Ok(());
 
+    }
+
+    fn print_token(&self) {
+        for token in self.tokens.iter() {
+            debug!("{}:'{}', ", token.token_kind, token.token);
+        }
+        debugln!("");
     }
 }

@@ -18,3 +18,10 @@ macro_rules! debugln {
         }
     }
 }
+
+#[macro_export]
+macro_rules! eprintlnc {
+    ($e:expr) => {
+        eprintln!("{}: {}", "Error".red(), $e)
+    };
+}

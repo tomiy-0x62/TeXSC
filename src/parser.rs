@@ -1,15 +1,14 @@
 
 use std::collections::HashMap;
-use std::num::ParseFloatError;
 use std::str::FromStr;
-use thiserror::Error;
 use std::fmt;
+use self::lexer::Token;
+
 use super::config::*;
 use super::error::*;
 
 pub mod lexer;
 
-use super::debug;
 use super::debugln;
 
 pub enum NodeKind {
@@ -83,11 +82,121 @@ impl Parser<'_> {
         }
     }
 
+    pub fn new(mut lex: lexer::Lexer, vars: &mut HashMap<String, f64>) -> Result<Parser, MyError> {
+        // lex から varsを構築
+        let mut to_delete_el = Vec::<usize>::new();
+        for i in 0..lex.tokens.len() {
+            if lex.tokens[i].token == "," {
+                to_delete_el.push(i);
+                match lex.tokens[i+1].token_kind {
+                    lexer::TokenKind::TkVariable => to_delete_el.push(i+1),
+                    _ => return Err(MyError::NotTkVariable(lex.tokens[i+1].token_kind.to_string())),
+                }
+                if !(lex.tokens[i+2].token == "=") {
+                    return Err(MyError::UnexpectedToken("=".to_string(), lex.tokens[i+2].token.clone()));
+                } 
+                to_delete_el.push(i+2);
+                match lex.tokens[i+3].token_kind {
+                    lexer::TokenKind::TkNum => {
+                        match Parser::f64_from_str(&lex.tokens[i+3].token) {
+                            Ok(num) => {
+                                vars.insert(lex.tokens[i+1].token.clone(), num);
+                            },
+                            Err(e) => return Err(e),
+                        }
+                    },
+                    _ => return Err(MyError::NotTkNumber(lex.tokens[i+3].token_kind.to_string())),
+                }
+                to_delete_el.push(i+3);
+            } else {
+                match lex.tokens[i].token_kind {
+                    lexer::TokenKind::TkTscCommand => {
+                        to_delete_el.push(i);
+                        Parser::process_tsccommand(&lex.tokens[i], &lex.tokens[i+1])?;
+                        to_delete_el.push(i+1);
+                    },
+                    _ => (),
+                }
+            }
+        }
+        to_delete_el.sort_by(|a, b| b.cmp(a));
+        for i in to_delete_el.into_iter() {
+            lex.tokens.remove(i);
+        }
+        Ok(Parser { lex: lex, vars: vars })
+    }
+
+    pub fn build_ast(&mut self) -> Result<Box<Node>, MyError> {
+        if self.lex.is_eot() {
+            return Err(MyError::NoToken);
+        }
+        let ast = self.expr()?;
+        if !self.lex.is_eot() {
+            return Err(MyError::UnprocessedToekn(self.lex.now_token().to_string()));
+        }
+        Ok(ast)
+    }
+
+    fn process_tsccommand(t1: &Token, t2: &Token) -> Result<(), MyError> {
+        Ok(match &*t1.token {
+            ":debug" => {
+                match &*t2.token {
+                    "true" => set_dbconfig(true)?,
+                    "false" => set_dbconfig(false)?,
+                    _ => return Err(MyError::UnexpectedInput("true/false".to_string(), t2.token.clone())),
+                }
+            },
+            ":logbase" => {
+                match t2.token_kind {
+                    lexer::TokenKind::TkNum => {
+                        match Parser::f64_from_str(&t2.token) {
+                            Ok(num) => {
+                                set_lbconf(num)?;
+                            },
+                            Err(e) => return Err(e),
+                        }
+                    },
+                    _ => return Err(MyError::NotTkNumber(t2.token_kind.to_string())),
+                }
+            },
+            ":rfotmat" => {
+                match &*t2.token {
+                    "bin" => set_rfconf(ResultFormat::Binary)?,
+                    "dec" => set_rfconf(ResultFormat::Decimal)?,
+                    "hex" => set_rfconf(ResultFormat::Hexadecimal)?,
+                    _ => return Err(MyError::UnexpectedInput("bin/dec/hex".to_string(), t2.token.clone())),
+                }
+            },
+            ":rlen" => {
+                match t2.token_kind {
+                    lexer::TokenKind::TkNum => (),
+                    _ => return Err(MyError::NotTkNumber(t2.token_kind.to_string())),
+                }
+            },
+            ":trarg" => {
+                match &*t2.token {
+                    "rad" => set_tfconf(TrigFuncArg::Radian)?,
+                    "deg" => set_tfconf(TrigFuncArg::Degree)?,
+                    _ => return Err(MyError::UnexpectedInput("rad/deg".to_string(), t2.token.clone())),
+                }
+            },
+            ":help" => (),
+            ":show" => {
+                match &*t2.token {
+                    "var" => (),
+                    "const" => (),
+                    "config" => (),
+                    _ => return Err(MyError::UnexpectedInput("var/const/config".to_string(), t2.token.clone())),
+                }
+            },
+            _ => return Err(MyError::UDtsccommand(t2.token.clone())),
+        })
+    }
+
     fn hex2dec(num_str: &str) -> Result<f64, MyError> {
         let mut num: f64 = 0.0;
         let mut figure: f64 = 1.0;
         for i in num_str.chars() {
-            // eprintln!("f64::from_str({})", &i.to_string());
             match f64::from_str(&i.to_string()) {
                 Ok(n) => {
                     num += n * 16.0_f64.powf(num_str.len() as f64 - figure);
@@ -107,7 +216,6 @@ impl Parser<'_> {
                     figure = figure + 1.0;
                 },
             }
-            // eprintln!("num: {}", num);
         }
         Ok(num)
     }
@@ -150,113 +258,6 @@ impl Parser<'_> {
         }
     }
 
-    pub fn new(mut lex: lexer::Lexer, vars: &mut HashMap<String, f64>) -> Result<Parser, MyError> {
-        // lex から varsを構築
-        let mut to_delete_el = Vec::<usize>::new();
-        for i in 0..lex.tokens.len() {
-            if lex.tokens[i].token == "," {
-                to_delete_el.push(i);
-                match lex.tokens[i+1].token_kind {
-                    lexer::TokenKind::TkVariable => to_delete_el.push(i+1),
-                    _ => return Err(MyError::NotTkVariable(lex.tokens[i+1].token_kind.to_string())),
-                }
-                if !(lex.tokens[i+2].token == "=") {
-                    return Err(MyError::UnexpectedToken("=".to_string(), lex.tokens[i+2].token.clone()));
-                } 
-                to_delete_el.push(i+2);
-                match lex.tokens[i+3].token_kind {
-                    lexer::TokenKind::TkNum => {
-                        match Parser::f64_from_str(&lex.tokens[i+3].token) {
-                            Ok(num) => {
-                                vars.insert(lex.tokens[i+1].token.clone(), num);
-                            },
-                            Err(e) => return Err(e),
-                        }
-                    },
-                    _ => return Err(MyError::NotTkNumber(lex.tokens[i+3].token_kind.to_string())),
-                }
-                to_delete_el.push(i+3);
-            } else {
-                match lex.tokens[i].token_kind {
-                    lexer::TokenKind::TkTscCommand => {
-                        to_delete_el.push(i);
-                        match &*lex.tokens[i].token {
-                            ":debug" => {
-                                match &*lex.tokens[i+1].token {
-                                    "true" => set_dbconfig(true)?,
-                                    "false" => set_dbconfig(false)?,
-                                    _ => return Err(MyError::UnexpectedInput("true/false".to_string(), lex.tokens[i+1].token.clone())),
-                                }
-                            },
-                            ":logbase" => {
-                                match lex.tokens[i+1].token_kind {
-                                    lexer::TokenKind::TkNum => {
-                                        match Parser::f64_from_str(&lex.tokens[i+1].token) {
-                                            Ok(num) => {
-                                                set_lbconf(num)?;
-                                            },
-                                            Err(e) => return Err(e),
-                                        }
-                                    },
-                                    _ => return Err(MyError::NotTkNumber(lex.tokens[i+1].token_kind.to_string())),
-                                }
-                            },
-                            ":rfotmat" => {
-                                match &*lex.tokens[i+1].token {
-                                    "bin" => set_rfconf(ResultFormat::binary)?,
-                                    "dec" => set_rfconf(ResultFormat::decimal)?,
-                                    "hex" => set_rfconf(ResultFormat::hexadecimal)?,
-                                    _ => return Err(MyError::UnexpectedInput("bin/dec/hex".to_string(), lex.tokens[i+1].token.clone())),
-                                }
-                            },
-                            ":rlen" => {
-                                match lex.tokens[i+1].token_kind {
-                                    lexer::TokenKind::TkNum => (),
-                                    _ => return Err(MyError::NotTkNumber(lex.tokens[i+1].token_kind.to_string())),
-                                }
-                            },
-                            ":trarg" => {
-                                match &*lex.tokens[i+1].token {
-                                    "rad" => set_tfconf(TrigFuncArg::radian)?,
-                                    "deg" => set_tfconf(TrigFuncArg::degree)?,
-                                    _ => return Err(MyError::UnexpectedInput("rad/deg".to_string(), lex.tokens[i+1].token.clone())),
-                                }
-                            },
-                            ":help" => (),
-                            ":show" => {
-                                match &*lex.tokens[i+1].token {
-                                    "var" => (),
-                                    "const" => (),
-                                    "config" => (),
-                                    _ => return Err(MyError::UnexpectedInput("var/const/config".to_string(), lex.tokens[i+1].token.clone())),
-                                }
-                            },
-                            _ => return Err(MyError::UDtsccommand(lex.tokens[i].token.clone())),
-                        }
-                        to_delete_el.push(i+1);
-                    },
-                    _ => (),
-                }
-            }
-        }
-        to_delete_el.sort_by(|a, b| b.cmp(a));
-        for i in to_delete_el.into_iter() {
-            lex.tokens.remove(i);
-        }
-        Ok(Parser { lex: lex, vars: vars })
-    }
-
-    pub fn build_ast(&mut self) -> Result<Box<Node>, MyError> {
-        if self.lex.is_eot() {
-            return Err(MyError::NoToken);
-        }
-        let ast = self.expr()?;
-        if !self.lex.is_eot() {
-            return Err(MyError::UnprocessedToekn(self.lex.now_token().to_string()));
-        }
-        Ok(ast)
-    }
-
     fn new_node(kind: NodeKind, left: Box<Node>, right: Box<Node>) -> Box<Node> {
         Box::new(Node { node_kind: kind, right_node: Some(right), left_node: Some(left), val: None })
     }
@@ -297,7 +298,7 @@ impl Parser<'_> {
     fn mul(&mut self) -> Result<Box<Node>, MyError> {
         let mut node: Box<Node> = self.primary()?;
         Parser::show_node("primary".to_string(), &node);
-        loop { // why loop?
+        loop {
             if self.lex.consume("*".to_string()) {
                 node = Parser::new_node(NodeKind::NdMul, node, self.primary()?);
             } else if self.lex.consume("\\times".to_string()) {

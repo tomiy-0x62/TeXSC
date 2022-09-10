@@ -4,32 +4,32 @@ use super::error::*;
 
 #[derive(Clone, Copy)]
 pub enum ResultFormat {
-    decimal,
-    binary,
-    hexadecimal,
+    Decimal,
+    Binary,
+    Hexadecimal,
 }
 
 impl fmt::Display for ResultFormat {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ResultFormat::decimal =>  write!(f, "decimal"),
-            ResultFormat::binary =>  write!(f, "binary"),
-            ResultFormat::hexadecimal =>  write!(f, "hexadecimal"),
+            ResultFormat::Decimal =>  write!(f, "decimal"),
+            ResultFormat::Binary =>  write!(f, "binary"),
+            ResultFormat::Hexadecimal =>  write!(f, "hexadecimal"),
         }
     }
 }
 
 #[derive(Clone, Copy)]
 pub enum TrigFuncArg {
-    radian,
-    degree,
+    Radian,
+    Degree,
 }
 
 impl fmt::Display for TrigFuncArg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TrigFuncArg::radian =>  write!(f, "radian"),
-            TrigFuncArg::degree =>  write!(f, "degree"),
+            TrigFuncArg::Radian =>  write!(f, "radian"),
+            TrigFuncArg::Degree =>  write!(f, "degree"),
         }
     }
 }
