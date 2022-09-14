@@ -133,7 +133,14 @@ impl Lexer {
 
         'search:
         loop {
-            let mut c = formulas.chars().nth(0).unwrap();
+            let mut c = match formulas.chars().nth(0) {
+                Some(c) => c,
+                None => {
+                    tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
+                    Lexer::print_token(tokens);
+                    break 'search
+                },
+            };
             while c == ' ' {
                 formulas = formulas.replacen(" ", "", 1);
                 c = match formulas.chars().nth(0) {
