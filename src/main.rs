@@ -45,7 +45,9 @@ fn main() {
     // formulas from command line arg
     if let Some(form) = matches.value_of("tex formulas") {
         let mut vars: HashMap<String, f64> = HashMap::new();
-        process_form(form.to_string(), &mut vars);
+        for line in form.split('\n') {
+            process_form(line.replace("\r", ""), &mut vars);
+        }
         return;
     }
 
