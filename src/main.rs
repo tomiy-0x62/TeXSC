@@ -56,8 +56,8 @@ fn main() {
         let f: File = File::open(file_name).expect(file_name);
         let reader: BufReader<File> = BufReader::new(f);
         let mut vars: HashMap<String, f64> = HashMap::new();
-        for result in reader.lines() {
-            process_form(result.unwrap(), &mut vars);
+        for line in reader.lines() {
+            process_form(line.unwrap(), &mut vars);
         }
         return;
     }
@@ -79,10 +79,8 @@ fn main() {
 }
 
 fn process_form(form: String, vars: &mut HashMap<String, f64>) {
-    let mut lex = parser::lexer::Lexer::new(form);
-    lex.print_form();
-    match lex.analyze() {
-        Ok(_) => (),
+    let lex = match parser::lexer::Lexer::new(form) {
+        Ok(l) => l,
         Err(e) => {
             eprintlnc!(e);
             return;

@@ -36,7 +36,6 @@ pub struct Token {
 }
 
 pub struct Lexer {
-    formulas: String,
     pub tokens: Vec<Token>,
     pub token_idx: usize
 }
@@ -51,13 +50,12 @@ tokenの種類
 */
 
 impl Lexer {
-    pub fn new(form: String) -> Lexer {
+    pub fn new(form: String) -> Result<Lexer, MyError> {
         let form = form.replace("\n", "").replace("\t", "").replace("\r", "");
-        Lexer { formulas: form, tokens: Vec::new(), token_idx: 0 }
-    }
-
-    pub fn print_form(&self) {
-        debugln!("form: {}", self.formulas);
+        debugln!("form: '{}'", form);
+        let mut tokens: Vec<Token> = Vec::new();
+        Lexer::analyze(form, &mut tokens)?;
+        Ok(Lexer { tokens: tokens, token_idx: 0 })
     }
 
     pub fn consume(&mut self, op: String) -> bool {
@@ -125,7 +123,7 @@ impl Lexer {
         &self.tokens[self.token_idx].token
     }
 
-    pub fn analyze(&mut self) -> Result<(), MyError> {
+    fn analyze(mut formulas: String, tokens: &mut Vec<Token>) -> Result<(), MyError> {
         let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap();
         let tsc_command = Regex::new(r":[A-Za-z]*").unwrap();
         let operator = Regex::new(r"\+|-|\*|=|/|!|_|,|\^|\|").unwrap();
@@ -135,71 +133,71 @@ impl Lexer {
 
         'search:
         loop {
-            let mut c = self.formulas.chars().nth(0).unwrap();
+            let mut c = formulas.chars().nth(0).unwrap();
             while c == ' ' {
-                self.formulas = self.formulas.replacen(" ", "", 1);
-                c = match self.formulas.chars().nth(0) {
+                formulas = formulas.replacen(" ", "", 1);
+                c = match formulas.chars().nth(0) {
                     Some(c) => c,
                     None => {
-                        self.tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
-                        self.print_token();
+                        tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
+                        Lexer::print_token(tokens);
                         break 'search
                     },
                 }
             }
             let mut ismatch = false;
             if c == '\\' {
-                if let Some(caps) = tex_command.captures(&self.formulas) {
+                if let Some(caps) = tex_command.captures(&formulas) {
                     let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
                     match &*token {
-                        "\\times" => self.tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
-                        "\\cdot" => self.tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
-                        "\\div" => self.tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
-                        "\\pi" => self.tokens.push(Token {token: std::f64::consts::PI.to_string(), token_kind: TokenKind::TkNum}),
-                        _ => self.tokens.push(Token {token: token, token_kind: TokenKind::TkTexCommand}),
+                        "\\times" => tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
+                        "\\cdot" => tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
+                        "\\div" => tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
+                        "\\pi" => tokens.push(Token {token: std::f64::consts::PI.to_string(), token_kind: TokenKind::TkNum}),
+                        _ => tokens.push(Token {token: token, token_kind: TokenKind::TkTexCommand}),
                     }
-                    self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                    formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     ismatch = true;
                 }
             } else if c == ':' {
-                if let Some(caps) = tsc_command.captures(&self.formulas) {
+                if let Some(caps) = tsc_command.captures(&formulas) {
                     let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
-                    self.tokens.push(Token {token: token, token_kind: TokenKind::TkTscCommand});
-                    self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                    tokens.push(Token {token: token, token_kind: TokenKind::TkTscCommand});
+                    formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     ismatch = true;
                 }
             } else if let Some(caps) = operator.captures(&c.to_string()) {
-                self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkOperator});
-                self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkOperator});
+                formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
             } else if let Some(caps) = braces.captures(&c.to_string()) {
-                self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkBrace});
-                self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkBrace});
+                formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
             } else if let Some(_) = num.captures(&c.to_string()) {
-                if let Some(caps) = num.captures(&self.formulas) {
-                    self.tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkNum});
-                    self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                if let Some(caps) = num.captures(&formulas) {
+                    tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkNum});
+                    formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     ismatch = true;
                 }
-            } else if let Some(caps) = var.captures(&self.formulas) {
+            } else if let Some(caps) = var.captures(&formulas) {
                 if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() { return Err(MyError::InvalidInput(c.to_string())); }
                 let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
                 if token == "e" {
-                    self.tokens.push(Token {token: std::f64::consts::E.to_string(), token_kind: TokenKind::TkNum});
+                    tokens.push(Token {token: std::f64::consts::E.to_string(), token_kind: TokenKind::TkNum});
                 } else {
-                    self.tokens.push(Token {token: token, token_kind: TokenKind::TkVariable});
+                    tokens.push(Token {token: token, token_kind: TokenKind::TkVariable});
                 }
-                self.formulas = self.formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
             } 
             if !ismatch {
                 return Err(MyError::InvalidInput(c.to_string()));
             }
 
-            if self.formulas.len() == 0 {
-                self.tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
-                self.print_token();
+            if formulas.len() == 0 {
+                tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
+                Lexer::print_token(tokens);
                 break;
             }
         }
@@ -208,8 +206,8 @@ impl Lexer {
 
     }
 
-    fn print_token(&self) {
-        for token in self.tokens.iter() {
+    fn print_token(tokens: &Vec<Token>) {
+        for token in tokens.iter() {
             debug!("{}:'{}', ", token.token_kind, token.token);
         }
         debugln!("");
