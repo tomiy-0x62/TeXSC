@@ -161,7 +161,13 @@ impl Lexer {
                         "\\cdot" => tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
                         "\\div" => tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
                         "\\pi" => tokens.push(Token {token: std::f64::consts::PI.to_string(), token_kind: TokenKind::TkNum}),
-                        _ => tokens.push(Token {token: token, token_kind: TokenKind::TkTexCommand}),
+                        _ => {
+                            if Lexer::is_valid_texcommand(&token) {
+                                tokens.push(Token {token: token, token_kind: TokenKind::TkTexCommand});
+                            } else {
+                                return Err(MyError::UDcommandErr(token));
+                            }
+                        },
                     }
                     formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     ismatch = true;
@@ -211,6 +217,29 @@ impl Lexer {
 
         return Ok(());
 
+    }
+
+    fn is_valid_texcommand(tc: &String) -> bool {
+        match &**tc {
+            "\\times" => true,
+            "\\cdot" => true,
+            "\\div" => true,
+            "\\frac" => true,
+            "\\sqrt" => true,
+            "\\log" => true,
+            "\\ln" => true,
+            "\\abs" => true,
+            "\\exp" => true,
+            "\\sin" => true,
+            "\\cos" => true,
+            "\\tan" => true,
+            "\\csc" => true,
+            "\\cot" => true,
+            "\\arcsin" => true,
+            "\\arccos" => true,
+            "\\arctan" => true,
+            _ => false,
+        }
     }
 
     fn print_token(tokens: &Vec<Token>) {
