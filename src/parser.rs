@@ -1,5 +1,6 @@
 
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::str::FromStr;
 use std::fmt;
 use self::lexer::Token;
@@ -11,6 +12,7 @@ pub mod lexer;
 
 use super::debugln;
 
+#[derive(Clone, Copy)]
 pub enum NodeKind {
     // 1引数
     NdSin,
@@ -67,6 +69,14 @@ pub struct Node {
     pub right_node: Option<Box<Node>>,
     pub left_node: Option<Box<Node>>,
     pub val: Option<f64>,
+}
+
+struct NodeInfo {
+    pub node_kind: NodeKind,
+    pub rnode_num: Option<usize>,
+    pub lnode_num: Option<usize>,
+    pub val: Option<f64>,
+    pub node_num: u64,
 }
 
 pub struct Parser<'a> {
@@ -134,7 +144,106 @@ impl Parser<'_> {
         if !self.lex.is_eot() {
             return Err(MyError::UnprocessedToekn(self.lex.now_token().to_string()));
         }
+        Parser::show_ast(&ast);
         Ok(ast)
+    }
+
+    fn show_ast(ast: &Box<Node>) {
+        let mut node_que = VecDeque::new();
+        let mut lyer_que = VecDeque::new();
+        let mut node_num = 0;
+        let mut node: &Box<Node> = ast  ;
+        let mut qln: usize = 1;
+        let mut lyer = 0;
+        let mut lyered_nodes: Vec<Vec<NodeInfo>> = Vec::new();
+        node_que.push_back(node);
+        lyer_que.push_back(lyer);
+        loop {
+            node = match node_que.pop_front() {
+                Some(n) => n,
+                None => break,
+            };
+            lyer = lyer_que.pop_front().unwrap();
+            if lyered_nodes.len() <= lyer {
+                lyered_nodes.push(Vec::new())
+            }
+            let ln: Option<usize>;
+            match &node.left_node {
+                Some(n) => {
+                    node_que.push_back(&n);
+                    lyer_que.push_back(lyer+1);
+                    ln = Some(qln);
+                    qln += 1;
+                },
+                None => ln = None,
+            }
+            let rn: Option<usize>;
+            match &node.right_node {
+                Some(n) => {
+                    node_que.push_back(&n);
+                    lyer_que.push_back(lyer+1);
+                    rn = Some(qln);
+                    qln += 1;
+                },
+                None => rn = None,
+            }
+            Parser::print_node(node, lyer as u64, node_num, ln, rn);
+            lyered_nodes[lyer].push(NodeInfo {node_kind: node.node_kind, rnode_num: rn, lnode_num: ln, val: node.val, node_num: node_num});
+
+            node_num += 1;
+        };
+
+        let mut msg: String = "".to_string();
+        for lyer in lyered_nodes {
+            for i in 0..lyer.len() {
+                msg += &format!("|----{:^4}----|    ", lyer[i].node_num);
+            }
+            msg += "\n";
+            for i in 0..lyer.len() {
+                msg += &format!("|   {:^10}    |    ", lyer[i].node_kind);
+            }
+            msg += "\n";
+            for _ in 0..lyer.len() {
+                msg += "|............|    ";
+            }
+            msg += "\n";
+            for i in 0..lyer.len() {
+                msg += &format!("| {:^10} |    ", match lyer[i].val { Some(v) => v.to_string(), None => "None".to_string()});
+            }
+            msg += "\n";
+            for i in 0..lyer.len() {
+                msg += &format!("|-{:^4}--{:^4}-|    ",
+                                match lyer[i].lnode_num {
+                                    Some(v) => v.to_string(),
+                                    None => "N".to_string()
+                                },
+                                match lyer[i].rnode_num {
+                                    Some(v) => v.to_string(),
+                                    None => "N".to_string()
+                                });
+            }
+            msg += "\n\n";
+        }
+        println!("{}", msg);
+    }
+
+    fn print_node(node: &Box<Node>, lyer: u64, node_num: u64, ln: Option<usize>, rn: Option<usize>) {
+        println!("{}: lyer: {}, kind: {}, val: {}, left: {}, right: {}",
+                node_num,
+                lyer,
+                node.node_kind.to_string(),
+                match node.val {
+                    Some(v) => format!("{:.*}", 4, v),
+                    None => "None".to_string(),
+                },
+                match ln {
+                    Some(v) => v.to_string(),
+                    None => "None".to_string(),
+                },
+                match rn {
+                    Some(v) => v.to_string(),
+                    None => "None".to_string(),
+                });
     }
 
     fn process_tsccommand(t1: &Token, t2: &Token, vars: &mut HashMap<String, f64>) -> Result<(), MyError> {
