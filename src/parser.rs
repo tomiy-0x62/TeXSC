@@ -196,30 +196,26 @@ impl Parser<'_> {
         let mut msg: String = "".to_string();
         for lyer in lyered_nodes {
             for i in 0..lyer.len() {
-                msg += &format!("|----{:^4}----|    ", lyer[i].node_num);
+                msg += &format!("|----N{:<3}----|    ", lyer[i].node_num);
             }
             msg += "\n";
             for i in 0..lyer.len() {
-                msg += &format!("|   {:^10}    |    ", lyer[i].node_kind);
-            }
-            msg += "\n";
-            for _ in 0..lyer.len() {
-                msg += "|............|    ";
-            }
-            msg += "\n";
-            for i in 0..lyer.len() {
-                msg += &format!("| {:^10} |    ", match lyer[i].val { Some(v) => v.to_string(), None => "None".to_string()});
+                match lyer[i].node_kind {
+                    NodeKind::NdNum => msg += &format!("| {:^10} |    ", match lyer[i].val { Some(v) => v.to_string(), None => "None".to_string()}),
+                    _ => msg += &format!("|   {:^10}    |    ", lyer[i].node_kind),
+                }
+                // msg += &format!("|   {:^10}    |    ", lyer[i].node_kind);
             }
             msg += "\n";
             for i in 0..lyer.len() {
-                msg += &format!("|-{:^4}--{:^4}-|    ",
+                msg += &format!("|-N{:<3}--N{:<3}-|    ",
                                 match lyer[i].lnode_num {
                                     Some(v) => v.to_string(),
-                                    None => "N".to_string()
+                                    None => "X".to_string()
                                 },
                                 match lyer[i].rnode_num {
                                     Some(v) => v.to_string(),
-                                    None => "N".to_string()
+                                    None => "X".to_string()
                                 });
             }
             msg += "\n\n";
