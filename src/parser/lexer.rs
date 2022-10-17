@@ -2,9 +2,9 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
 
-use super::super::error::*;
 use super::super::debug;
 use super::super::debugln;
+use super::super::error::*;
 
 pub enum TokenKind {
     TkTexCommand,
@@ -19,13 +19,13 @@ pub enum TokenKind {
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TokenKind::TkTexCommand  => write!(f, "TkTexCommand"),
-            TokenKind::TkTscCommand  => write!(f, "TkTscCommand"),
-            TokenKind::TkOperator    => write!(f, "TkOperator"),
-            TokenKind::TkVariable    => write!(f, "TkVariable"),
-            TokenKind::TkNum         => write!(f, "TkNum"),
-            TokenKind::TkBrace       => write!(f, "TkBrace"),
-            TokenKind::TkEOT         => write!(f, "TkEOT"),
+            TokenKind::TkTexCommand => write!(f, "TkTexCommand"),
+            TokenKind::TkTscCommand => write!(f, "TkTscCommand"),
+            TokenKind::TkOperator => write!(f, "TkOperator"),
+            TokenKind::TkVariable => write!(f, "TkVariable"),
+            TokenKind::TkNum => write!(f, "TkNum"),
+            TokenKind::TkBrace => write!(f, "TkBrace"),
+            TokenKind::TkEOT => write!(f, "TkEOT"),
         }
     }
 }
@@ -37,7 +37,7 @@ pub struct Token {
 
 pub struct Lexer {
     pub tokens: Vec<Token>,
-    pub token_idx: usize
+    pub token_idx: usize,
 }
 
 /*
@@ -55,7 +55,10 @@ impl Lexer {
         debugln!("form: '{}'", form);
         let mut tokens: Vec<Token> = Vec::new();
         Lexer::analyze(form, &mut tokens)?;
-        Ok(Lexer { tokens: tokens, token_idx: 0 })
+        Ok(Lexer {
+            tokens: tokens,
+            token_idx: 0,
+        })
     }
 
     pub fn consume(&mut self, op: String) -> bool {
@@ -80,18 +83,26 @@ impl Lexer {
                     self.token_idx += 1;
                     return Ok(());
                 } else {
-                    Err(MyError::UnexpectedToken(op, self.tokens[self.token_idx].token.to_string()))
+                    Err(MyError::UnexpectedToken(
+                        op,
+                        self.tokens[self.token_idx].token.to_string(),
+                    ))
                 }
-            },
+            }
             TokenKind::TkBrace => {
                 if self.tokens[self.token_idx].token == op {
                     self.token_idx += 1;
                     return Ok(());
                 } else {
-                    Err(MyError::UnexpectedToken(op, self.tokens[self.token_idx].token.to_string()))
+                    Err(MyError::UnexpectedToken(
+                        op,
+                        self.tokens[self.token_idx].token.to_string(),
+                    ))
                 }
-            },
-            _ => Err(MyError::NotTkOperator(self.tokens[self.token_idx].token_kind.to_string())),
+            }
+            _ => Err(MyError::NotTkOperator(
+                self.tokens[self.token_idx].token_kind.to_string(),
+            )),
         }
     }
 
@@ -99,23 +110,27 @@ impl Lexer {
         match self.tokens[self.token_idx].token_kind {
             TokenKind::TkNum => {
                 self.token_idx += 1;
-                Ok(self.tokens[self.token_idx-1].token.clone())
-            },
+                Ok(self.tokens[self.token_idx - 1].token.clone())
+            }
             TokenKind::TkVariable => {
                 self.token_idx += 1;
-                match vars.get(&self.tokens[self.token_idx-1].token) {
+                match vars.get(&self.tokens[self.token_idx - 1].token) {
                     Some(v) => Ok(v.to_string()),
-                    None => Err(MyError::UDvariableErr(self.tokens[self.token_idx-1].token.to_string())),
+                    None => Err(MyError::UDvariableErr(
+                        self.tokens[self.token_idx - 1].token.to_string(),
+                    )),
                 }
-            },
-            _ => Err(MyError::NotTkNumber(self.tokens[self.token_idx].token_kind.to_string())),
+            }
+            _ => Err(MyError::NotTkNumber(
+                self.tokens[self.token_idx].token_kind.to_string(),
+            )),
         }
     }
 
     pub fn is_eot(&self) -> bool {
         match self.tokens[self.token_idx].token_kind {
             TokenKind::TkEOT => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -131,25 +146,30 @@ impl Lexer {
         let num = Regex::new(r"0x[0-9a-fA-F]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap();
         let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap();
 
-        'search:
-        loop {
+        'search: loop {
             let mut c = match formulas.chars().nth(0) {
                 Some(c) => c,
                 None => {
-                    tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
+                    tokens.push(Token {
+                        token: "EOT".to_string(),
+                        token_kind: TokenKind::TkEOT,
+                    });
                     Lexer::print_token(tokens);
-                    break 'search
-                },
+                    break 'search;
+                }
             };
             while c == ' ' {
                 formulas = formulas.replacen(" ", "", 1);
                 c = match formulas.chars().nth(0) {
                     Some(c) => c,
                     None => {
-                        tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
+                        tokens.push(Token {
+                            token: "EOT".to_string(),
+                            token_kind: TokenKind::TkEOT,
+                        });
                         Lexer::print_token(tokens);
-                        break 'search
-                    },
+                        break 'search;
+                    }
                 }
             }
             let mut ismatch = false;
@@ -157,17 +177,32 @@ impl Lexer {
                 if let Some(caps) = tex_command.captures(&formulas) {
                     let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
                     match &*token {
-                        "\\times" => tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
-                        "\\cdot" => tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
-                        "\\div" => tokens.push(Token {token: token, token_kind: TokenKind::TkOperator}),
-                        "\\pi" => tokens.push(Token {token: std::f64::consts::PI.to_string(), token_kind: TokenKind::TkNum}),
+                        "\\times" => tokens.push(Token {
+                            token: token,
+                            token_kind: TokenKind::TkOperator,
+                        }),
+                        "\\cdot" => tokens.push(Token {
+                            token: token,
+                            token_kind: TokenKind::TkOperator,
+                        }),
+                        "\\div" => tokens.push(Token {
+                            token: token,
+                            token_kind: TokenKind::TkOperator,
+                        }),
+                        "\\pi" => tokens.push(Token {
+                            token: std::f64::consts::PI.to_string(),
+                            token_kind: TokenKind::TkNum,
+                        }),
                         _ => {
                             if Lexer::is_valid_texcommand(&token) {
-                                tokens.push(Token {token: token, token_kind: TokenKind::TkTexCommand});
+                                tokens.push(Token {
+                                    token: token,
+                                    token_kind: TokenKind::TkTexCommand,
+                                });
                             } else {
                                 return Err(MyError::UDcommandErr(token));
                             }
-                        },
+                        }
                     }
                     formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     ismatch = true;
@@ -175,48 +210,70 @@ impl Lexer {
             } else if c == ':' {
                 if let Some(caps) = tsc_command.captures(&formulas) {
                     let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
-                    tokens.push(Token {token: token, token_kind: TokenKind::TkTscCommand});
+                    tokens.push(Token {
+                        token: token,
+                        token_kind: TokenKind::TkTscCommand,
+                    });
                     formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     ismatch = true;
                 }
             } else if let Some(caps) = operator.captures(&c.to_string()) {
-                tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkOperator});
+                tokens.push(Token {
+                    token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""),
+                    token_kind: TokenKind::TkOperator,
+                });
                 formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
             } else if let Some(caps) = braces.captures(&c.to_string()) {
-                tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkBrace});
+                tokens.push(Token {
+                    token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""),
+                    token_kind: TokenKind::TkBrace,
+                });
                 formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
             } else if let Some(_) = num.captures(&c.to_string()) {
                 if let Some(caps) = num.captures(&formulas) {
-                    tokens.push(Token {token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""), token_kind: TokenKind::TkNum});
+                    tokens.push(Token {
+                        token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""),
+                        token_kind: TokenKind::TkNum,
+                    });
                     formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     ismatch = true;
                 }
             } else if let Some(caps) = var.captures(&formulas) {
-                if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() { return Err(MyError::InvalidInput(c.to_string())); }
+                if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() {
+                    return Err(MyError::InvalidInput(c.to_string()));
+                }
                 let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
                 if token == "e" {
-                    tokens.push(Token {token: std::f64::consts::E.to_string(), token_kind: TokenKind::TkNum});
+                    tokens.push(Token {
+                        token: std::f64::consts::E.to_string(),
+                        token_kind: TokenKind::TkNum,
+                    });
                 } else {
-                    tokens.push(Token {token: token, token_kind: TokenKind::TkVariable});
+                    tokens.push(Token {
+                        token: token,
+                        token_kind: TokenKind::TkVariable,
+                    });
                 }
                 formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
-            } 
+            }
             if !ismatch {
                 return Err(MyError::InvalidInput(c.to_string()));
             }
 
             if formulas.len() == 0 {
-                tokens.push(Token {token: "EOT".to_string(), token_kind: TokenKind::TkEOT});
+                tokens.push(Token {
+                    token: "EOT".to_string(),
+                    token_kind: TokenKind::TkEOT,
+                });
                 Lexer::print_token(tokens);
                 break;
             }
         }
 
         return Ok(());
-
     }
 
     fn is_valid_texcommand(tc: &String) -> bool {

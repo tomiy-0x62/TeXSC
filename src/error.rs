@@ -1,5 +1,5 @@
-use thiserror::Error;
 use std::num::ParseFloatError;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum MyError {

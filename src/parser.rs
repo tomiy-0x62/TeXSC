@@ -1,9 +1,8 @@
-
+use self::lexer::Token;
 use std::collections::HashMap;
 use std::collections::VecDeque;
-use std::str::FromStr;
 use std::fmt;
-use self::lexer::Token;
+use std::str::FromStr;
 
 use super::config::*;
 use super::error::*;
@@ -41,25 +40,25 @@ pub enum NodeKind {
 impl fmt::Display for NodeKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            NodeKind::NdSin =>  write!(f, "NdSin"),
-            NodeKind::NdCos =>  write!(f, "NdCos"),
-            NodeKind::NdTan =>  write!(f, "NdTan"),
-            NodeKind::NdCsc =>  write!(f, "NdCsc"),
-            NodeKind::NdSec =>  write!(f, "NdSec"),
-            NodeKind::NdCot =>  write!(f, "NdCot"),
-            NodeKind::NdAcSin =>  write!(f, "NdAcSin"),
-            NodeKind::NdAcCos =>  write!(f, "NdAcCos"),
-            NodeKind::NdAcTan =>  write!(f, "NdAcTan"),
+            NodeKind::NdSin => write!(f, "NdSin"),
+            NodeKind::NdCos => write!(f, "NdCos"),
+            NodeKind::NdTan => write!(f, "NdTan"),
+            NodeKind::NdCsc => write!(f, "NdCsc"),
+            NodeKind::NdSec => write!(f, "NdSec"),
+            NodeKind::NdCot => write!(f, "NdCot"),
+            NodeKind::NdAcSin => write!(f, "NdAcSin"),
+            NodeKind::NdAcCos => write!(f, "NdAcCos"),
+            NodeKind::NdAcTan => write!(f, "NdAcTan"),
             NodeKind::NdSqrt => write!(f, "NdSqrt"),
-            NodeKind::NdLog =>  write!(f, "NdLog"),
-            NodeKind::NdLn =>  write!(f, "NdLn"),
-            NodeKind::NdAbs =>  write!(f, "NdAbs"),
-            NodeKind::NdExp =>  write!(f, "NdExp"),
-            NodeKind::NdAdd =>  write!(f, "NdAdd"),
-            NodeKind::NdSub =>  write!(f, "NdSub"),
-            NodeKind::NdMul =>  write!(f, "NdMul"),
-            NodeKind::NdDiv =>  write!(f, "NdDiv"),
-            NodeKind::NdNum =>  write!(f, "NdNum"),
+            NodeKind::NdLog => write!(f, "NdLog"),
+            NodeKind::NdLn => write!(f, "NdLn"),
+            NodeKind::NdAbs => write!(f, "NdAbs"),
+            NodeKind::NdExp => write!(f, "NdExp"),
+            NodeKind::NdAdd => write!(f, "NdAdd"),
+            NodeKind::NdSub => write!(f, "NdSub"),
+            NodeKind::NdMul => write!(f, "NdMul"),
+            NodeKind::NdDiv => write!(f, "NdDiv"),
+            NodeKind::NdNum => write!(f, "NdNum"),
         }
     }
 }
@@ -85,7 +84,6 @@ pub struct Parser<'a> {
 }
 
 impl Parser<'_> {
-
     pub fn print_vars(&self) {
         for i in self.vars.into_iter() {
             debugln!("{:?}", i);
@@ -98,33 +96,44 @@ impl Parser<'_> {
         for i in 0..lex.tokens.len() {
             if lex.tokens[i].token == "," {
                 to_delete_el.push(i);
-                match lex.tokens[i+1].token_kind {
-                    lexer::TokenKind::TkVariable => to_delete_el.push(i+1),
-                    _ => return Err(MyError::NotTkVariable(lex.tokens[i+1].token_kind.to_string())),
+                match lex.tokens[i + 1].token_kind {
+                    lexer::TokenKind::TkVariable => to_delete_el.push(i + 1),
+                    _ => {
+                        return Err(MyError::NotTkVariable(
+                            lex.tokens[i + 1].token_kind.to_string(),
+                        ))
+                    }
                 }
-                if !(lex.tokens[i+2].token == "=") {
-                    return Err(MyError::UnexpectedToken("=".to_string(), lex.tokens[i+2].token.clone()));
-                } 
-                to_delete_el.push(i+2);
-                match lex.tokens[i+3].token_kind {
+                if !(lex.tokens[i + 2].token == "=") {
+                    return Err(MyError::UnexpectedToken(
+                        "=".to_string(),
+                        lex.tokens[i + 2].token.clone(),
+                    ));
+                }
+                to_delete_el.push(i + 2);
+                match lex.tokens[i + 3].token_kind {
                     lexer::TokenKind::TkNum => {
-                        match Parser::f64_from_str(&lex.tokens[i+3].token) {
+                        match Parser::f64_from_str(&lex.tokens[i + 3].token) {
                             Ok(num) => {
-                                vars.insert(lex.tokens[i+1].token.clone(), num);
-                            },
+                                vars.insert(lex.tokens[i + 1].token.clone(), num);
+                            }
                             Err(e) => return Err(e),
                         }
-                    },
-                    _ => return Err(MyError::NotTkNumber(lex.tokens[i+3].token_kind.to_string())),
+                    }
+                    _ => {
+                        return Err(MyError::NotTkNumber(
+                            lex.tokens[i + 3].token_kind.to_string(),
+                        ))
+                    }
                 }
-                to_delete_el.push(i+3);
+                to_delete_el.push(i + 3);
             } else {
                 match lex.tokens[i].token_kind {
                     lexer::TokenKind::TkTscCommand => {
                         to_delete_el.push(i);
-                        Parser::process_tsccommand(&lex.tokens[i], &lex.tokens[i+1], vars)?;
-                        to_delete_el.push(i+1);
-                    },
+                        Parser::process_tsccommand(&lex.tokens[i], &lex.tokens[i + 1], vars)?;
+                        to_delete_el.push(i + 1);
+                    }
                     _ => (),
                 }
             }
@@ -133,7 +142,10 @@ impl Parser<'_> {
         for i in to_delete_el.into_iter() {
             lex.tokens.remove(i);
         }
-        Ok(Parser { lex: lex, vars: vars })
+        Ok(Parser {
+            lex: lex,
+            vars: vars,
+        })
     }
 
     pub fn build_ast(&mut self) -> Result<Box<Node>, MyError> {
@@ -174,46 +186,58 @@ impl Parser<'_> {
                     match &unode.left_node {
                         Some(n) => {
                             node_que.push_back(Some(n));
-                            lyer_que.push_back(lyer+1);
+                            lyer_que.push_back(lyer + 1);
                             ln = qln;
                             qln += 1;
-                        },
+                        }
                         None => {
                             node_que.push_back(None);
-                            lyer_que.push_back(lyer+1);
+                            lyer_que.push_back(lyer + 1);
                             ln = qln;
                             qln += 1;
-                        },
+                        }
                     }
                     let rn: usize;
                     match &unode.right_node {
                         Some(n) => {
                             node_que.push_back(Some(n));
-                            lyer_que.push_back(lyer+1);
+                            lyer_que.push_back(lyer + 1);
                             rn = qln;
                             qln += 1;
-                        },
+                        }
                         None => {
                             node_que.push_back(None);
-                            lyer_que.push_back(lyer+1);
+                            lyer_que.push_back(lyer + 1);
                             rn = qln;
                             qln += 1;
-                        },
+                        }
                     }
                     Parser::print_node(unode, lyer as u64, node_num, ln, rn);
-                    lyered_nodes[lyer].push(NodeInfo {node_kind: Some(unode.node_kind), rnode_num: rn, lnode_num: ln, val: unode.val, node_num: node_num});
+                    lyered_nodes[lyer].push(NodeInfo {
+                        node_kind: Some(unode.node_kind),
+                        rnode_num: rn,
+                        lnode_num: ln,
+                        val: unode.val,
+                        node_num: node_num,
+                    });
 
                     node_num += 1;
                 } else {
                     node_que.push_back(None);
                     node_que.push_back(None);
-                    lyer_que.push_back(lyer+1);
-                    lyer_que.push_back(lyer+1);
+                    lyer_que.push_back(lyer + 1);
+                    lyer_que.push_back(lyer + 1);
                     qln += 1;
                     qln += 1;
                     debugln!("None");
                     // lyered_nodes[lyer].push(None);
-                    lyered_nodes[lyer].push(NodeInfo {node_kind: None, rnode_num: qln-2, lnode_num: qln-1, val: None, node_num: node_num});
+                    lyered_nodes[lyer].push(NodeInfo {
+                        node_kind: None,
+                        rnode_num: qln - 2,
+                        lnode_num: qln - 1,
+                        val: None,
+                        node_num: node_num,
+                    });
                     node_num += 1;
                 }
                 if lyered_nodes[lyer].len() == 2_usize.pow(lyer as u32) {
@@ -228,7 +252,7 @@ impl Parser<'_> {
                         break;
                     }
                 }
-            };
+            }
 
             let mut msg: String = "".to_string();
             for lyer in lyered_nodes {
@@ -238,16 +262,25 @@ impl Parser<'_> {
                 msg += "\n";
                 for i in 0..lyer.len() {
                     match lyer[i].node_kind {
-                        Some(NodeKind::NdNum) => msg += &format!("| {:^10} |    ", match lyer[i].val { Some(v) => v.to_string(), None => "None".to_string()}),
+                        Some(NodeKind::NdNum) => {
+                            msg += &format!(
+                                "| {:^10} |    ",
+                                match lyer[i].val {
+                                    Some(v) => v.to_string(),
+                                    None => "None".to_string(),
+                                }
+                            )
+                        }
                         Some(nk) => msg += &format!("|   {:^10}    |    ", nk),
                         None => msg += &format!("| {:^10} |    ", "None"),
                     }
                 }
                 msg += "\n";
                 for i in 0..lyer.len() {
-                    msg += &format!("|-N{:<3}--N{:<3}-|    ",
-                                    lyer[i].lnode_num,
-                                    lyer[i].rnode_num);
+                    msg += &format!(
+                        "|-N{:<3}--N{:<3}-|    ",
+                        lyer[i].lnode_num, lyer[i].rnode_num
+                    );
                 }
                 msg += "\n\n";
             }
@@ -256,83 +289,89 @@ impl Parser<'_> {
     }
 
     fn print_node(node: &Box<Node>, lyer: u64, node_num: u64, ln: usize, rn: usize) {
-        debugln!("{}: lyer: {}, kind: {}, val: {}, left: {}, right: {}",
-                node_num,
-                lyer,
-                node.node_kind.to_string(),
-                match node.val {
-                    Some(v) => format!("{:.*}", 4, v),
-                    None => "None".to_string(),
-                },
-                ln.to_string(),
-                rn.to_string(),);
+        debugln!(
+            "{}: lyer: {}, kind: {}, val: {}, left: {}, right: {}",
+            node_num,
+            lyer,
+            node.node_kind.to_string(),
+            match node.val {
+                Some(v) => format!("{:.*}", 4, v),
+                None => "None".to_string(),
+            },
+            ln.to_string(),
+            rn.to_string(),
+        );
     }
 
-    fn process_tsccommand(t1: &Token, t2: &Token, vars: &mut HashMap<String, f64>) -> Result<(), MyError> {
+    fn process_tsccommand(
+        t1: &Token,
+        t2: &Token,
+        vars: &mut HashMap<String, f64>,
+    ) -> Result<(), MyError> {
         Ok(match &*t1.token {
-            ":debug" => {
-                match &*t2.token {
-                    "true" => set_dbconfig(true)?,
-                    "false" => set_dbconfig(false)?,
-                    _ => return Err(MyError::UnexpectedInput("true/false".to_string(), t2.token.clone())),
+            ":debug" => match &*t2.token {
+                "true" => set_dbconfig(true)?,
+                "false" => set_dbconfig(false)?,
+                _ => {
+                    return Err(MyError::UnexpectedInput(
+                        "true/false".to_string(),
+                        t2.token.clone(),
+                    ))
                 }
             },
-            ":logbase" => {
-                match t2.token_kind {
-                    lexer::TokenKind::TkNum => {
-                        match Parser::f64_from_str(&t2.token) {
-                            Ok(num) => set_lbconf(num)?,
-                            Err(e) => return Err(e),
-                        }
-                    },
-                    lexer::TokenKind::TkVariable => {
-                        match vars.get(&t2.token) {
-                            Some(num) => set_lbconf(*num)?,
-                            None => return Err(MyError::UDvariableErr(t2.token.to_string())),
-                        }
-                    }
-                    _ => return Err(MyError::NotTkNumber(t2.token_kind.to_string())),
+            ":logbase" => match t2.token_kind {
+                lexer::TokenKind::TkNum => match Parser::f64_from_str(&t2.token) {
+                    Ok(num) => set_lbconf(num)?,
+                    Err(e) => return Err(e),
+                },
+                lexer::TokenKind::TkVariable => match vars.get(&t2.token) {
+                    Some(num) => set_lbconf(*num)?,
+                    None => return Err(MyError::UDvariableErr(t2.token.to_string())),
+                },
+                _ => return Err(MyError::NotTkNumber(t2.token_kind.to_string())),
+            },
+            ":rfotmat" => match &*t2.token {
+                "bin" => set_rfconf(ResultFormat::Binary)?,
+                "dec" => set_rfconf(ResultFormat::Decimal)?,
+                "hex" => set_rfconf(ResultFormat::Hexadecimal)?,
+                _ => {
+                    return Err(MyError::UnexpectedInput(
+                        "bin/dec/hex".to_string(),
+                        t2.token.clone(),
+                    ))
                 }
             },
-            ":rfotmat" => {
-                match &*t2.token {
-                    "bin" => set_rfconf(ResultFormat::Binary)?,
-                    "dec" => set_rfconf(ResultFormat::Decimal)?,
-                    "hex" => set_rfconf(ResultFormat::Hexadecimal)?,
-                    _ => return Err(MyError::UnexpectedInput("bin/dec/hex".to_string(), t2.token.clone())),
-                }
+            ":rlen" => match t2.token_kind {
+                lexer::TokenKind::TkNum => match Parser::f64_from_str(&t2.token) {
+                    Ok(num) => set_ndconf(num as u32)?,
+                    Err(e) => return Err(e),
+                },
+                lexer::TokenKind::TkVariable => match vars.get(&t2.token) {
+                    Some(num) => set_ndconf(*num as u32)?,
+                    None => return Err(MyError::UDvariableErr(t2.token.to_string())),
+                },
+                _ => return Err(MyError::NotTkNumber(t2.token_kind.to_string())),
             },
-            ":rlen" => {
-                match t2.token_kind {
-                    lexer::TokenKind::TkNum => {
-                        match Parser::f64_from_str(&t2.token) {
-                            Ok(num) => set_ndconf(num as u32)?,
-                            Err(e) => return Err(e),
-                        }
-                    },
-                    lexer::TokenKind::TkVariable => {
-                        match vars.get(&t2.token) {
-                            Some(num) => set_ndconf(*num as u32)?,
-                            None => return Err(MyError::UDvariableErr(t2.token.to_string())),
-                        }
-                    }
-                    _ => return Err(MyError::NotTkNumber(t2.token_kind.to_string())),
-                }
-            },
-            ":trarg" => {
-                match &*t2.token {
-                    "rad" => set_tfconf(TrigFuncArg::Radian)?,
-                    "deg" => set_tfconf(TrigFuncArg::Degree)?,
-                    _ => return Err(MyError::UnexpectedInput("rad/deg".to_string(), t2.token.clone())),
+            ":trarg" => match &*t2.token {
+                "rad" => set_tfconf(TrigFuncArg::Radian)?,
+                "deg" => set_tfconf(TrigFuncArg::Degree)?,
+                _ => {
+                    return Err(MyError::UnexpectedInput(
+                        "rad/deg".to_string(),
+                        t2.token.clone(),
+                    ))
                 }
             },
             ":help" => (),
-            ":show" => {
-                match &*t2.token {
-                    "var" => (),
-                    "const" => (),
-                    "config" => (),
-                    _ => return Err(MyError::UnexpectedInput("var/const/config".to_string(), t2.token.clone())),
+            ":show" => match &*t2.token {
+                "var" => (),
+                "const" => (),
+                "config" => (),
+                _ => {
+                    return Err(MyError::UnexpectedInput(
+                        "var/const/config".to_string(),
+                        t2.token.clone(),
+                    ))
                 }
             },
             _ => return Err(MyError::UDtsccommand(t2.token.clone())),
@@ -347,7 +386,7 @@ impl Parser<'_> {
                 Ok(n) => {
                     num += n * 16.0_f64.powf(num_str.len() as f64 - figure);
                     figure += 1.0;
-                },
+                }
                 Err(_) => {
                     let n: f64 = match &i.to_string()[0..1] {
                         "a" | "A" => 10.0,
@@ -360,7 +399,7 @@ impl Parser<'_> {
                     };
                     num += n * 16.0_f64.powf(num_str.len() as f64 - figure);
                     figure = figure + 1.0;
-                },
+                }
             }
         }
         Ok(num)
@@ -372,22 +411,24 @@ impl Parser<'_> {
         for i in num_str.chars() {
             match f64::from_str(&i.to_string()) {
                 Ok(n) => {
-                    if n > 1.0_f64 { return Err(MyError::InvalidBinFormat(num_str.to_string())) }
+                    if n > 1.0_f64 {
+                        return Err(MyError::InvalidBinFormat(num_str.to_string()));
+                    }
                     num += n * 2.0_f64.powf(num_str.len() as f64 - figure);
                     figure = figure + 1.0;
-                },
+                }
                 Err(e) => return Err(MyError::ParseFloatError(e)),
             }
         }
         Ok(num)
     }
-    
+
     fn f64_from_str(num_str: &str) -> Result<f64, MyError> {
         if num_str.len() < 2 {
             match f64::from_str(num_str) {
                 Ok(num) => {
                     return Ok(num);
-                },
+                }
                 Err(e) => return Err(MyError::ParseFloatError(e)),
             }
         } else {
@@ -395,9 +436,7 @@ impl Parser<'_> {
                 "0x" => Parser::hex2dec(&num_str[2..]),
                 "0b" => Parser::bin2dec(&num_str[2..]),
                 _ => match f64::from_str(num_str) {
-                    Ok(num) => {
-                        Ok(num)
-                    },
+                    Ok(num) => Ok(num),
                     Err(e) => return Err(MyError::ParseFloatError(e)),
                 },
             }
@@ -405,19 +444,39 @@ impl Parser<'_> {
     }
 
     fn new_node(kind: NodeKind, left: Box<Node>, right: Box<Node>) -> Box<Node> {
-        Box::new(Node { node_kind: kind, right_node: Some(right), left_node: Some(left), val: None })
+        Box::new(Node {
+            node_kind: kind,
+            right_node: Some(right),
+            left_node: Some(left),
+            val: None,
+        })
     }
 
     fn new_unary_node(kind: NodeKind, left: Box<Node>) -> Box<Node> {
-        Box::new(Node { node_kind: kind, right_node: None, left_node: Some(left), val: None })
+        Box::new(Node {
+            node_kind: kind,
+            right_node: None,
+            left_node: Some(left),
+            val: None,
+        })
     }
 
     fn new_node_num(val: f64) -> Box<Node> {
-        Box::new(Node { node_kind: NodeKind::NdNum, right_node: None, left_node: None, val: Some(val) })
+        Box::new(Node {
+            node_kind: NodeKind::NdNum,
+            right_node: None,
+            left_node: None,
+            val: Some(val),
+        })
     }
 
     fn show_node(place: String, node: &Node) {
-        debugln!("{}: create {{ Kind: {}, Val: {:?} }}", place, node.node_kind.to_string(), node.val);
+        debugln!(
+            "{}: create {{ Kind: {}, Val: {:?} }}",
+            place,
+            node.node_kind.to_string(),
+            node.val
+        );
     }
 
     /*
@@ -426,7 +485,6 @@ impl Parser<'_> {
     primary = num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\log"  expr | "\ln" expr | "\sin" expr | "\cos" expr | "\tan" expr
                 | "\exp" "(" expr ")" | "\csc" expr | "\sec" expr | "\cot" expr | "\abs" "(" expr ")"
     */
-
 
     fn expr(&mut self) -> Result<Box<Node>, MyError> {
         let mut node: Box<Node> = self.mul()?;
@@ -452,7 +510,7 @@ impl Parser<'_> {
                 node = Parser::new_node(NodeKind::NdMul, node, self.primary()?);
             } else if self.lex.consume("\\cdot".to_string()) {
                 node = Parser::new_node(NodeKind::NdMul, node, self.primary()?);
-            }else if self.lex.consume("\\div".to_string()) {
+            } else if self.lex.consume("\\div".to_string()) {
                 node = Parser::new_node(NodeKind::NdDiv, node, self.primary()?);
             } else if self.lex.consume("/".to_string()) {
                 node = Parser::new_node(NodeKind::NdDiv, node, self.primary()?);
@@ -522,14 +580,11 @@ impl Parser<'_> {
         if self.lex.consume("\\arctan".to_string()) {
             return Ok(Parser::new_unary_node(NodeKind::NdAcTan, self.expr()?));
         }
-        let val:f64 = match self.lex.expect_number(self.vars) {
-            Ok(v) => {
-                Parser::f64_from_str(&v)?
-            },
+        let val: f64 = match self.lex.expect_number(self.vars) {
+            Ok(v) => Parser::f64_from_str(&v)?,
             Err(e) => return Err(e),
         };
         return Ok(Parser::new_node_num(val));
-
     }
 
     fn parg_node(&mut self) -> Result<Box<Node>, MyError> {
