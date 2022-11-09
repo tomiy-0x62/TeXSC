@@ -6,6 +6,7 @@ use super::super::debug;
 use super::super::debugln;
 use super::super::error::*;
 
+#[derive(Clone, Copy)]
 pub enum TokenKind {
     TkTexCommand,
     TkTscCommand,
@@ -100,9 +101,7 @@ impl Lexer {
                     ))
                 }
             }
-            _ => Err(MyError::NotTkOperator(
-                self.tokens[self.token_idx].token_kind.to_string(),
-            )),
+            tk => Err(MyError::NotTkOperator(tk.to_string())),
         }
     }
 

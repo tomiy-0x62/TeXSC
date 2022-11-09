@@ -98,11 +98,7 @@ impl Parser<'_> {
                 to_delete_el.push(i);
                 match lex.tokens[i + 1].token_kind {
                     lexer::TokenKind::TkVariable => to_delete_el.push(i + 1),
-                    _ => {
-                        return Err(MyError::NotTkVariable(
-                            lex.tokens[i + 1].token_kind.to_string(),
-                        ))
-                    }
+                    tk => return Err(MyError::NotTkVariable(tk.to_string())),
                 }
                 if !(lex.tokens[i + 2].token == "=") {
                     return Err(MyError::UnexpectedToken(
@@ -120,11 +116,7 @@ impl Parser<'_> {
                             Err(e) => return Err(e),
                         }
                     }
-                    _ => {
-                        return Err(MyError::NotTkNumber(
-                            lex.tokens[i + 3].token_kind.to_string(),
-                        ))
-                    }
+                    tk => return Err(MyError::NotTkNumber(tk.to_string())),
                 }
                 to_delete_el.push(i + 3);
             } else {
