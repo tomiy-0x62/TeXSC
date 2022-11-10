@@ -2,10 +2,11 @@
 
 use clap::{Arg, Command};
 use lazy_static::lazy_static;
+use rustyline::error::ReadlineError;
+use rustyline::Editor;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io;
-use std::io::{stdout, BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader};
 use std::sync::RwLock;
 
 use parser::NodeKind;
@@ -73,11 +74,21 @@ fn main() {
 
     // REPL
     let mut vars: HashMap<String, f64> = HashMap::new();
+    let mut rl = match Editor::<()>::new() {
+        Ok(r) => r,
+        Err(_) => panic!("Can't readline!"),
+    };
     loop {
-        print!("tsc> ");
-        stdout().flush().unwrap();
-        let mut form: String = String::new();
-        io::stdin().read_line(&mut form).expect("stdin");
+        let readline = rl.readline("tsc> ");
+        let form = match readline {
+            Ok(line) => {
+                rl.add_history_entry(line.as_str());
+                line
+            }
+            Err(ReadlineError::Interrupted) => return,
+            Err(ReadlineError::Eof) => return,
+            Err(err) => panic!("{}", err),
+        };
         if form.trim() == "exit" {
             return;
         }
