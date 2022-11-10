@@ -124,7 +124,10 @@ impl Parser<'_> {
                     lexer::TokenKind::TkTscCommand => {
                         to_delete_el.push(i);
                         Parser::process_tsccommand(&lex.tokens[i], &lex.tokens[i + 1], vars)?;
-                        to_delete_el.push(i + 1);
+                        match &*lex.tokens[i].token {
+                            ":help" => (),
+                            _ => to_delete_el.push(i + 1),
+                        }
                     }
                     _ => (),
                 }
@@ -354,7 +357,7 @@ impl Parser<'_> {
                     ))
                 }
             },
-            ":help" => (),
+            ":help" => Parser::cmd_help(),
             ":show" => match &*t2.token {
                 "var" => (),
                 "const" => (),
@@ -368,6 +371,18 @@ impl Parser<'_> {
             },
             _ => return Err(MyError::UDtsccommand(t2.token.clone())),
         })
+    }
+
+    fn cmd_help() {
+        println!(
+            "tsc command
+:help, show this help
+:debug {{true/false}}, set debug flag
+:logbase {{num(f64)}}, set \\log base
+:rformat {{bin/dec/hex}}, hoge
+:rlen {{num(u32)}},
+:show {{var/cofig/const}}, show"
+        );
     }
 
     fn hex2dec(num_str: &str) -> Result<f64, MyError> {
