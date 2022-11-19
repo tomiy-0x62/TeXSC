@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fmt;
 use std::str::FromStr;
+use text_colorizer::*;
 
 use super::config::*;
 use super::error::*;
@@ -375,13 +376,28 @@ impl Parser<'_> {
 
     fn cmd_help() {
         println!(
-            "tsc command
-:help, show this help
-:debug {{true/false}}, set debug flag
-:logbase {{num(f64)}}, set \\log base
-:rformat {{bin/dec/hex}}, hoge
-:rlen {{num(u32)}},
-:show {{var/cofig/const}}, show"
+            "{: <14}
+  {}
+    {: <12}
+        show this help 
+    {: <12}
+        set debug flag
+    {: <12}
+        set \\log base
+    {: <12}
+        set result format
+    {: <12}
+        set result format
+    {: <12}
+        show variable or config or embedded const number",
+            ":TSC_COMMAND {option}".yellow(),
+            "description".yellow(),
+            ":help".green(),
+            ":debug {true|false}".green(),
+            ":logbase {num(f64)}".green(),
+            ":rformat {bin|dec|hex}".green(),
+            ":rlen {num(u32)}".green(),
+            ":show {var|config|const}".green()
         );
     }
 
