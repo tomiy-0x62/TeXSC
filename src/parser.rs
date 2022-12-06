@@ -250,35 +250,70 @@ impl Parser<'_> {
                 }
             }
 
+            let ast_height = lyered_nodes.len();
+            let mut ml_vec = vec![0; ast_height]; // ml: most left, treeの左側
+            let mut bs_vec = vec![0; ast_height]; // bs: box space, box間のスペース
+            let mss = 2; // mss: most smallest space, treeの一番下のbox間のスペース
+            let box_w = 14;
+            for i in 0..lyered_nodes.len() {
+                if i == 0 {
+                    bs_vec[ast_height - 1] = mss;
+                    ml_vec[ast_height - 1] = 0;
+                } else {
+                    bs_vec[ast_height - 1 - i] = 2 * bs_vec[ast_height - i] + box_w;
+                    ml_vec[ast_height - 1 - i] =
+                        ml_vec[ast_height - i] + (bs_vec[ast_height - i] + box_w) / 2;
+                }
+            }
+            let mut w_spases = "".to_string();
+            let bgt_bs = *bs_vec.iter().max().unwrap(); // bgt_bs: biggest bs
+            let bgt_ml = *bs_vec.iter().max().unwrap(); // bgt_ml: biggest ml
+            if bgt_bs > bgt_ml {
+                for _ in 0..bgt_bs {
+                    w_spases += " ";
+                }
+            } else {
+                for _ in 0..bgt_ml {
+                    w_spases += " ";
+                }
+            }
+            let mut lyer_idx = 0;
             let mut msg: String = "".to_string();
             for lyer in lyered_nodes {
+                let ml_space = &w_spases[..ml_vec[lyer_idx]];
+                let box_space = &w_spases[..bs_vec[lyer_idx]];
+                msg += ml_space;
                 for i in 0..lyer.len() {
-                    msg += &format!("|----N{:<3}----|    ", lyer[i].node_num);
+                    msg += &format!("|----N{:<3}----|{}", lyer[i].node_num, box_space);
                 }
                 msg += "\n";
+                msg += ml_space;
                 for i in 0..lyer.len() {
                     match lyer[i].node_kind {
                         Some(NodeKind::NdNum) => {
                             msg += &format!(
-                                "| {:^10} |    ",
+                                "| {:^10} |{}",
                                 match lyer[i].val {
                                     Some(v) => v.to_string(),
                                     None => "None".to_string(),
-                                }
+                                },
+                                box_space
                             )
                         }
-                        Some(nk) => msg += &format!("|   {:^10}    |    ", nk),
-                        None => msg += &format!("| {:^10} |    ", "None"),
+                        Some(nk) => msg += &format!("| {:^10} |{}", nk.to_string(), box_space),
+                        None => msg += &format!("| {:^10} |{}", "None", box_space),
                     }
                 }
                 msg += "\n";
+                msg += ml_space;
                 for i in 0..lyer.len() {
                     msg += &format!(
-                        "|-N{:<3}--N{:<3}-|    ",
-                        lyer[i].lnode_num, lyer[i].rnode_num
+                        "|-N{:<3}--N{:<3}-|{}",
+                        lyer[i].lnode_num, lyer[i].rnode_num, box_space
                     );
                 }
                 msg += "\n\n";
+                lyer_idx += 1;
             }
             eprintln!("{}", msg);
         }
