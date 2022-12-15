@@ -34,6 +34,8 @@ pub enum NodeKind {
     NdSub,
     NdMul,
     NdDiv,
+    // 後置1引数
+    NdPow,
     // 数字
     NdNum,
 }
@@ -59,6 +61,7 @@ impl fmt::Display for NodeKind {
             NodeKind::NdSub => write!(f, "NdSub"),
             NodeKind::NdMul => write!(f, "NdMul"),
             NodeKind::NdDiv => write!(f, "NdDiv"),
+            NodeKind::NdPow => write!(f, "NdPow"),
             NodeKind::NdNum => write!(f, "NdNum"),
         }
     }
@@ -540,7 +543,7 @@ impl Parser<'_> {
     /*
     expr    = mul ("+" mul | "-" mul)*
     mul     = primary ("*" primary | "/" primary | "\cdto" primary | "\times" primary | "\div" primary)*
-    primary = num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\log"  expr | "\ln" expr | "\sin" expr | "\cos" expr | "\tan" expr
+    primary = num "^" "{" expr "}" | num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\log"  expr | "\ln" expr | "\sin" expr | "\cos" expr | "\tan" expr
                 | "\exp" "(" expr ")" | "\csc" expr | "\sec" expr | "\cot" expr | "\abs" "(" expr ")"
     */
 
@@ -639,7 +642,21 @@ impl Parser<'_> {
             return Ok(Parser::new_unary_node(NodeKind::NdAcTan, self.expr()?));
         }
         let val: f64 = match self.lex.expect_number(self.vars) {
-            Ok(v) => Parser::f64_from_str(&v)?,
+            Ok(v) => {
+                if self.lex.consume("^".to_string()) {
+                    self.lex.expect("{".to_string())?;
+                    let cnode: Box<Node> = self.expr()?;
+                    self.lex.expect("}".to_string())?;
+                    let node = Parser::new_node(
+                        NodeKind::NdPow,
+                        Parser::new_node_num(Parser::f64_from_str(&v)?),
+                        cnode,
+                    );
+                    return Ok(node);
+                } else {
+                    Parser::f64_from_str(&v)?
+                }
+            }
             Err(e) => return Err(e),
         };
         return Ok(Parser::new_node_num(val));

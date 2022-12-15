@@ -9,7 +9,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::sync::RwLock;
 
-use parser::NodeKind;
+use parser::{Node, NodeKind};
 use text_colorizer::*;
 
 mod config;
@@ -203,6 +203,7 @@ fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
         NodeKind::NdAcSin => Ok(loperand.asin()),
         NodeKind::NdAcCos => Ok(loperand.acos()),
         NodeKind::NdAcTan => Ok(loperand.atan()),
+        NodeKind::NdPow => Ok(loperand.powf(roperand)),
         _ => Err(MyError::UDcommandErr((*node).node_kind.to_string())),
     }
 }
