@@ -17,6 +17,8 @@ mod error;
 mod parser;
 #[macro_use]
 mod macros;
+#[cfg(test)]
+mod test;
 
 use config::*;
 use error::*;
@@ -96,37 +98,42 @@ fn main() {
     }
 }
 
-fn process_form(form: String, vars: &mut HashMap<String, f64>) {
+fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Option<f64> {
     let lex = match parser::lexer::Lexer::new(form) {
         Ok(l) => l,
         Err(e) => {
             eprintlnc!(e);
-            return;
+            return None;
         }
     };
     let mut _pars = match parser::Parser::new(lex, vars) {
         Ok(p) => p,
         Err(e) => {
             eprintlnc!(e);
-            return;
+            return None;
         }
     };
     _pars.print_vars();
     let ast_root = match _pars.build_ast() {
         Ok(ast) => ast,
         Err(e) => match e {
-            MyError::NoToken => return,
+            MyError::NoToken => return None,
             _ => {
                 eprintlnc!(e);
-                return;
+                return None;
             }
         },
     };
     match calc(ast_root) {
-        Ok(result) => println!("{}", result),
-        Err(e) => eprintlnc!(e),
+        Ok(result) => {
+            println!("{}", result);
+            Some(result)
+        }
+        Err(e) => {
+            eprintlnc!(e);
+            None
+        }
     }
-    return;
 }
 
 fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
