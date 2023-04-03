@@ -9,7 +9,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::sync::RwLock;
 
-use parser::{Node, NodeKind};
+use parser::NodeKind;
 use text_colorizer::*;
 
 mod config;

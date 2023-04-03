@@ -1,5 +1,5 @@
-use super::error::*;
-use super::CONFIG;
+use crate::error::*;
+use crate::CONFIG;
 use std::fmt;
 
 #[derive(Clone, Copy)]

@@ -2,9 +2,9 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
 
-use super::super::debug;
-use super::super::debugln;
-use super::super::error::*;
+use crate::debug;
+use crate::debugln;
+use crate::error::*;
 
 #[derive(Clone, Copy)]
 pub enum TokenKind {

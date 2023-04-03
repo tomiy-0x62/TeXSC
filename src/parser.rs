@@ -5,12 +5,12 @@ use std::fmt;
 use std::str::FromStr;
 use text_colorizer::*;
 
-use super::config::*;
-use super::error::*;
+use crate::config::*;
+use crate::error::*;
 
 pub mod lexer;
 
-use super::debugln;
+use crate::debugln;
 
 #[derive(Clone, Copy)]
 pub enum NodeKind {
