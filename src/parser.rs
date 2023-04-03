@@ -541,10 +541,12 @@ impl Parser<'_> {
     }
 
     /*
-    expr    = mul ("+" mul | "-" mul)*
-    mul     = primary ("*" primary | "/" primary | "\cdto" primary | "\times" primary | "\div" primary)*
-    primary = num "^" "{" expr "}" | num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\log"  expr | "\ln" expr | "\sin" expr | "\cos" expr | "\tan" expr
+    expr      = mul ("+" mul | "-" mul)*
+    mul       = secondary  ("*" secondary | "/" secondary | "\cdto" secondary | "\times" secondary | "\div" secondary)*
+    secondary = primary
+    primary   = snum "^" "{" expr "}" | snum | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\log"  expr | "\ln" expr | "\sin" expr | "\cos" expr | "\tan" expr
                 | "\exp" "(" expr ")" | "\csc" expr | "\sec" expr | "\cot" expr | "\abs" "(" expr ")"
+    snum      = "-"? num
     */
 
     fn expr(&mut self) -> Result<Box<Node>, MyError> {
@@ -600,7 +602,7 @@ impl Parser<'_> {
         }
 
         if self.lex.consume("\\sqrt".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdSqrt, self.parg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdSqrt, self.carg_node()?));
         }
         if self.lex.consume("\\log".to_string()) {
             return Ok(Parser::new_unary_node(NodeKind::NdLog, self.expr()?));
@@ -609,10 +611,10 @@ impl Parser<'_> {
             return Ok(Parser::new_unary_node(NodeKind::NdLn, self.expr()?));
         }
         if self.lex.consume("\\abs".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdAbs, self.carg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdAbs, self.parg_node()?));
         }
         if self.lex.consume("\\exp".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdExp, self.carg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdExp, self.parg_node()?));
         }
         if self.lex.consume("\\sin".to_string()) {
             return Ok(Parser::new_unary_node(NodeKind::NdSin, self.expr()?));
@@ -641,38 +643,49 @@ impl Parser<'_> {
         if self.lex.consume("\\arctan".to_string()) {
             return Ok(Parser::new_unary_node(NodeKind::NdAcTan, self.expr()?));
         }
-        let val: f64 = match self.lex.expect_number(self.vars) {
-            Ok(v) => {
-                if self.lex.consume("^".to_string()) {
-                    self.lex.expect("{".to_string())?;
-                    let cnode: Box<Node> = self.expr()?;
-                    self.lex.expect("}".to_string())?;
-                    let node = Parser::new_node(
-                        NodeKind::NdPow,
-                        Parser::new_node_num(Parser::f64_from_str(&v)?),
-                        cnode,
-                    );
-                    return Ok(node);
-                } else {
-                    Parser::f64_from_str(&v)?
-                }
-            }
-            Err(e) => return Err(e),
+
+        let snum_node = self.snum()?;
+        if self.lex.consume("^".to_string()) {
+            self.lex.expect("{".to_string())?;
+            let cnode: Box<Node> = self.expr()?;
+            self.lex.expect("}".to_string())?;
+            let exp_node = Parser::new_node(NodeKind::NdPow, snum_node, cnode);
+            Ok(exp_node)
+        } else {
+            Ok(snum_node)
+        }
+    }
+
+    fn snum(&mut self) -> Result<Box<Node>, MyError> {
+        let val = if self.lex.consume("-".to_string()) {
+            let num = match self.lex.expect_number(self.vars) {
+                Ok(v) => Parser::f64_from_str(&v)?,
+                Err(e) => return Err(e),
+            };
+            -num
+        } else {
+            let num = match self.lex.expect_number(self.vars) {
+                Ok(v) => Parser::f64_from_str(&v)?,
+                Err(e) => return Err(e),
+            };
+            num
         };
-        return Ok(Parser::new_node_num(val));
+        Ok(Parser::new_node_num(val))
     }
 
+    // parentheses "()" arg node
     fn parg_node(&mut self) -> Result<Box<Node>, MyError> {
-        self.lex.expect("{".to_string())?;
-        let node: Box<Node> = self.expr()?;
-        self.lex.expect("}".to_string())?;
-        Ok(node)
-    }
-
-    fn carg_node(&mut self) -> Result<Box<Node>, MyError> {
         self.lex.expect("(".to_string())?;
         let node: Box<Node> = self.expr()?;
         self.lex.expect(")".to_string())?;
+        Ok(node)
+    }
+
+    // curly brackets "{}" arg node
+    fn carg_node(&mut self) -> Result<Box<Node>, MyError> {
+        self.lex.expect("{".to_string())?;
+        let node: Box<Node> = self.expr()?;
+        self.lex.expect("}".to_string())?;
         Ok(node)
     }
 }
