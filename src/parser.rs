@@ -542,9 +542,9 @@ impl Parser<'_> {
 
     /*
     expr      = mul ("+" mul | "-" mul)*
-    mul       = expo  ("*" expo | "/" expo | "\cdto" expo | "\times" expo | "\div" expo)*
-    expo       = signed ("^" "{" expr "}")*
-    signed    = "-"? primary
+    mul       = signed  ("*" signed | "/" signed | "\cdto" signed | "\times" signed | "\div" signed)*
+    signed    = "-"? expo
+    expo       = primary ("^" "{" expr "}")*
     primary   = num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\log"  expr | "\ln" expr | "\sin" expr | "\cos" expr | "\tan" expr
                 | "\exp" "(" expr ")" | "\csc" expr | "\sec" expr | "\cot" expr | "\abs" "(" expr ")"
     */
@@ -564,19 +564,19 @@ impl Parser<'_> {
     }
 
     fn mul(&mut self) -> Result<Box<Node>, MyError> {
-        let mut node: Box<Node> = self.expo()?;
-        Parser::show_node("expo".to_string(), &node);
+        let mut node: Box<Node> = self.signed()?;
+        Parser::show_node("signed".to_string(), &node);
         loop {
             if self.lex.consume("*".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.expo()?);
+                node = Parser::new_node(NodeKind::NdMul, node, self.signed()?);
             } else if self.lex.consume("\\times".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.expo()?);
+                node = Parser::new_node(NodeKind::NdMul, node, self.signed()?);
             } else if self.lex.consume("\\cdot".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.expo()?);
+                node = Parser::new_node(NodeKind::NdMul, node, self.signed()?);
             } else if self.lex.consume("\\div".to_string()) {
-                node = Parser::new_node(NodeKind::NdDiv, node, self.expo()?);
+                node = Parser::new_node(NodeKind::NdDiv, node, self.signed()?);
             } else if self.lex.consume("/".to_string()) {
-                node = Parser::new_node(NodeKind::NdDiv, node, self.expo()?);
+                node = Parser::new_node(NodeKind::NdDiv, node, self.signed()?);
             } else {
                 Parser::show_node("mul".to_string(), &node);
                 return Ok(node);
@@ -584,9 +584,18 @@ impl Parser<'_> {
         }
     }
 
+    fn signed(&mut self) -> Result<Box<Node>, MyError> {
+        if self.lex.consume("-".to_string()) {
+            let node = Parser::new_node(NodeKind::NdSub, Parser::new_node_num(0.0), self.expo()?);
+            Ok(node)
+        } else {
+            Ok(self.expo()?)
+        }
+    }
+
     fn expo(&mut self) -> Result<Box<Node>, MyError> {
-        let mut node: Box<Node> = self.signed()?;
-        Parser::show_node("signed".to_string(), &node);
+        let mut node: Box<Node> = self.primary()?;
+        Parser::show_node("primary".to_string(), &node);
         loop {
             if self.lex.consume("^".to_string()) {
                 self.lex.expect("{".to_string())?;
@@ -597,16 +606,6 @@ impl Parser<'_> {
                 Parser::show_node("mul".to_string(), &node);
                 return Ok(node);
             }
-        }
-    }
-
-    fn signed(&mut self) -> Result<Box<Node>, MyError> {
-        if self.lex.consume("-".to_string()) {
-            let node =
-                Parser::new_node(NodeKind::NdSub, Parser::new_node_num(0.0), self.primary()?);
-            Ok(node)
-        } else {
-            Ok(self.primary()?)
         }
     }
 
