@@ -26,19 +26,21 @@ fn test_calc() {
                     if (r - tc.result).abs() < 0.0001 {
                         writeln!(
                             &mut std::io::stderr(),
-                            "testcase {}: '{}', {}",
+                            "testcase {}: {} {}",
                             i,
-                            tc.formula,
-                            "SUCCESSED".green()
+                            "SUCCESSED          ".green(),
+                            tc.formula
                         )
                         .unwrap();
                     } else {
                         writeln!(
                             &mut std::io::stderr(),
-                            "testcase {}: '{}', {}",
+                            "testcase {}: {} {} = {}, but expected {}",
                             i,
+                            "CALCULATION FAILED ".red(),
                             tc.formula,
-                            "CALCULATION FAILED".red()
+                            r,
+                            tc.result
                         )
                         .unwrap();
                     }
@@ -46,10 +48,10 @@ fn test_calc() {
                 None => {
                     writeln!(
                         &mut std::io::stderr(),
-                        "testcase {}: '{}', {}",
+                        "testcase {}: {} {}",
                         i,
-                        tc.formula,
-                        "PARSE FAILD".red()
+                        "PARSE FAILD        ".red(),
+                        tc.formula
                     )
                     .unwrap();
                 }
