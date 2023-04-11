@@ -15,6 +15,7 @@ use text_colorizer::*;
 mod config;
 mod error;
 mod parser;
+mod tsc_cmd;
 #[macro_use]
 mod macros;
 #[cfg(test)]
