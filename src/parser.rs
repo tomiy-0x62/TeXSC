@@ -441,11 +441,11 @@ impl Parser<'_> {
 
     /*
     expr      = mul ("+" mul | "-" mul)*
-    mul       = secondary  ("*" secondary | "/" secondary | "\cdto" secondary | "\times" secondary | "\div" secondary)*
-    secondary = primary
-    primary   = snum "^" "{" expr "}" | snum | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\log"  expr | "\ln" expr | "\sin" expr | "\cos" expr | "\tan" expr
-                | "\exp" "(" expr ")" | "\csc" expr | "\sec" expr | "\cot" expr | "\abs" "(" expr ")"
-    snum      = "-"? num
+    mul       = signed  ("*" signed | "/" signed | "\cdto" signed | "\times" signed | "\div" signed)*
+    signed    = "-"? expo
+    expo      = primary ("^" "{" expr "}")*
+    primary   = num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\exp" "(" expr ")" | "\abs" "(" expr ")"
+                | "\log"  signed | "\ln" signed | "\sin" signed | "\cos" signed | "\tan" signed | "\csc" signed | "\sec" signed | "\cot" signed
     */
 
     fn expr(&mut self) -> Result<Box<Node>, MyError> {
@@ -463,19 +463,44 @@ impl Parser<'_> {
     }
 
     fn mul(&mut self) -> Result<Box<Node>, MyError> {
+        let mut node: Box<Node> = self.signed()?;
+        Parser::show_node("signed".to_string(), &node);
+        loop {
+            if self.lex.consume("*".to_string()) {
+                node = Parser::new_node(NodeKind::NdMul, node, self.signed()?);
+            } else if self.lex.consume("\\times".to_string()) {
+                node = Parser::new_node(NodeKind::NdMul, node, self.signed()?);
+            } else if self.lex.consume("\\cdot".to_string()) {
+                node = Parser::new_node(NodeKind::NdMul, node, self.signed()?);
+            } else if self.lex.consume("\\div".to_string()) {
+                node = Parser::new_node(NodeKind::NdDiv, node, self.signed()?);
+            } else if self.lex.consume("/".to_string()) {
+                node = Parser::new_node(NodeKind::NdDiv, node, self.signed()?);
+            } else {
+                Parser::show_node("mul".to_string(), &node);
+                return Ok(node);
+            }
+        }
+    }
+
+    fn signed(&mut self) -> Result<Box<Node>, MyError> {
+        if self.lex.consume("-".to_string()) {
+            let node = Parser::new_node(NodeKind::NdSub, Parser::new_node_num(0.0), self.expo()?);
+            Ok(node)
+        } else {
+            Ok(self.expo()?)
+        }
+    }
+
+    fn expo(&mut self) -> Result<Box<Node>, MyError> {
         let mut node: Box<Node> = self.primary()?;
         Parser::show_node("primary".to_string(), &node);
         loop {
-            if self.lex.consume("*".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.primary()?);
-            } else if self.lex.consume("\\times".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.primary()?);
-            } else if self.lex.consume("\\cdot".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.primary()?);
-            } else if self.lex.consume("\\div".to_string()) {
-                node = Parser::new_node(NodeKind::NdDiv, node, self.primary()?);
-            } else if self.lex.consume("/".to_string()) {
-                node = Parser::new_node(NodeKind::NdDiv, node, self.primary()?);
+            if self.lex.consume("^".to_string()) {
+                self.lex.expect("{".to_string())?;
+                let cnode: Box<Node> = self.expr()?;
+                self.lex.expect("}".to_string())?;
+                node = Parser::new_node(NodeKind::NdPow, node, cnode);
             } else {
                 Parser::show_node("mul".to_string(), &node);
                 return Ok(node);
@@ -503,73 +528,56 @@ impl Parser<'_> {
         if self.lex.consume("\\sqrt".to_string()) {
             return Ok(Parser::new_unary_node(NodeKind::NdSqrt, self.carg_node()?));
         }
-        if self.lex.consume("\\log".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdLog, self.expr()?));
-        }
-        if self.lex.consume("\\ln".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdLn, self.expr()?));
-        }
         if self.lex.consume("\\abs".to_string()) {
             return Ok(Parser::new_unary_node(NodeKind::NdAbs, self.parg_node()?));
         }
         if self.lex.consume("\\exp".to_string()) {
             return Ok(Parser::new_unary_node(NodeKind::NdExp, self.parg_node()?));
         }
+        if self.lex.consume("\\log".to_string()) {
+            return Ok(Parser::new_unary_node(NodeKind::NdLog, self.signed()?));
+        }
+        if self.lex.consume("\\ln".to_string()) {
+            return Ok(Parser::new_unary_node(NodeKind::NdLn, self.signed()?));
+        }
         if self.lex.consume("\\sin".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdSin, self.expr()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdSin, self.signed()?));
         }
         if self.lex.consume("\\cos".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdCos, self.expr()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdCos, self.signed()?));
         }
         if self.lex.consume("\\tan".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdTan, self.expr()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdTan, self.signed()?));
         }
         if self.lex.consume("\\csc".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdCsc, self.expr()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdCsc, self.signed()?));
         }
         if self.lex.consume("\\sec".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdSec, self.expr()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdSec, self.signed()?));
         }
         if self.lex.consume("\\cot".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdCot, self.expr()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdCot, self.signed()?));
         }
         if self.lex.consume("\\arcsin".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdAcSin, self.expr()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdAcSin, self.signed()?));
         }
         if self.lex.consume("\\arccos".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdAcCos, self.expr()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdAcCos, self.signed()?));
         }
         if self.lex.consume("\\arctan".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdAcTan, self.expr()?));
+            return Ok(Parser::new_unary_node(NodeKind::NdAcTan, self.signed()?));
         }
 
-        let snum_node = self.snum()?;
-        if self.lex.consume("^".to_string()) {
-            self.lex.expect("{".to_string())?;
-            let cnode: Box<Node> = self.expr()?;
-            self.lex.expect("}".to_string())?;
-            let exp_node = Parser::new_node(NodeKind::NdPow, snum_node, cnode);
-            Ok(exp_node)
-        } else {
-            Ok(snum_node)
-        }
+        let num_node = self.num()?;
+        Ok(num_node)
     }
 
-    fn snum(&mut self) -> Result<Box<Node>, MyError> {
-        let val = if self.lex.consume("-".to_string()) {
-            let num = match self.lex.expect_number(self.vars) {
-                Ok(v) => Parser::f64_from_str(&v)?,
-                Err(e) => return Err(e),
-            };
-            -num
-        } else {
-            let num = match self.lex.expect_number(self.vars) {
-                Ok(v) => Parser::f64_from_str(&v)?,
-                Err(e) => return Err(e),
-            };
-            num
+    fn num(&mut self) -> Result<Box<Node>, MyError> {
+        let num = match self.lex.expect_number(self.vars) {
+            Ok(v) => Parser::f64_from_str(&v)?,
+            Err(e) => return Err(e),
         };
-        Ok(Parser::new_node_num(val))
+        Ok(Parser::new_node_num(num))
     }
 
     // parentheses "()" arg node
