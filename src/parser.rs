@@ -441,7 +441,8 @@ impl Parser<'_> {
 
     /*
     expr      = mul ("+" mul | "-" mul)*
-    mul       = signed  ("*" signed | "/" signed | "\cdto" signed | "\times" signed | "\div" signed)*
+    mul       = noobmul  ("*" noobmul | "/" noobmul | "\cdto" noobmul | "\times" noobmul | "\div" noobmul)*
+    noobmul    = sigend (expo)*
     signed    = "-"? expo
     expo      = primary ("^" "{" expr "}")*
     primary   = num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\exp" "(" expr ")" | "\abs" "(" expr ")"
@@ -463,22 +464,41 @@ impl Parser<'_> {
     }
 
     fn mul(&mut self) -> Result<Box<Node>, MyError> {
-        let mut node: Box<Node> = self.signed()?;
-        Parser::show_node("signed".to_string(), &node);
+        let mut node: Box<Node> = self.noobmul()?;
+        Parser::show_node("noobmul".to_string(), &node);
         loop {
             if self.lex.consume("*".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.signed()?);
+                node = Parser::new_node(NodeKind::NdMul, node, self.noobmul()?);
             } else if self.lex.consume("\\times".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.signed()?);
+                node = Parser::new_node(NodeKind::NdMul, node, self.noobmul()?);
             } else if self.lex.consume("\\cdot".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.signed()?);
+                node = Parser::new_node(NodeKind::NdMul, node, self.noobmul()?);
             } else if self.lex.consume("\\div".to_string()) {
-                node = Parser::new_node(NodeKind::NdDiv, node, self.signed()?);
+                node = Parser::new_node(NodeKind::NdDiv, node, self.noobmul()?);
             } else if self.lex.consume("/".to_string()) {
-                node = Parser::new_node(NodeKind::NdDiv, node, self.signed()?);
+                node = Parser::new_node(NodeKind::NdDiv, node, self.noobmul()?);
             } else {
                 Parser::show_node("mul".to_string(), &node);
                 return Ok(node);
+            }
+        }
+    }
+
+    fn noobmul(&mut self) -> Result<Box<Node>, MyError> {
+        let mut node: Box<Node> = self.signed()?;
+        Parser::show_node("signed".to_string(), &node);
+        loop {
+            self.lex.save_ctx();
+            match self.expo() {
+                Ok(n) => {
+                    self.lex.discard_ctx()?;
+                    node = Parser::new_node(NodeKind::NdMul, node, n);
+                }
+                Err(_) => {
+                    self.lex.revert_ctx()?;
+                    Parser::show_node("noobmul".to_string(), &node);
+                    return Ok(node);
+                }
             }
         }
     }

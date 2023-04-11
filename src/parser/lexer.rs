@@ -38,7 +38,8 @@ pub struct Token {
 
 pub struct Lexer {
     pub tokens: Vec<Token>,
-    pub token_idx: usize,
+    token_idx: usize,
+    ctx_stack: Vec<usize>,
 }
 
 /*
@@ -59,7 +60,38 @@ impl Lexer {
         Ok(Lexer {
             tokens: tokens,
             token_idx: 0,
+            ctx_stack: Vec::new(),
         })
+    }
+
+    pub fn save_ctx(&mut self) {
+        self.ctx_stack.push(self.token_idx);
+    }
+
+    pub fn revert_ctx(&mut self) -> Result<(), MyError> {
+        match self.ctx_stack.pop() {
+            Some(i) => {
+                self.token_idx = i;
+            }
+            None => {
+                return Err(MyError::UnexpectedOpToLexer(
+                    "context not yet pushed".to_string(),
+                ))
+            }
+        }
+        Ok(())
+    }
+
+    pub fn discard_ctx(&mut self) -> Result<(), MyError> {
+        match self.ctx_stack.pop() {
+            Some(i) => (),
+            None => {
+                return Err(MyError::UnexpectedOpToLexer(
+                    "context not yet pushed".to_string(),
+                ))
+            }
+        }
+        Ok(())
     }
 
     pub fn consume(&mut self, op: String) -> bool {

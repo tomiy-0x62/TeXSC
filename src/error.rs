@@ -37,4 +37,6 @@ pub enum MyError {
     UDtsccommand(String),
     #[error("expected {0} but {1}")]
     UnexpectedInput(String, String),
+    #[error("unexpected operation to lexer: {0}")]
+    UnexpectedOpToLexer(String),
 }
