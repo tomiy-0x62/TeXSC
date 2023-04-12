@@ -137,16 +137,19 @@ impl Lexer {
         }
     }
 
-    pub fn expect_number(&mut self, vars: &HashMap<String, f64>) -> Result<String, MyError> {
+    pub fn expect_number(
+        &mut self,
+        vars: &HashMap<String, f64>,
+    ) -> Result<(String, bool), MyError> {
         match self.tokens[self.token_idx].token_kind {
             TokenKind::TkNum => {
                 self.token_idx += 1;
-                Ok(self.tokens[self.token_idx - 1].token.clone())
+                Ok((self.tokens[self.token_idx - 1].token.clone(), true))
             }
             TokenKind::TkVariable => {
                 self.token_idx += 1;
                 match vars.get(&self.tokens[self.token_idx - 1].token) {
-                    Some(v) => Ok(v.to_string()),
+                    Some(v) => Ok((v.to_string(), false)),
                     None => Err(MyError::UDvariableErr(
                         self.tokens[self.token_idx - 1].token.to_string(),
                     )),
@@ -221,8 +224,8 @@ impl Lexer {
                             token_kind: TokenKind::TkOperator,
                         }),
                         "\\pi" => tokens.push(Token {
-                            token: std::f64::consts::PI.to_string(),
-                            token_kind: TokenKind::TkNum,
+                            token: token,
+                            token_kind: TokenKind::TkVariable,
                         }),
                         _ => {
                             if Lexer::is_valid_texcommand(&token) {
@@ -276,17 +279,10 @@ impl Lexer {
                     return Err(MyError::InvalidInput(c.to_string()));
                 }
                 let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
-                if token == "e" {
-                    tokens.push(Token {
-                        token: std::f64::consts::E.to_string(),
-                        token_kind: TokenKind::TkNum,
-                    });
-                } else {
-                    tokens.push(Token {
-                        token: token,
-                        token_kind: TokenKind::TkVariable,
-                    });
-                }
+                tokens.push(Token {
+                    token,
+                    token_kind: TokenKind::TkVariable,
+                });
                 formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
             }

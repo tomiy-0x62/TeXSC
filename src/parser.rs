@@ -73,6 +73,7 @@ pub struct Node {
     pub right_node: Option<Box<Node>>,
     pub left_node: Option<Box<Node>>,
     pub val: Option<f64>,
+    is_num_literal: bool,
 }
 
 struct NodeInfo {
@@ -142,10 +143,10 @@ impl Parser<'_> {
         for i in to_delete_el.into_iter() {
             lex.tokens.remove(i);
         }
-        Ok(Parser {
-            lex: lex,
-            vars: vars,
-        })
+        // varsに\piとeをプッシュする
+        vars.insert("\\pi".to_string(), std::f64::consts::PI);
+        vars.insert("e".to_string(), std::f64::consts::E);
+        Ok(Parser { lex, vars })
     }
 
     pub fn build_ast(&mut self) -> Result<Box<Node>, MyError> {
@@ -409,6 +410,7 @@ impl Parser<'_> {
             right_node: Some(right),
             left_node: Some(left),
             val: None,
+            is_num_literal: false,
         })
     }
 
@@ -418,15 +420,17 @@ impl Parser<'_> {
             right_node: None,
             left_node: Some(left),
             val: None,
+            is_num_literal: false,
         })
     }
 
-    fn new_node_num(val: f64) -> Box<Node> {
+    fn new_node_num(val: f64, is_num_literal: bool) -> Box<Node> {
         Box::new(Node {
             node_kind: NodeKind::NdNum,
             right_node: None,
             left_node: None,
             val: Some(val),
+            is_num_literal,
         })
     }
 
@@ -492,12 +496,23 @@ impl Parser<'_> {
             match self.expo() {
                 Ok(n) => {
                     self.lex.discard_ctx()?;
+                    if n.is_num_literal {
+                        return Err(MyError::InvalidInput(
+                            "don't allowed nulmber literal on right operand of noobvious mul"
+                                .to_string(),
+                        ));
+                    }
                     node = Parser::new_node(NodeKind::NdMul, node, n);
                 }
-                Err(_) => {
+                Err(e) => {
                     self.lex.revert_ctx()?;
-                    Parser::show_node("noobmul".to_string(), &node);
-                    return Ok(node);
+                    match e {
+                        MyError::NotTkNumber(_) => {
+                            Parser::show_node("noobmul".to_string(), &node);
+                            return Ok(node);
+                        }
+                        _ => return Err(e),
+                    }
                 }
             }
         }
@@ -505,7 +520,11 @@ impl Parser<'_> {
 
     fn signed(&mut self) -> Result<Box<Node>, MyError> {
         if self.lex.consume("-".to_string()) {
-            let node = Parser::new_node(NodeKind::NdSub, Parser::new_node_num(0.0), self.expo()?);
+            let node = Parser::new_node(
+                NodeKind::NdSub,
+                Parser::new_node_num(0.0, false),
+                self.expo()?,
+            );
             Ok(node)
         } else {
             Ok(self.expo()?)
@@ -593,11 +612,11 @@ impl Parser<'_> {
     }
 
     fn num(&mut self) -> Result<Box<Node>, MyError> {
-        let num = match self.lex.expect_number(self.vars) {
-            Ok(v) => Parser::f64_from_str(&v)?,
+        let (num, f) = match self.lex.expect_number(self.vars) {
+            Ok((v, f)) => (Parser::f64_from_str(&v)?, f),
             Err(e) => return Err(e),
         };
-        Ok(Parser::new_node_num(num))
+        Ok(Parser::new_node_num(num, f))
     }
 
     // parentheses "()" arg node
