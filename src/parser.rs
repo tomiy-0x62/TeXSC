@@ -1,9 +1,7 @@
-use self::lexer::Token;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fmt;
 use std::str::FromStr;
-use text_colorizer::*;
 
 use crate::config::*;
 use crate::error::*;
@@ -219,7 +217,7 @@ impl Parser<'_> {
                         rnode_num: rn,
                         lnode_num: ln,
                         val: unode.val,
-                        node_num: node_num,
+                        node_num,
                     });
 
                     node_num += 1;
@@ -237,7 +235,7 @@ impl Parser<'_> {
                         rnode_num: qln - 2,
                         lnode_num: qln - 1,
                         val: None,
-                        node_num: node_num,
+                        node_num,
                     });
                     node_num += 1;
                 }

@@ -84,7 +84,7 @@ impl Lexer {
 
     pub fn discard_ctx(&mut self) -> Result<(), MyError> {
         match self.ctx_stack.pop() {
-            Some(i) => (),
+            Some(_) => (),
             None => {
                 return Err(MyError::UnexpectedOpToLexer(
                     "context not yet pushed".to_string(),
