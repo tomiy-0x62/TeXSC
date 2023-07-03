@@ -616,11 +616,14 @@ impl Parser<'_> {
 
     fn signed(&mut self) -> Result<Box<Node>, MyError> {
         if self.lex.consume("-".to_string()) {
-            let node = Parser::new_node(
-                NodeKind::NdSub,
-                Parser::new_node_num(0.0, false),
-                self.expo()?,
-            );
+            let mut node = self.expo()?;
+            match node.val {
+                Some(v) => node.val = Some(-v),
+                None => {
+                    node =
+                        Parser::new_node(NodeKind::NdSub, Parser::new_node_num(0.0, false), node);
+                }
+            }
             Ok(node)
         } else {
             Ok(self.expo()?)
