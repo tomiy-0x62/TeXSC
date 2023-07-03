@@ -189,6 +189,70 @@ impl Parser<'_> {
     fn show_ast(ast: &Box<Node>) {
         let conf = read_config().unwrap();
         if cfg!(debug_assertions) || conf.debug {
+            let mut msg = String::new();
+            let mut node = ast;
+            let mut level = 0;
+            let mut tr_node_stack = Vec::new();
+            let mut tr_level_stack = Vec::new();
+            let mut is_next_have_chiled = true;
+            const TREE_WIDTH: i32 = 3;
+            loop {
+                // edgeを表すやつを追加
+                for i in 0..(level * TREE_WIDTH) {
+                    if i % TREE_WIDTH == 0 {
+                        if i / TREE_WIDTH == level - 1 {
+                            if is_next_have_chiled {
+                                msg += "├";
+                            } else {
+                                msg += "└";
+                            }
+                        } else {
+                            msg += "│";
+                        }
+                    } else {
+                        if i > TREE_WIDTH * (level - 1) {
+                            msg += "─";
+                        } else {
+                            msg += " ";
+                        }
+                    }
+                }
+                // nodeを追加
+                match node.node_kind {
+                    NodeKind::NdNum => msg += &node.val.unwrap().to_string(),
+                    _ => msg += node.node_kind.to_op_str(),
+                }
+                msg += "\n";
+                // treeのトラバース、levelの変更
+                if node.left_node.is_some() && node.right_node.is_some() {
+                    is_next_have_chiled = true;
+                } else {
+                    is_next_have_chiled = false;
+                }
+                if node.right_node.is_some() {
+                    tr_node_stack.push(node.right_node.as_ref().unwrap());
+                    tr_level_stack.push(level + 1);
+                }
+                if node.left_node.is_some() {
+                    node = node.left_node.as_ref().unwrap();
+                    level += 1;
+                } else {
+                    match tr_node_stack.pop() {
+                        Some(n) => {
+                            node = n;
+                            level = tr_level_stack.pop().unwrap();
+                        }
+                        None => break,
+                    }
+                }
+            }
+            println!("{}", msg);
+        }
+    }
+
+    fn _show_ast(ast: &Box<Node>) {
+        let conf = read_config().unwrap();
+        if cfg!(debug_assertions) || conf.debug {
             let mut node_que = VecDeque::new();
             let mut lyer_que = VecDeque::new();
             let mut node_num = 0;
@@ -313,16 +377,16 @@ impl Parser<'_> {
                 let ml_space = &w_spases[..ml_vec[lyer_idx]];
                 let box_space = &w_spases[..bs_vec[lyer_idx]];
                 msg += ml_space;
-                for i in 0..lyer.len() {
+                /*for i in 0..lyer.len() {
                     msg += &format!("|----N{:<3}----|{}", lyer[i].node_num, box_space);
-                }
+                }*/
                 msg += "\n";
                 msg += ml_space;
                 for i in 0..lyer.len() {
                     match lyer[i].node_kind {
                         Some(NodeKind::NdNum) => {
                             msg += &format!(
-                                "| {:^10} |{}",
+                                "  {:^10}  {}",
                                 match lyer[i].val {
                                     Some(v) => v.to_string(),
                                     None => "None".to_string(),
@@ -330,18 +394,18 @@ impl Parser<'_> {
                                 box_space
                             )
                         }
-                        Some(nk) => msg += &format!("| {:^10} |{}", nk.to_string(), box_space),
-                        None => msg += &format!("| {:^10} |{}", "None", box_space),
+                        Some(nk) => msg += &format!("  {:^10}  {}", nk.to_string(), box_space),
+                        None => msg += &format!("  {:^10}  {}", "None", box_space),
                     }
                 }
                 msg += "\n";
                 msg += ml_space;
-                for i in 0..lyer.len() {
+                /*for i in 0..lyer.len() {
                     msg += &format!(
                         "|-N{:<3}--N{:<3}-|{}",
                         lyer[i].lnode_num, lyer[i].rnode_num, box_space
                     );
-                }
+                }*/
                 msg += "\n\n";
                 lyer_idx += 1;
             }
