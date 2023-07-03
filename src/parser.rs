@@ -66,6 +66,33 @@ impl fmt::Display for NodeKind {
     }
 }
 
+impl NodeKind {
+    fn to_op_str(&self) -> &str {
+        match self {
+            NodeKind::NdSin => "Sin",
+            NodeKind::NdCos => "Cos",
+            NodeKind::NdTan => "Tan",
+            NodeKind::NdCsc => "Csc",
+            NodeKind::NdSec => "Sec",
+            NodeKind::NdCot => "Cot",
+            NodeKind::NdAcSin => "AcSin",
+            NodeKind::NdAcCos => "AcCos",
+            NodeKind::NdAcTan => "AcTan",
+            NodeKind::NdSqrt => "Sqrt",
+            NodeKind::NdLog => "Log",
+            NodeKind::NdLn => "Ln",
+            NodeKind::NdAbs => "Abs",
+            NodeKind::NdExp => "exp",
+            NodeKind::NdAdd => "+",
+            NodeKind::NdSub => "-",
+            NodeKind::NdMul => "*",
+            NodeKind::NdDiv => "/",
+            NodeKind::NdPow => "Pow",
+            NodeKind::NdNum => "Num",
+        }
+    }
+}
+
 pub struct Node {
     pub node_kind: NodeKind,
     pub right_node: Option<Box<Node>>,
