@@ -29,6 +29,7 @@ lazy_static! {
         RwLock::new(config::Config {
             result_format: ResultFormat::Decimal,
             debug: false,
+            show_ast: true,
             trig_func_arg: TrigFuncArg::Radian,
             log_base: std::f64::consts::E,
             num_of_digit: 12,

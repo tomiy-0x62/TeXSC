@@ -37,6 +37,7 @@ impl fmt::Display for TrigFuncArg {
 pub struct Config {
     pub result_format: ResultFormat, // 結果表示のフォーマット
     pub debug: bool,                 // デバッグ出力の有無
+    pub show_ast: bool,              // AST出力の有無
     pub trig_func_arg: TrigFuncArg,  // 三角関数の引数
     pub log_base: f64,               // logの底
     pub num_of_digit: u32,           // 結果の小数点以下の桁数
@@ -50,6 +51,7 @@ pub fn read_config() -> Result<Config, MyError> {
     Ok(Config {
         result_format: conf.result_format,
         debug: conf.debug,
+        show_ast: conf.show_ast,
         trig_func_arg: conf.trig_func_arg,
         log_base: conf.log_base,
         num_of_digit: conf.num_of_digit,
@@ -71,6 +73,15 @@ pub fn set_dbconfig(db: bool) -> Result<(), MyError> {
         Err(e) => return Err(MyError::ConfigWriteErr(e.to_string())),
     };
     conf.debug = db;
+    Ok(())
+}
+
+pub fn set_saconfig(sa: bool) -> Result<(), MyError> {
+    let ref mut conf = match CONFIG.write() {
+        Ok(c) => c,
+        Err(e) => return Err(MyError::ConfigWriteErr(e.to_string())),
+    };
+    conf.show_ast = sa;
     Ok(())
 }
 

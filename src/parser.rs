@@ -188,7 +188,7 @@ impl Parser<'_> {
 
     fn show_ast(ast: &Box<Node>) {
         let conf = read_config().unwrap();
-        if cfg!(debug_assertions) || conf.debug {
+        if cfg!(debug_assertions) || conf.debug || conf.show_ast {
             let mut msg = String::new();
             let mut node = ast;
             let mut level = 0;
