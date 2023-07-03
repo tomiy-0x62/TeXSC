@@ -195,6 +195,7 @@ impl Parser<'_> {
             let mut tr_node_stack = Vec::new();
             let mut tr_level_stack = Vec::new();
             let mut is_next_have_chiled = true;
+            let mut no_show_bar = Vec::new();
             const TREE_WIDTH: i32 = 3;
             loop {
                 // edgeを表すやつを追加
@@ -203,11 +204,17 @@ impl Parser<'_> {
                         if i / TREE_WIDTH == level - 1 {
                             if is_next_have_chiled {
                                 msg += "├";
+                                no_show_bar.retain(|&e| e != level - 1);
                             } else {
                                 msg += "└";
+                                no_show_bar.push(level - 1);
                             }
                         } else {
-                            msg += "│";
+                            if !no_show_bar.iter().any(|e| e == &(i / TREE_WIDTH)) {
+                                msg += "│";
+                            } else {
+                                msg += " ";
+                            }
                         }
                     } else {
                         if i > TREE_WIDTH * (level - 1) {
