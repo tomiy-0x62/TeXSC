@@ -253,7 +253,7 @@ impl Parser<'_> {
                     }
                 }
             }
-            println!("{}", msg);
+            eprintln!("{}", msg);
         }
     }
 

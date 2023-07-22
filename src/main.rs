@@ -58,6 +58,7 @@ fn main() {
 
     // formulas from command line arg
     if let Some(form) = matches.value_of("tex formulas") {
+        set_saconfig(false).expect("couldn't change show_ast config");
         let mut vars: HashMap<String, f64> = HashMap::new();
         for line in form.split('\n') {
             process_form(line.replace("\r", ""), &mut vars);
@@ -67,6 +68,7 @@ fn main() {
 
     // formulas from file
     if let Some(file_name) = matches.value_of("file") {
+        set_saconfig(false).expect("couldn't change show_ast config");
         let f: File = File::open(file_name).expect(file_name);
         let reader: BufReader<File> = BufReader::new(f);
         let mut vars: HashMap<String, f64> = HashMap::new();
