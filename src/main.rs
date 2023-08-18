@@ -144,7 +144,7 @@ fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
         _ => (),
     }
 
-    let mut loperand: f64 = 1.0;
+    let loperand: f64;
     let mut roperand: f64 = 1.0;
 
     if let Some(left) = (*node).left_node {
