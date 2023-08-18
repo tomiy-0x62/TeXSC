@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::VecDeque;
 use std::fmt;
 use std::str::FromStr;
 
@@ -101,6 +100,7 @@ pub struct Node {
     is_num_literal: bool,
 }
 
+/*
 struct NodeInfo {
     pub node_kind: Option<NodeKind>,
     pub rnode_num: usize,
@@ -108,6 +108,7 @@ struct NodeInfo {
     pub val: Option<f64>,
     pub node_num: u64,
 }
+*/
 
 pub struct Parser<'a> {
     lex: lexer::Lexer,
@@ -257,6 +258,7 @@ impl Parser<'_> {
         }
     }
 
+    /*
     fn _show_ast(ast: &Box<Node>) {
         let conf = read_config().unwrap();
         if cfg!(debug_assertions) || conf.debug {
@@ -419,7 +421,9 @@ impl Parser<'_> {
             eprintln!("{}", msg);
         }
     }
+    */
 
+    /*
     fn print_node(node: &Box<Node>, lyer: u64, node_num: u64, ln: usize, rn: usize) {
         debugln!(
             "{}: lyer: {}, kind: {}, val: {}, left: {}, right: {}",
@@ -434,6 +438,7 @@ impl Parser<'_> {
             rn.to_string(),
         );
     }
+    */
 
     fn hex2dec(num_str: &str) -> Result<f64, MyError> {
         let mut num: f64 = 0.0;
