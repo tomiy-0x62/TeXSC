@@ -1,12 +1,13 @@
 use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
+use text_colorizer::*;
 
 use crate::debug;
 use crate::debugln;
 use crate::error::*;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum TokenKind {
     TkTexCommand,
     TkTscCommand,
@@ -31,13 +32,16 @@ impl fmt::Display for TokenKind {
     }
 }
 
+#[derive(Debug)]
 pub struct Token {
     pub token: String,
     pub token_kind: TokenKind,
 }
 
 pub struct Lexer {
+    form: String,
     pub tokens: Vec<Token>,
+    token_loc: Vec<usize>,
     token_idx: usize,
     ctx_stack: Vec<usize>,
 }
@@ -56,9 +60,13 @@ impl Lexer {
         let form = form.replace("\n", "").replace("\t", "").replace("\r", "");
         debugln!("form: '{}'", form);
         let mut tokens: Vec<Token> = Vec::new();
-        Lexer::analyze(form, &mut tokens)?;
+        let mut token_loc: Vec<usize> = Vec::new();
+        Lexer::analyze(form.clone(), &mut tokens, &mut token_loc)?;
+        assert_eq!(token_loc.len(), tokens.len());
         Ok(Lexer {
-            tokens: tokens,
+            form,
+            tokens,
+            token_loc,
             token_idx: 0,
             ctx_stack: Vec::new(),
         })
@@ -109,31 +117,24 @@ impl Lexer {
         }
     }
 
-    pub fn expect(&mut self, op: String) -> Result<(), MyError> {
+    pub fn expect_br(&mut self, br: String) -> Result<(), MyError> {
         match self.tokens[self.token_idx].token_kind {
-            TokenKind::TkOperator => {
-                if self.tokens[self.token_idx].token == op {
-                    self.token_idx += 1;
-                    return Ok(());
-                } else {
-                    Err(MyError::UnexpectedToken(
-                        op,
-                        self.tokens[self.token_idx].token.to_string(),
-                    ))
-                }
-            }
             TokenKind::TkBrace => {
-                if self.tokens[self.token_idx].token == op {
+                if self.tokens[self.token_idx].token == br {
                     self.token_idx += 1;
                     return Ok(());
                 } else {
                     Err(MyError::UnexpectedToken(
-                        op,
+                        br,
                         self.tokens[self.token_idx].token.to_string(),
                     ))
                 }
             }
-            tk => Err(MyError::NotTkOperator(tk.to_string())),
+            tk => Err(MyError::NotTkBrace(
+                br,
+                tk.to_string(),
+                self.format_err_loc(),
+            )),
         }
     }
 
@@ -157,6 +158,7 @@ impl Lexer {
             }
             _ => Err(MyError::NotTkNumber(
                 self.tokens[self.token_idx].token_kind.to_string(),
+                self.format_err_loc(),
             )),
         }
     }
@@ -172,13 +174,26 @@ impl Lexer {
         &self.tokens[self.token_idx].token
     }
 
-    fn analyze(mut formulas: String, tokens: &mut Vec<Token>) -> Result<(), MyError> {
+    /// 保持しているtoken列からidx番目のtokenを削除
+    ///
+    /// * `idx` - 削除するtokenのindex
+    pub fn del_token(&mut self, idx: usize) {
+        self.tokens.remove(idx);
+        self.token_loc.remove(idx);
+    }
+
+    fn analyze(
+        mut formulas: String,
+        tokens: &mut Vec<Token>,
+        token_loc: &mut Vec<usize>,
+    ) -> Result<(), MyError> {
         let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap();
         let tsc_command = Regex::new(r":[A-Za-z]*").unwrap();
         let operator = Regex::new(r"\+|-|\*|=|/|!|_|,|\^|\|").unwrap();
         let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap();
         let num = Regex::new(r"0x[0-9a-fA-F]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap();
         let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap();
+        let mut processed_form_idx = 0;
 
         'search: loop {
             let mut c = match formulas.chars().nth(0) {
@@ -188,12 +203,14 @@ impl Lexer {
                         token: "EOT".to_string(),
                         token_kind: TokenKind::TkEOT,
                     });
+                    token_loc.push(processed_form_idx);
                     Lexer::print_token(tokens);
                     break 'search;
                 }
             };
             while c == ' ' {
                 formulas = formulas.replacen(" ", "", 1);
+                processed_form_idx += 1;
                 c = match formulas.chars().nth(0) {
                     Some(c) => c,
                     None => {
@@ -201,38 +218,34 @@ impl Lexer {
                             token: "EOT".to_string(),
                             token_kind: TokenKind::TkEOT,
                         });
+                        token_loc.push(processed_form_idx);
                         Lexer::print_token(tokens);
                         break 'search;
                     }
                 }
             }
             let mut ismatch = false;
+            macro_rules! push_token {
+                ($token: ident, $tk: ident) => {{
+                    token_loc.push(processed_form_idx);
+                    processed_form_idx += $token.len();
+                    tokens.push(Token {
+                        $token,
+                        token_kind: TokenKind::$tk,
+                    });
+                }};
+            }
             if c == '\\' {
                 if let Some(caps) = tex_command.captures(&formulas) {
                     let token = caps.get(0).unwrap().as_str().to_string();
                     match &*token {
-                        "\\times" => tokens.push(Token {
-                            token,
-                            token_kind: TokenKind::TkOperator,
-                        }),
-                        "\\cdot" => tokens.push(Token {
-                            token,
-                            token_kind: TokenKind::TkOperator,
-                        }),
-                        "\\div" => tokens.push(Token {
-                            token,
-                            token_kind: TokenKind::TkOperator,
-                        }),
-                        "\\pi" => tokens.push(Token {
-                            token,
-                            token_kind: TokenKind::TkVariable,
-                        }),
+                        "\\times" => push_token!(token, TkOperator),
+                        "\\cdot" => push_token!(token, TkOperator),
+                        "\\div" => push_token!(token, TkOperator),
+                        "\\pi" => push_token!(token, TkVariable),
                         _ => {
                             if Lexer::is_valid_texcommand(&token) {
-                                tokens.push(Token {
-                                    token,
-                                    token_kind: TokenKind::TkTexCommand,
-                                });
+                                push_token!(token, TkTexCommand);
                             } else {
                                 return Err(MyError::UDcommandErr(token));
                             }
@@ -244,33 +257,24 @@ impl Lexer {
             } else if c == ':' {
                 if let Some(caps) = tsc_command.captures(&formulas) {
                     let token = caps.get(0).unwrap().as_str().to_string();
-                    tokens.push(Token {
-                        token,
-                        token_kind: TokenKind::TkTscCommand,
-                    });
+                    push_token!(token, TkTscCommand);
                     formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     ismatch = true;
                 }
             } else if let Some(caps) = operator.captures(&c.to_string()) {
-                tokens.push(Token {
-                    token: caps.get(0).unwrap().as_str().to_string(),
-                    token_kind: TokenKind::TkOperator,
-                });
+                let token = caps.get(0).unwrap().as_str().to_string();
+                push_token!(token, TkOperator);
                 formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
             } else if let Some(caps) = braces.captures(&c.to_string()) {
-                tokens.push(Token {
-                    token: caps.get(0).unwrap().as_str().to_string(),
-                    token_kind: TokenKind::TkBrace,
-                });
+                let token = caps.get(0).unwrap().as_str().to_string();
+                push_token!(token, TkBrace);
                 formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
             } else if let Some(_) = num.captures(&c.to_string()) {
                 if let Some(caps) = num.captures(&formulas) {
-                    tokens.push(Token {
-                        token: caps.get(0).unwrap().as_str().to_string(),
-                        token_kind: TokenKind::TkNum,
-                    });
+                    let token = caps.get(0).unwrap().as_str().to_string();
+                    push_token!(token, TkNum);
                     formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                     ismatch = true;
                 }
@@ -279,10 +283,7 @@ impl Lexer {
                     return Err(MyError::InvalidInput(c.to_string()));
                 }
                 let token = caps.get(0).unwrap().as_str().to_string();
-                tokens.push(Token {
-                    token,
-                    token_kind: TokenKind::TkVariable,
-                });
+                push_token!(token, TkVariable);
                 formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
             }
@@ -291,6 +292,7 @@ impl Lexer {
             }
 
             if formulas.len() == 0 {
+                token_loc.push(processed_form_idx);
                 tokens.push(Token {
                     token: "EOT".to_string(),
                     token_kind: TokenKind::TkEOT,
@@ -324,6 +326,49 @@ impl Lexer {
             "\\arctan" => true,
             _ => false,
         }
+    }
+
+    /// parser内でエラーが起こっており、lexer.token_idxにエラーの原因となる
+    /// tokenが入っているときに、エラーが数式のどの個所で起こったかを示す文字列を返す
+    /// ex)
+    /// ```
+    /// \frac {3} {
+    ///            ^~~
+    /// ```
+    pub fn format_err_loc(&self) -> String {
+        let mut pad = String::with_capacity(self.token_loc[self.token_idx]);
+        for _i in 0..self.token_loc[self.token_idx] {
+            pad += " ";
+        }
+        let err_indicator = format!("{}{}", pad, "^".red());
+        let mut nami = String::with_capacity(self.tokens[self.token_idx].token.len());
+        for _i in 0..self.tokens[self.token_idx].token.len() - 1 {
+            nami += &format!("{}", "~".red());
+        }
+        let res = format!("{}\n{}{}", self.form, err_indicator, nami);
+        res
+    }
+
+    /// 変数やTSC Commandの処理中等のparser外でエラーが起こっており、lexer.token_idxにエラーの
+    /// 原因個所のtoken indexが入っていないときにエラーが数式のどの個所で起こったかを示す文字列を返す
+    /// ex)
+    /// ```
+    /// , x = a
+    ///       ^
+    ///       ```
+    /// * `token_idx` - token_idx: エラーが発生したtokenのindex
+    pub fn format_err_loc_idx(&self, token_idx: usize) -> String {
+        let mut pad = String::with_capacity(self.token_loc[token_idx]);
+        for _i in 0..self.token_loc[token_idx] {
+            pad += " ";
+        }
+        let err_indicator = format!("{}{}", pad, "^".red());
+        let mut nami = String::with_capacity(self.tokens[token_idx].token.len());
+        for _i in 0..self.tokens[token_idx].token.len() - 1 {
+            nami += &format!("{}", "~".red());
+        }
+        let res = format!("{}\n{}{}", self.form, err_indicator, nami);
+        res
     }
 
     fn print_token(tokens: &Vec<Token>) {

@@ -130,7 +130,12 @@ impl Parser<'_> {
                 to_delete_el.push(i);
                 match lex.tokens[i + 1].token_kind {
                     lexer::TokenKind::TkVariable => to_delete_el.push(i + 1),
-                    tk => return Err(MyError::NotTkVariable(tk.to_string())),
+                    tk => {
+                        return Err(MyError::NotTkVariable(
+                            tk.to_string(),
+                            lex.format_err_loc_idx(i + 1),
+                        ))
+                    }
                 }
                 if !(lex.tokens[i + 2].token == "=") {
                     return Err(MyError::UnexpectedToken(
@@ -148,14 +153,19 @@ impl Parser<'_> {
                             Err(e) => return Err(e),
                         }
                     }
-                    tk => return Err(MyError::NotTkNumber(tk.to_string())),
+                    tk => {
+                        return Err(MyError::NotTkNumber(
+                            tk.to_string(),
+                            lex.format_err_loc_idx(i + 3),
+                        ))
+                    }
                 }
                 to_delete_el.push(i + 3);
             } else {
                 match lex.tokens[i].token_kind {
                     lexer::TokenKind::TkTscCommand => {
                         to_delete_el.push(i);
-                        tsc_cmd::process_tsccommand(&lex.tokens[i], &lex.tokens[i + 1], vars)?;
+                        tsc_cmd::process_tsccommand(&lex, i, vars)?;
                         match &*lex.tokens[i].token {
                             ":help" => (),
                             _ => to_delete_el.push(i + 1),
@@ -167,7 +177,7 @@ impl Parser<'_> {
         }
         to_delete_el.sort_by(|a, b| b.cmp(a));
         for i in to_delete_el.into_iter() {
-            lex.tokens.remove(i);
+            lex.del_token(i);
         }
         // varsに\piとeをプッシュする
         vars.insert("\\pi".to_string(), std::f64::consts::PI);
@@ -181,7 +191,10 @@ impl Parser<'_> {
         }
         let ast = self.expr()?;
         if !self.lex.is_eot() {
-            return Err(MyError::UnprocessedToekn(self.lex.now_token().to_string()));
+            return Err(MyError::UnprocessedToekn(
+                self.lex.now_token().to_string(),
+                self.lex.format_err_loc(),
+            ));
         }
         Parser::show_ast(&ast);
         Ok(ast)
@@ -608,7 +621,7 @@ impl Parser<'_> {
                 Err(e) => {
                     self.lex.revert_ctx()?;
                     match e {
-                        MyError::NotTkNumber(_) => {
+                        MyError::NotTkNumber(_, _) => {
                             Parser::show_node("noobmul".to_string(), &node);
                             return Ok(node);
                         }
@@ -640,9 +653,9 @@ impl Parser<'_> {
         Parser::show_node("primary".to_string(), &node);
         loop {
             if self.lex.consume("^".to_string()) {
-                self.lex.expect("{".to_string())?;
+                self.lex.expect_br("{".to_string())?;
                 let cnode: Box<Node> = self.expr()?;
-                self.lex.expect("}".to_string())?;
+                self.lex.expect_br("}".to_string())?;
                 node = Parser::new_node(NodeKind::NdPow, node, cnode);
             } else {
                 Parser::show_node("mul".to_string(), &node);
@@ -654,16 +667,16 @@ impl Parser<'_> {
     fn primary(&mut self) -> Result<Box<Node>, MyError> {
         if self.lex.consume("(".to_string()) {
             let node: Box<Node> = self.expr()?;
-            self.lex.expect(")".to_string())?;
+            self.lex.expect_br(")".to_string())?;
             return Ok(node);
         }
         if self.lex.consume("\\frac".to_string()) {
-            self.lex.expect("{".to_string())?;
+            self.lex.expect_br("{".to_string())?;
             let lnode: Box<Node> = self.expr()?;
-            self.lex.expect("}".to_string())?;
-            self.lex.expect("{".to_string())?;
+            self.lex.expect_br("}".to_string())?;
+            self.lex.expect_br("{".to_string())?;
             let rnode: Box<Node> = self.expr()?;
-            self.lex.expect("}".to_string())?;
+            self.lex.expect_br("}".to_string())?;
             let node = Parser::new_node(NodeKind::NdDiv, lnode, rnode);
             return Ok(node);
         }
@@ -725,17 +738,17 @@ impl Parser<'_> {
 
     // parentheses "()" arg node
     fn parg_node(&mut self) -> Result<Box<Node>, MyError> {
-        self.lex.expect("(".to_string())?;
+        self.lex.expect_br("(".to_string())?;
         let node: Box<Node> = self.expr()?;
-        self.lex.expect(")".to_string())?;
+        self.lex.expect_br(")".to_string())?;
         Ok(node)
     }
 
     // curly brackets "{}" arg node
     fn carg_node(&mut self) -> Result<Box<Node>, MyError> {
-        self.lex.expect("{".to_string())?;
+        self.lex.expect_br("{".to_string())?;
         let node: Box<Node> = self.expr()?;
-        self.lex.expect("}".to_string())?;
+        self.lex.expect_br("}".to_string())?;
         Ok(node)
     }
 }

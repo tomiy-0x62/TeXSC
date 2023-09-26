@@ -3,14 +3,16 @@ use text_colorizer::*;
 
 use crate::config::*;
 use crate::error::*;
-use crate::parser::lexer::{self, Token};
+use crate::parser::lexer::{self, Lexer};
 use crate::parser::*;
 
 pub fn process_tsccommand(
-    t1: &Token,
-    t2: &Token,
+    lex: &Lexer,
+    cmd_idx: usize,
     vars: &mut HashMap<String, f64>,
 ) -> Result<(), MyError> {
+    let t1 = &lex.tokens[cmd_idx];
+    let t2 = &lex.tokens[cmd_idx + 1];
     Ok(match &*t1.token {
         ":debug" => match &*t2.token {
             "true" => set_dbconfig(true)?,
@@ -31,7 +33,12 @@ pub fn process_tsccommand(
                 Some(num) => set_lbconf(*num)?,
                 None => return Err(MyError::UDvariableErr(t2.token.to_string())),
             },
-            _ => return Err(MyError::NotTkNumber(t2.token_kind.to_string())),
+            _ => {
+                return Err(MyError::NotTkNumber(
+                    t2.token_kind.to_string(),
+                    lex.format_err_loc_idx(cmd_idx + 1),
+                ))
+            }
         },
         ":rfotmat" => match &*t2.token {
             "bin" => set_rfconf(ResultFormat::Binary)?,
@@ -53,7 +60,12 @@ pub fn process_tsccommand(
                 Some(num) => set_ndconf(*num as u32)?,
                 None => return Err(MyError::UDvariableErr(t2.token.to_string())),
             },
-            _ => return Err(MyError::NotTkNumber(t2.token_kind.to_string())),
+            _ => {
+                return Err(MyError::NotTkNumber(
+                    t2.token_kind.to_string(),
+                    lex.format_err_loc_idx(cmd_idx + 1),
+                ))
+            }
         },
         ":trarg" => match &*t2.token {
             "rad" => set_tfconf(TrigFuncArg::Radian)?,

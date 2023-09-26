@@ -11,8 +11,8 @@ pub enum MyError {
     BrokenAstErr,
     #[error("undiffined command '{0}'")]
     UDcommandErr(String),
-    #[error("un processed token '{0}'")]
-    UnprocessedToekn(String),
+    #[error("un processed token '{0}'\n{1}")]
+    UnprocessedToekn(String, String),
     #[error("Invalid hex format '{0}'")]
     InvalidHexFormat(String),
     #[error("Invalid binary format '{0}'")]
@@ -23,12 +23,12 @@ pub enum MyError {
     NoToken,
     #[error("invalid input {0}")]
     InvalidInput(String),
-    #[error("expected TkNumber but {0}")]
-    NotTkNumber(String),
-    #[error("expected TkOperator but {0}")]
-    NotTkOperator(String),
-    #[error("expected TkVariable but {0}")]
-    NotTkVariable(String),
+    #[error("expected TkNumber but {0}\n{1}")]
+    NotTkNumber(String, String),
+    #[error("expected TkBrace '{0}' but {1}\n{2}")]
+    NotTkBrace(String, String, String),
+    #[error("expected TkVariable but {0}\n{1}")]
+    NotTkVariable(String, String),
     #[error("undefined variable '{0}'")]
     UDvariableErr(String),
     #[error("expected {0} but {1}")]
