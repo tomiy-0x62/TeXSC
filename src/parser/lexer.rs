@@ -209,28 +209,28 @@ impl Lexer {
             let mut ismatch = false;
             if c == '\\' {
                 if let Some(caps) = tex_command.captures(&formulas) {
-                    let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
+                    let token = caps.get(0).unwrap().as_str().to_string();
                     match &*token {
                         "\\times" => tokens.push(Token {
-                            token: token,
+                            token,
                             token_kind: TokenKind::TkOperator,
                         }),
                         "\\cdot" => tokens.push(Token {
-                            token: token,
+                            token,
                             token_kind: TokenKind::TkOperator,
                         }),
                         "\\div" => tokens.push(Token {
-                            token: token,
+                            token,
                             token_kind: TokenKind::TkOperator,
                         }),
                         "\\pi" => tokens.push(Token {
-                            token: token,
+                            token,
                             token_kind: TokenKind::TkVariable,
                         }),
                         _ => {
                             if Lexer::is_valid_texcommand(&token) {
                                 tokens.push(Token {
-                                    token: token,
+                                    token,
                                     token_kind: TokenKind::TkTexCommand,
                                 });
                             } else {
@@ -243,9 +243,9 @@ impl Lexer {
                 }
             } else if c == ':' {
                 if let Some(caps) = tsc_command.captures(&formulas) {
-                    let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
+                    let token = caps.get(0).unwrap().as_str().to_string();
                     tokens.push(Token {
-                        token: token,
+                        token,
                         token_kind: TokenKind::TkTscCommand,
                     });
                     formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
@@ -253,14 +253,14 @@ impl Lexer {
                 }
             } else if let Some(caps) = operator.captures(&c.to_string()) {
                 tokens.push(Token {
-                    token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""),
+                    token: caps.get(0).unwrap().as_str().to_string(),
                     token_kind: TokenKind::TkOperator,
                 });
                 formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
             } else if let Some(caps) = braces.captures(&c.to_string()) {
                 tokens.push(Token {
-                    token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""),
+                    token: caps.get(0).unwrap().as_str().to_string(),
                     token_kind: TokenKind::TkBrace,
                 });
                 formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
@@ -268,7 +268,7 @@ impl Lexer {
             } else if let Some(_) = num.captures(&c.to_string()) {
                 if let Some(caps) = num.captures(&formulas) {
                     tokens.push(Token {
-                        token: caps.get(0).unwrap().as_str().to_string().replace(" ", ""),
+                        token: caps.get(0).unwrap().as_str().to_string(),
                         token_kind: TokenKind::TkNum,
                     });
                     formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
@@ -278,7 +278,7 @@ impl Lexer {
                 if c != caps.get(0).unwrap().as_str().chars().nth(0).unwrap() {
                     return Err(MyError::InvalidInput(c.to_string()));
                 }
-                let token = caps.get(0).unwrap().as_str().to_string().replace(" ", "");
+                let token = caps.get(0).unwrap().as_str().to_string();
                 tokens.push(Token {
                     token,
                     token_kind: TokenKind::TkVariable,
