@@ -10,6 +10,7 @@ struct TestCase {
 #[test]
 fn test_calc() {
     let test_cases = get_testsaces();
+    let mut test_success = 0;
     for (i, tc) in test_cases.iter().enumerate() {
         let mut vars: HashMap<String, f64> = HashMap::new();
         for line in tc.formula.split('\n') {
@@ -24,6 +25,7 @@ fn test_calc() {
                             tc.formula
                         )
                         .unwrap();
+                        test_success += 1;
                     } else {
                         writeln!(
                             &mut std::io::stderr(),
@@ -31,8 +33,8 @@ fn test_calc() {
                             i,
                             "CALCULATION FAILED ".red(),
                             tc.formula,
-                            r,
-                            tc.result
+                            tc.result,
+                            r
                         )
                         .unwrap();
                     }
@@ -50,6 +52,14 @@ fn test_calc() {
             }
         }
     }
+    writeln!(
+        &mut std::io::stderr(),
+        "testcase {}/{} SUCCESSED",
+        test_success,
+        test_cases.len(),
+    )
+    .unwrap();
+    assert_eq!(test_success, test_cases.len());
 }
 
 fn get_testsaces() -> Vec<TestCase> {
