@@ -153,6 +153,32 @@ impl Parser<'_> {
                             Err(e) => return Err(e),
                         }
                     }
+                    lexer::TokenKind::TkOperator => {
+                        if lex.tokens[i + 3].token == "-" {
+                            match lex.tokens[i + 4].token_kind {
+                                lexer::TokenKind::TkNum => {
+                                    match Parser::f64_from_str(&lex.tokens[i + 4].token) {
+                                        Ok(num) => {
+                                            vars.insert(lex.tokens[i + 1].token.clone(), -num);
+                                            to_delete_el.push(i + 4);
+                                        }
+                                        Err(e) => return Err(e),
+                                    }
+                                }
+                                tk => {
+                                    return Err(MyError::NotTkNumber(
+                                        tk.to_string(),
+                                        lex.format_err_loc_idx(i + 4),
+                                    ))
+                                }
+                            }
+                        } else {
+                            return Err(MyError::NotTkNumber(
+                                lexer::TokenKind::TkOperator.to_string(),
+                                lex.format_err_loc_idx(i + 3),
+                            ));
+                        }
+                    }
                     tk => {
                         return Err(MyError::NotTkNumber(
                             tk.to_string(),
