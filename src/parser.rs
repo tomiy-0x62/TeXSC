@@ -99,6 +99,33 @@ impl NodeKind {
             NodeKind::NdVar => "Var",
         }
     }
+
+    fn to_lisp_op_str(&self) -> &str {
+        match self {
+            NodeKind::NdSin => "sin",
+            NodeKind::NdCos => "cos",
+            NodeKind::NdTan => "tan",
+            NodeKind::NdCsc => "Csc",
+            NodeKind::NdSec => "Sec",
+            NodeKind::NdCot => "Cot",
+            NodeKind::NdAcSin => "asin",
+            NodeKind::NdAcCos => "acos",
+            NodeKind::NdAcTan => "atan",
+            NodeKind::NdSqrt => "sqrt",
+            NodeKind::NdLog => "log",
+            NodeKind::NdLn => "Ln",
+            NodeKind::NdAbs => "abs",
+            NodeKind::NdExp => "exp",
+            NodeKind::NdAdd => "+",
+            NodeKind::NdSub => "-",
+            NodeKind::NdMul => "*",
+            NodeKind::NdDiv => "/",
+            NodeKind::NdNeg => "-",
+            NodeKind::NdPow => "expt",
+            NodeKind::NdNum => "Num",
+            NodeKind::NdVar => "Var",
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -237,6 +264,7 @@ impl Parser<'_> {
             ));
         }
         self.show_ast(&ast);
+        Parser::show_ast_in_s_expr_rec(&ast);
         Ok(ast)
     }
 
@@ -314,6 +342,38 @@ impl Parser<'_> {
                 }
             }
             eprintln!("{}", msg);
+        }
+    }
+
+    fn show_ast_in_s_expr_rec(node: &Box<Node>) {
+        Self::show_ast_in_s_expr_rec_inner(node, false);
+        println!("");
+    }
+
+    fn show_ast_in_s_expr_rec_inner(node: &Box<Node>, is_2arg_left: bool) {
+        match node.node_kind {
+            NodeKind::NdNum | NodeKind::NdVar => {
+                match node.val.clone().unwrap() {
+                    NumOrVar::Num(n) => print!("{}", n),
+                    NumOrVar::Var(v) => print!("{}", v),
+                }
+                if is_2arg_left {
+                    print!(" ");
+                }
+            }
+            _ => {
+                print!("({} ", node.node_kind.to_lisp_op_str());
+                if node.left_node.is_some() {
+                    Self::show_ast_in_s_expr_rec_inner(
+                        node.left_node.as_ref().unwrap(),
+                        true & node.right_node.is_some(),
+                    );
+                }
+                if node.right_node.is_some() {
+                    Self::show_ast_in_s_expr_rec_inner(node.right_node.as_ref().unwrap(), false);
+                }
+                print!(") ");
+            }
         }
     }
 
