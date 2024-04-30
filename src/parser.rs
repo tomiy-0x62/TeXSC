@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 
+use self::lexer::NumstrOrVar;
 use crate::config::*;
 use crate::error::*;
 use crate::tsc_cmd;
@@ -32,10 +33,14 @@ pub enum NodeKind {
     NdSub,
     NdMul,
     NdDiv,
+    // 前置1引数
+    NdNeg,
     // 後置1引数
     NdPow,
     // 数字
     NdNum,
+    // 変数
+    NdVar,
 }
 
 impl fmt::Display for NodeKind {
@@ -59,8 +64,10 @@ impl fmt::Display for NodeKind {
             NodeKind::NdSub => write!(f, "NdSub"),
             NodeKind::NdMul => write!(f, "NdMul"),
             NodeKind::NdDiv => write!(f, "NdDiv"),
+            NodeKind::NdNeg => write!(f, "NdNeg"),
             NodeKind::NdPow => write!(f, "NdPow"),
             NodeKind::NdNum => write!(f, "NdNum"),
+            NodeKind::NdVar => write!(f, "NdVar"),
         }
     }
 }
@@ -86,18 +93,25 @@ impl NodeKind {
             NodeKind::NdSub => "-",
             NodeKind::NdMul => "*",
             NodeKind::NdDiv => "/",
+            NodeKind::NdNeg => "-",
             NodeKind::NdPow => "Pow",
             NodeKind::NdNum => "Num",
+            NodeKind::NdVar => "Var",
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub enum NumOrVar {
+    Num(f64),
+    Var(String),
 }
 
 pub struct Node {
     pub node_kind: NodeKind,
     pub right_node: Option<Box<Node>>,
     pub left_node: Option<Box<Node>>,
-    pub val: Option<f64>,
-    is_num_literal: bool,
+    pub val: Option<NumOrVar>,
 }
 
 /*
@@ -222,11 +236,11 @@ impl Parser<'_> {
                 self.lex.format_err_loc(),
             ));
         }
-        Parser::show_ast(&ast);
+        self.show_ast(&ast);
         Ok(ast)
     }
 
-    fn show_ast(ast: &Box<Node>) {
+    fn show_ast(&self, ast: &Box<Node>) {
         let conf = read_config().unwrap();
         if cfg!(debug_assertions) || conf.debug || conf.show_ast {
             let mut msg = String::new();
@@ -266,7 +280,13 @@ impl Parser<'_> {
                 }
                 // nodeを追加
                 match node.node_kind {
-                    NodeKind::NdNum => msg += &node.val.unwrap().to_string(),
+                    NodeKind::NdNum | NodeKind::NdVar => match node.val.clone().unwrap() {
+                        NumOrVar::Num(n) => msg += &(n.to_string()),
+                        NumOrVar::Var(v) => match self.vars.get(&v) {
+                            Some(n) => msg += &format!("{} = {}", v, n),
+                            None => msg += &v,
+                        },
+                    },
                     _ => msg += node.node_kind.to_op_str(),
                 }
                 msg += "\n";
@@ -550,7 +570,6 @@ impl Parser<'_> {
             right_node: Some(right),
             left_node: Some(left),
             val: None,
-            is_num_literal: false,
         })
     }
 
@@ -560,17 +579,24 @@ impl Parser<'_> {
             right_node: None,
             left_node: Some(left),
             val: None,
-            is_num_literal: false,
         })
     }
 
-    fn new_node_num(val: f64, is_num_literal: bool) -> Box<Node> {
+    fn new_node_num(val: f64) -> Box<Node> {
         Box::new(Node {
             node_kind: NodeKind::NdNum,
             right_node: None,
             left_node: None,
-            val: Some(val),
-            is_num_literal,
+            val: Some(NumOrVar::Num(val)),
+        })
+    }
+
+    fn new_node_var(var: String) -> Box<Node> {
+        Box::new(Node {
+            node_kind: NodeKind::NdVar,
+            right_node: None,
+            left_node: None,
+            val: Some(NumOrVar::Var(var)),
         })
     }
 
@@ -636,13 +662,17 @@ impl Parser<'_> {
             match self.expo() {
                 Ok(n) => {
                     self.lex.discard_ctx()?;
-                    if n.is_num_literal {
-                        return Err(MyError::InvalidInput(
-                            "don't allowed nulmber literal on right operand of noobvious mul"
-                                .to_string(),
-                        ));
+                    match n.node_kind {
+                        NodeKind::NdNum => {
+                            return Err(MyError::InvalidInput(
+                                "don't allowed nulmber literal on right operand of noobvious mul"
+                                    .to_string(),
+                            ));
+                        }
+                        _ => {
+                            node = Parser::new_node(NodeKind::NdMul, node, n);
+                        }
                     }
-                    node = Parser::new_node(NodeKind::NdMul, node, n);
                 }
                 Err(e) => {
                     self.lex.revert_ctx()?;
@@ -661,13 +691,7 @@ impl Parser<'_> {
     fn signed(&mut self) -> Result<Box<Node>, MyError> {
         if self.lex.consume("-".to_string()) {
             let mut node = self.expo()?;
-            match node.val {
-                Some(v) => node.val = Some(-v),
-                None => {
-                    node =
-                        Parser::new_node(NodeKind::NdSub, Parser::new_node_num(0.0, false), node);
-                }
-            }
+            node = Parser::new_unary_node(NodeKind::NdNeg, node);
             Ok(node)
         } else {
             Ok(self.expo()?)
@@ -755,11 +779,13 @@ impl Parser<'_> {
     }
 
     fn num(&mut self) -> Result<Box<Node>, MyError> {
-        let (num, f) = match self.lex.expect_number(self.vars) {
-            Ok((v, f)) => (Parser::f64_from_str(&v)?, f),
+        match self.lex.expect_number() {
+            Ok(v) => match v {
+                NumstrOrVar::Num(num) => Ok(Parser::new_node_num(Parser::f64_from_str(&num)?)),
+                NumstrOrVar::Var(var) => Ok(Parser::new_node_var(var)),
+            },
             Err(e) => return Err(e),
-        };
-        Ok(Parser::new_node_num(num, f))
+        }
     }
 
     // parentheses "()" arg node

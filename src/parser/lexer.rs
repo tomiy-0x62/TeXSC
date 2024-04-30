@@ -1,5 +1,4 @@
 use regex::Regex;
-use std::collections::HashMap;
 use std::fmt;
 use text_colorizer::*;
 
@@ -16,6 +15,11 @@ pub enum TokenKind {
     TkNum,
     TkBrace,
     TkEOT,
+}
+
+pub enum NumstrOrVar {
+    Num(String),
+    Var(String),
 }
 
 impl fmt::Display for TokenKind {
@@ -138,23 +142,19 @@ impl Lexer {
         }
     }
 
-    pub fn expect_number(
-        &mut self,
-        vars: &HashMap<String, f64>,
-    ) -> Result<(String, bool), MyError> {
+    pub fn expect_number(&mut self) -> Result<NumstrOrVar, MyError> {
         match self.tokens[self.token_idx].token_kind {
             TokenKind::TkNum => {
                 self.token_idx += 1;
-                Ok((self.tokens[self.token_idx - 1].token.clone(), true))
+                Ok(NumstrOrVar::Num(
+                    self.tokens[self.token_idx - 1].token.clone(),
+                ))
             }
             TokenKind::TkVariable => {
                 self.token_idx += 1;
-                match vars.get(&self.tokens[self.token_idx - 1].token) {
-                    Some(v) => Ok((v.to_string(), false)),
-                    None => Err(MyError::UDvariableErr(
-                        self.tokens[self.token_idx - 1].token.to_string(),
-                    )),
-                }
+                Ok(NumstrOrVar::Var(
+                    self.tokens[self.token_idx - 1].token.to_string(),
+                ))
             }
             _ => Err(MyError::NotTkNumber(
                 self.tokens[self.token_idx].token_kind.to_string(),

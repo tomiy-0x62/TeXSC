@@ -1,5 +1,6 @@
 // TeX Scientific Calculator
 
+use self::parser::NumOrVar;
 use clap::{Arg, Command};
 use lazy_static::lazy_static;
 use rustyline::error::ReadlineError;
@@ -128,7 +129,7 @@ fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Option<f64> {
             }
         },
     };
-    match calc(ast_root) {
+    match calc(ast_root, vars) {
         Ok(result) => {
             println!("{}", result);
             Some(result)
@@ -140,9 +141,17 @@ fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Option<f64> {
     }
 }
 
-fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
+fn calc(node: Box<parser::Node>, vars: &HashMap<String, f64>) -> Result<f64, MyError> {
     match (*node).node_kind {
-        NodeKind::NdNum => return Ok((*node).val.unwrap()),
+        NodeKind::NdNum | NodeKind::NdVar => {
+            return Ok(match (*node).val.unwrap() {
+                NumOrVar::Num(n) => n,
+                NumOrVar::Var(v) => match vars.get(&v) {
+                    Some(n) => *n,
+                    None => return Err(MyError::UDvariableErr(v)),
+                },
+            })
+        }
         _ => (),
     }
 
@@ -150,17 +159,17 @@ fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
     let mut roperand: f64 = 1.0;
 
     if let Some(left) = (*node).left_node {
-        loperand = getoperand(left)?;
+        loperand = getoperand(left, vars)?;
     } else {
-        // NdNum以外でleftがNoneはエラー
+        // NdNum, NdVar以外でleftがNoneはエラー
         // ここに到達した => 不正なAST
         return Err(MyError::BrokenAstErr);
     }
 
     if let Some(right) = (*node).right_node {
-        roperand = getoperand(right)?;
+        roperand = getoperand(right, vars)?;
     } else {
-        // NdNum以外でrightがNoneはありえる
+        // NdNum, NdVar以外でrightがNoneはありえる
         // 前置, 1引数のノードの場合 => 正常
         // それ以外 => 不正なAST
         match (*node).node_kind {
@@ -215,14 +224,23 @@ fn calc(node: Box<parser::Node>) -> Result<f64, MyError> {
         NodeKind::NdAcCos => Ok(loperand.acos()),
         NodeKind::NdAcTan => Ok(loperand.atan()),
         NodeKind::NdPow => Ok(loperand.powf(roperand)),
+        NodeKind::NdNeg => Ok(-loperand),
         _ => Err(MyError::UDcommandErr((*node).node_kind.to_string())),
     }
 }
 
-fn getoperand(node: Box<parser::Node>) -> Result<f64, MyError> {
+fn getoperand(node: Box<parser::Node>, vars: &HashMap<String, f64>) -> Result<f64, MyError> {
     match &(*node).node_kind {
-        NodeKind::NdNum => return Ok((*node).val.unwrap()),
+        NodeKind::NdNum | NodeKind::NdVar => {
+            return Ok(match (*node).val.unwrap() {
+                NumOrVar::Num(n) => n,
+                NumOrVar::Var(v) => match vars.get(&v) {
+                    Some(n) => *n,
+                    None => return Err(MyError::UDvariableErr(v)),
+                },
+            })
+        }
         _ => (),
     }
-    calc(node)
+    calc(node, vars)
 }
