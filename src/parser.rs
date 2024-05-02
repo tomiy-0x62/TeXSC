@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::str::FromStr;
 
@@ -264,7 +264,7 @@ impl Parser<'_> {
             ));
         }
         self.show_ast(&ast);
-        Parser::show_ast_in_s_expr_rec(&ast);
+        self.show_ast_in_s_expr_rec(&ast);
         Ok(ast)
     }
 
@@ -345,34 +345,62 @@ impl Parser<'_> {
         }
     }
 
-    fn show_ast_in_s_expr_rec(node: &Box<Node>) {
-        Self::show_ast_in_s_expr_rec_inner(node, false);
-        println!("");
+    fn show_ast_in_s_expr_rec(&self, node: &Box<Node>) {
+        let mut s_expr = String::new();
+        s_expr = self.show_ast_in_s_expr_rec_inner(node, s_expr, &mut HashSet::new(), false);
+        eprintln!("{}\n", s_expr);
     }
 
-    fn show_ast_in_s_expr_rec_inner(node: &Box<Node>, is_2arg_left: bool) {
+    fn show_ast_in_s_expr_rec_inner(
+        &self,
+        node: &Box<Node>,
+        mut s_expr: String,
+        is_var_printed: &mut HashSet<String>,
+        is_2arg_left: bool,
+    ) -> String {
         match node.node_kind {
             NodeKind::NdNum | NodeKind::NdVar => {
                 match node.val.clone().unwrap() {
-                    NumOrVar::Num(n) => print!("{}", n),
-                    NumOrVar::Var(v) => print!("{}", v),
+                    NumOrVar::Num(n) => s_expr += &n.to_string(),
+                    NumOrVar::Var(v) => {
+                        if v == "\\pi" {
+                            s_expr += "pi"
+                        } else {
+                            if let Some(val) = self.vars.get(&v) {
+                                if is_var_printed.get(&v).is_none() {
+                                    s_expr = format!("(defvar {} {})\n{}", v, val, s_expr);
+                                    is_var_printed.insert(v.clone());
+                                }
+                            }
+                            s_expr += &v
+                        }
+                    }
                 }
                 if is_2arg_left {
-                    print!(" ");
+                    s_expr + " "
+                } else {
+                    s_expr
                 }
             }
             _ => {
-                print!("({} ", node.node_kind.to_lisp_op_str());
+                s_expr += &format!("({} ", node.node_kind.to_lisp_op_str());
                 if node.left_node.is_some() {
-                    Self::show_ast_in_s_expr_rec_inner(
+                    s_expr = self.show_ast_in_s_expr_rec_inner(
                         node.left_node.as_ref().unwrap(),
+                        s_expr,
+                        is_var_printed,
                         true & node.right_node.is_some(),
                     );
                 }
                 if node.right_node.is_some() {
-                    Self::show_ast_in_s_expr_rec_inner(node.right_node.as_ref().unwrap(), false);
+                    s_expr = self.show_ast_in_s_expr_rec_inner(
+                        node.right_node.as_ref().unwrap(),
+                        s_expr,
+                        is_var_printed,
+                        false,
+                    );
                 }
-                print!(") ");
+                s_expr + ") "
             }
         }
     }
