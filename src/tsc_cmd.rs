@@ -15,8 +15,8 @@ pub fn process_tsccommand(
     let t2 = &lex.tokens[cmd_idx + 1];
     Ok(match &*t1.token {
         ":debug" => match &*t2.token {
-            "true" => set_dbconfig(true)?,
-            "false" => set_dbconfig(false)?,
+            "true" => set_dbconf(true)?,
+            "false" => set_dbconf(false)?,
             _ => {
                 return Err(MyError::UnexpectedInput(
                     "true/false".to_string(),
@@ -40,17 +40,6 @@ pub fn process_tsccommand(
                 ))
             }
         },
-        ":rfotmat" => match &*t2.token {
-            "bin" => set_rfconf(ResultFormat::Binary)?,
-            "dec" => set_rfconf(ResultFormat::Decimal)?,
-            "hex" => set_rfconf(ResultFormat::Hexadecimal)?,
-            _ => {
-                return Err(MyError::UnexpectedInput(
-                    "bin/dec/hex".to_string(),
-                    t2.token.clone(),
-                ))
-            }
-        },
         ":rlen" => match t2.token_kind {
             lexer::TokenKind::TkNum => match Parser::f64_from_str(&t2.token) {
                 Ok(num) => set_ndconf(num as u32)?,
@@ -70,6 +59,18 @@ pub fn process_tsccommand(
         ":trarg" => match &*t2.token {
             "rad" => set_tfconf(TrigFuncArg::Radian)?,
             "deg" => set_tfconf(TrigFuncArg::Degree)?,
+            _ => {
+                return Err(MyError::UnexpectedInput(
+                    "rad/deg".to_string(),
+                    t2.token.clone(),
+                ))
+            }
+        },
+        ":astform" => match &*t2.token {
+            "tree" => set_afconf(AstFormat::Tree)?,
+            "sexpr" => set_afconf(AstFormat::Sexpr)?,
+            "both" => set_afconf(AstFormat::Both)?,
+            "none" => set_afconf(AstFormat::None)?,
             _ => {
                 return Err(MyError::UnexpectedInput(
                     "rad/deg".to_string(),
@@ -106,7 +107,7 @@ fn cmd_help() {
     {: <12}
         set result format
     {: <12}
-        set result format
+        set ast format
     {: <12}
         show variable or config or embedded const number",
         ":TSC_COMMAND {option}".yellow(),
@@ -114,8 +115,8 @@ fn cmd_help() {
         ":help".green(),
         ":debug {true|false}".green(),
         ":logbase {num(f64)}".green(),
-        ":rformat {bin|dec|hex}".green(),
         ":rlen {num(u32)}".green(),
+        ":astform {tree|sexpr|both|none}".green(),
         ":show {var|config|const}".green()
     );
 }

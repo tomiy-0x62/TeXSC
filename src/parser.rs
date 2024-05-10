@@ -270,7 +270,11 @@ impl Parser<'_> {
 
     fn show_ast(&self, ast: &Box<Node>) {
         let conf = read_config().unwrap();
-        if cfg!(debug_assertions) || conf.debug || conf.show_ast {
+        if cfg!(debug_assertions)
+            || conf.debug
+            || conf.ast_format == AstFormat::Tree
+            || conf.ast_format == AstFormat::Both
+        {
             let mut msg = String::new();
             let mut node = ast;
             let mut level = 0;
@@ -346,9 +350,16 @@ impl Parser<'_> {
     }
 
     fn show_ast_in_s_expr_rec(&self, node: &Box<Node>) {
-        let mut s_expr = String::new();
-        s_expr = self.show_ast_in_s_expr_rec_inner(node, s_expr, &mut HashSet::new(), false);
-        eprintln!("{}\n", s_expr);
+        let conf = read_config().unwrap();
+        if cfg!(debug_assertions)
+            || conf.debug
+            || conf.ast_format == AstFormat::Sexpr
+            || conf.ast_format == AstFormat::Both
+        {
+            let mut s_expr = String::new();
+            s_expr = self.show_ast_in_s_expr_rec_inner(node, s_expr, &mut HashSet::new(), false);
+            eprintln!("{}\n", s_expr);
+        }
     }
 
     fn show_ast_in_s_expr_rec_inner(
