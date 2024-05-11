@@ -6,6 +6,7 @@ use self::lexer::NumstrOrVar;
 use crate::config::*;
 use crate::error::*;
 use crate::tsc_cmd;
+use crate::CONSTS;
 
 pub mod lexer;
 
@@ -246,9 +247,15 @@ impl Parser<'_> {
         for i in to_delete_el.into_iter() {
             lex.del_token(i);
         }
-        // varsに\piとeをプッシュする
-        vars.insert("\\pi".to_string(), std::f64::consts::PI);
-        vars.insert("e".to_string(), std::f64::consts::E);
+        // varsに定数をプッシュする
+        match CONSTS.read() {
+            Ok(consts) => {
+                for (name, value) in consts.iter() {
+                    vars.insert(name.to_string(), *value);
+                }
+            }
+            Err(e) => return Err(MyError::ConstsReadErr(e.to_string())),
+        }
         Ok(Parser { lex, vars })
     }
 

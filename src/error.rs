@@ -7,6 +7,8 @@ pub enum MyError {
     ConfigReadErr(String),
     #[error("couldn't write config: {0}")]
     ConfigWriteErr(String),
+    #[error("couldn't read consts: {0}")]
+    ConstsReadErr(String),
     #[error("broken AST")]
     BrokenAstErr,
     #[error("undiffined command '{0}'")]

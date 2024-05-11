@@ -5,6 +5,7 @@ use crate::config::*;
 use crate::error::*;
 use crate::parser::lexer::{self, Lexer};
 use crate::parser::*;
+use crate::CONSTS;
 
 pub fn process_tsccommand(
     lex: &Lexer,
@@ -80,9 +81,10 @@ pub fn process_tsccommand(
         },
         ":help" => cmd_help(),
         ":show" => match &*t2.token {
-            "var" => (),
-            "const" => (),
+            "var" => show_variables(vars)?,
             "config" => show_conf()?,
+            "conf" => show_conf()?,
+            "const" => show_const()?,
             _ => {
                 return Err(MyError::UnexpectedInput(
                     "var/const/config".to_string(),
@@ -92,6 +94,31 @@ pub fn process_tsccommand(
         },
         _ => return Err(MyError::UDtsccommand(t2.token.clone())),
     })
+}
+
+fn show_variables(vars: &HashMap<String, f64>) -> Result<(), MyError> {
+    let consts = match CONSTS.read() {
+        Ok(consts) => consts,
+        Err(e) => return Err(MyError::ConstsReadErr(e.to_string())),
+    };
+    for (name, value) in vars {
+        if consts.get(name).is_none() {
+            println!("{:<6}: {}", name, value);
+        }
+    }
+    Ok(())
+}
+
+fn show_const() -> Result<(), MyError> {
+    match CONSTS.read() {
+        Ok(consts) => {
+            for (name, value) in consts.iter() {
+                println!("{:<6}: {}", name, value);
+            }
+            Ok(())
+        }
+        Err(e) => Err(MyError::ConstsReadErr(e.to_string())),
+    }
 }
 
 fn show_conf() -> Result<(), MyError> {
@@ -123,6 +150,6 @@ fn cmd_help() {
         ":logbase {num(f64)}".green(),
         ":rlen {num(u32)}".green(),
         ":astform {tree|sexpr|both|none}".green(),
-        ":show {var|config|const}".green()
+        ":show {var|const|config|conf}".green()
     );
 }

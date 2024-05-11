@@ -38,6 +38,14 @@ lazy_static! {
             num_of_digit: 12,
         })
     };
+    pub static ref CONSTS: RwLock<HashMap<String, f64>> = {
+        RwLock::new({
+            let mut consts = HashMap::new();
+            consts.insert("e".to_string(), std::f64::consts::E);
+            consts.insert("\\pi".to_string(), std::f64::consts::PI);
+            consts
+        })
+    };
 }
 
 fn main() {
