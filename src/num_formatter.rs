@@ -1,4 +1,7 @@
 pub fn num_formatter(num: f64, significant_figure: u32) -> String {
+    if significant_figure == 0 {
+        return num.to_string();
+    }
     let (a, b) = get_num_of_digit(num);
     if a < significant_figure {
         if a + b < significant_figure {
