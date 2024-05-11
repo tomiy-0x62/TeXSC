@@ -82,7 +82,7 @@ pub fn process_tsccommand(
         ":show" => match &*t2.token {
             "var" => (),
             "const" => (),
-            "config" => (),
+            "config" => show_conf()?,
             _ => {
                 return Err(MyError::UnexpectedInput(
                     "var/const/config".to_string(),
@@ -92,6 +92,12 @@ pub fn process_tsccommand(
         },
         _ => return Err(MyError::UDtsccommand(t2.token.clone())),
     })
+}
+
+fn show_conf() -> Result<(), MyError> {
+    let conf = read_config()?;
+    println!("{}", conf);
+    Ok(())
 }
 
 fn cmd_help() {

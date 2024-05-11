@@ -1,6 +1,7 @@
 use crate::error::*;
 use crate::CONFIG;
 use std::fmt;
+use text_colorizer::*;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum AstFormat {
@@ -42,6 +43,31 @@ pub struct Config {
     pub trig_func_arg: TrigFuncArg, // 三角関数の引数
     pub log_base: f64,              // logの底
     pub num_of_digit: u32,          // 結果の小数点以下の桁数
+}
+
+impl fmt::Display for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}:
+    {: <14}: {}
+    {: <14}: {}
+    {: <14}: {}
+    {: <14}: {}
+    {: <14}: {}",
+            "Config".green(),
+            "debug".cyan(),
+            self.debug,
+            "ast_format".cyan(),
+            self.ast_format,
+            "trig_func_arg".cyan(),
+            self.trig_func_arg,
+            "log_base".cyan(),
+            self.log_base,
+            "num_of_digit".cyan(),
+            self.num_of_digit
+        )
+    }
 }
 
 pub fn read_config() -> Result<Config, MyError> {
