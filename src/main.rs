@@ -6,6 +6,7 @@ use lazy_static::lazy_static;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::collections::HashMap;
+use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::sync::RwLock;
@@ -41,9 +42,9 @@ lazy_static! {
 
 fn main() {
     let app = Command::new("tsc")
-        .version("0.1.0")
-        .author("tomiy <tomiy@tomiylab.com>")
-        .about("TeXSC: TeX Scientific Calculator")
+        .version(env!("CARGO_PKG_VERSION"))
+        .author(env!("CARGO_PKG_AUTHORS"))
+        .about(env!("CARGO_PKG_DESCRIPTION"))
         .arg(
             Arg::new("file")
                 .help("load formulas from file")
