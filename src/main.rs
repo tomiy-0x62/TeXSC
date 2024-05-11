@@ -140,6 +140,7 @@ fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Option<f64> {
     };
     match calc(ast_root, vars) {
         Ok(result) => {
+            debugln!("resutl: {}", result);
             println!("{}", num_formatter(result, conf.num_of_digit));
             Some(result)
         }
