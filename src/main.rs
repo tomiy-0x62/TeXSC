@@ -15,6 +15,7 @@ use text_colorizer::*;
 
 mod config;
 mod error;
+mod num_formatter;
 mod parser;
 mod tsc_cmd;
 #[macro_use]
@@ -24,6 +25,7 @@ mod test;
 
 use config::*;
 use error::*;
+use num_formatter::num_formatter;
 
 lazy_static! {
     pub static ref CONFIG: RwLock<Config> = {
@@ -128,9 +130,16 @@ fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Option<f64> {
             }
         },
     };
+    let conf = match read_config() {
+        Ok(c) => c,
+        Err(e) => {
+            eprintlnc!(e);
+            return None;
+        }
+    };
     match calc(ast_root, vars) {
         Ok(result) => {
-            println!("{}", result);
+            println!("{}", num_formatter(result, conf.num_of_digit));
             Some(result)
         }
         Err(e) => {
