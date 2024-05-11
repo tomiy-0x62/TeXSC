@@ -140,6 +140,8 @@ fn cmd_help() {
     {: <12}
         set result format
     {: <12}
+        set format of trigonometric function argument
+    {: <12}
         set ast format
     {: <12}
         show variable or config or embedded const number",
@@ -149,6 +151,7 @@ fn cmd_help() {
         ":debug {true|false}".green(),
         ":logbase {num(f64)}".green(),
         ":rlen {num(u32)}".green(),
+        ":trarg {rad|deg}".green(),
         ":astform {tree|sexpr|both|none}".green(),
         ":show {var|const|config|conf}".green()
     );
