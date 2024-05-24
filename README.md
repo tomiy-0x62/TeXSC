@@ -153,7 +153,7 @@ TSCの挙動を設定するためのコマンド
 #### `:help`
 TSCコマンドに関するヘルプを表示
 
-#### `：debug {true|false}`
+#### `:debug {true|false}`
 デバッグモードの切り替え
 
 #### `:logbase {num(f64)}`
