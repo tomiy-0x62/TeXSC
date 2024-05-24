@@ -2,6 +2,34 @@
 
 インタラクティブとコマンドライン, ファイルからの読み込みで使えるTeXの数式を計算できる計算機
 
+## Installation
+```
+git clone https://github.com/tomiy-0x62/TeXSC
+cd TeXSC
+cargo build --release
+```
+ビルドしたバイナリをpathの通ったディレクトリへ移動
+
+### Requirements
++ Rust toolchain (install using rustup)
+
+## Configuration
+
++ On Unix system (Linux, macOS):
+`$HOME/.config/tsc/config.toml`
+
++ On Windows:
+`%APPDATA%\tsc\config.toml`
+
+config.tomlの例
+```
+debug = false
+ast_format = "Tree"
+trig_func_arg = "Radian"
+log_base = 2.718281828459045
+num_of_digit = 8
+```
+
 ## Usage
 
 インタラクティブ
@@ -139,6 +167,12 @@ TSCコマンドに関するヘルプを表示
 
 #### `:astform {tree|sexpr|both|none}`
 ASTの表示形式の変更
+
+#### `:write conf`
+現在の設定をconfig.tomlへ書き込み
+
+#### `:reload conf`
+config.tomlの再読み込み
 
 #### `:show {var|const|config|conf}`
 変数、設定、組み込み定数を表示
