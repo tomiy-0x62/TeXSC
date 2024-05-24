@@ -75,7 +75,7 @@ pub fn process_tsccommand(
             "none" => set_afconf(AstFormat::None)?,
             _ => {
                 return Err(MyError::UnexpectedInput(
-                    "rad/deg".to_string(),
+                    "tree|sexpr|both|none".to_string(),
                     t2.token.clone(),
                 ))
             }
@@ -114,7 +114,7 @@ pub fn process_tsccommand(
                 ))
             }
         },
-        _ => return Err(MyError::UDtsccommand(t2.token.clone())),
+        _ => return Err(MyError::UDtsccommand(t1.token.clone())),
     })
 }
 
