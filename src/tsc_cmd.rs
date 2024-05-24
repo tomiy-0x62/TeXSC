@@ -5,7 +5,6 @@ use crate::config::*;
 use crate::error::*;
 use crate::parser::lexer::{self, Lexer};
 use crate::parser::*;
-use crate::CONFIG;
 use crate::CONSTS;
 
 pub fn process_tsccommand(
@@ -15,10 +14,11 @@ pub fn process_tsccommand(
 ) -> Result<(), MyError> {
     let t1 = &lex.tokens[cmd_idx];
     let t2 = &lex.tokens[cmd_idx + 1];
+    let mut conf = config_writer()?;
     Ok(match &*t1.token {
         ":debug" => match &*t2.token {
-            "true" => set_dbconf(true)?,
-            "false" => set_dbconf(false)?,
+            "true" => conf.debug = true,
+            "false" => conf.debug = false,
             _ => {
                 return Err(MyError::UnexpectedInput(
                     "true/false".to_string(),
@@ -28,11 +28,11 @@ pub fn process_tsccommand(
         },
         ":logbase" => match t2.token_kind {
             lexer::TokenKind::TkNum => match Parser::f64_from_str(&t2.token) {
-                Ok(num) => set_lbconf(num)?,
+                Ok(num) => conf.log_base = num,
                 Err(e) => return Err(e),
             },
             lexer::TokenKind::TkVariable => match vars.get(&t2.token) {
-                Some(num) => set_lbconf(*num)?,
+                Some(num) => conf.log_base = *num,
                 None => return Err(MyError::UDvariableErr(t2.token.to_string())),
             },
             _ => {
@@ -44,11 +44,11 @@ pub fn process_tsccommand(
         },
         ":rlen" => match t2.token_kind {
             lexer::TokenKind::TkNum => match Parser::f64_from_str(&t2.token) {
-                Ok(num) => set_ndconf(num as u32)?,
+                Ok(num) => conf.num_of_digit = num as u32,
                 Err(e) => return Err(e),
             },
             lexer::TokenKind::TkVariable => match vars.get(&t2.token) {
-                Some(num) => set_ndconf(*num as u32)?,
+                Some(num) => conf.num_of_digit = *num as u32,
                 None => return Err(MyError::UDvariableErr(t2.token.to_string())),
             },
             _ => {
@@ -59,8 +59,8 @@ pub fn process_tsccommand(
             }
         },
         ":trarg" => match &*t2.token {
-            "rad" => set_tfconf(TrigFuncArg::Radian)?,
-            "deg" => set_tfconf(TrigFuncArg::Degree)?,
+            "rad" => conf.trig_func_arg = TrigFuncArg::Radian,
+            "deg" => conf.trig_func_arg = TrigFuncArg::Degree,
             _ => {
                 return Err(MyError::UnexpectedInput(
                     "rad/deg".to_string(),
@@ -69,10 +69,10 @@ pub fn process_tsccommand(
             }
         },
         ":astform" => match &*t2.token {
-            "tree" => set_afconf(AstFormat::Tree)?,
-            "sexpr" => set_afconf(AstFormat::Sexpr)?,
-            "both" => set_afconf(AstFormat::Both)?,
-            "none" => set_afconf(AstFormat::None)?,
+            "tree" => conf.ast_format = AstFormat::Tree,
+            "sexpr" => conf.ast_format = AstFormat::Sexpr,
+            "both" => conf.ast_format = AstFormat::Both,
+            "none" => conf.ast_format = AstFormat::None,
             _ => {
                 return Err(MyError::UnexpectedInput(
                     "tree|sexpr|both|none".to_string(),
@@ -81,7 +81,7 @@ pub fn process_tsccommand(
             }
         },
         ":write" => match &*t2.token {
-            "conf" => read_config()?.write_to_file()?,
+            "conf" => conf.write_to_file()?,
             _ => {
                 return Err(MyError::UnexpectedInput(
                     "conf".to_string(),
@@ -90,10 +90,7 @@ pub fn process_tsccommand(
             }
         },
         ":reload" => match &*t2.token {
-            "conf" => CONFIG
-                .write()
-                .expect("couldn't write CONFIG")
-                .load_from_file()?,
+            "conf" => conf.load_from_file()?,
             _ => {
                 return Err(MyError::UnexpectedInput(
                     "conf".to_string(),
@@ -104,8 +101,8 @@ pub fn process_tsccommand(
         ":help" => cmd_help(),
         ":show" => match &*t2.token {
             "var" => show_variables(vars)?,
-            "config" => show_conf()?,
-            "conf" => show_conf()?,
+            "config" => println!("{}", conf),
+            "conf" => println!("{}", conf),
             "const" => show_const()?,
             _ => {
                 return Err(MyError::UnexpectedInput(
@@ -141,12 +138,6 @@ fn show_const() -> Result<(), MyError> {
         }
         Err(e) => Err(MyError::ConstsReadErr(e.to_string())),
     }
-}
-
-fn show_conf() -> Result<(), MyError> {
-    let conf = read_config()?;
-    println!("{}", conf);
-    Ok(())
 }
 
 fn cmd_help() {

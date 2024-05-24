@@ -1,5 +1,4 @@
 use crate::error::*;
-use crate::CONFIG;
 use dirs;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -142,61 +141,16 @@ impl Config {
     }
 }
 
-pub fn read_config() -> Result<Config, MyError> {
-    let ref conf = match CONFIG.read() {
-        Ok(c) => c,
-        Err(e) => return Err(MyError::ConfigReadErr(e.to_string())),
-    };
-    Ok(Config {
-        debug: conf.debug,
-        ast_format: conf.ast_format,
-        trig_func_arg: conf.trig_func_arg,
-        log_base: conf.log_base,
-        num_of_digit: conf.num_of_digit,
-    })
+pub fn config_reader() -> Result<std::sync::RwLockReadGuard<'static, Config>, MyError> {
+    match crate::CONFIG.try_read() {
+        Ok(c) => Ok(c),
+        Err(e) => Err(MyError::ConfigReadErr(e.to_string())),
+    }
 }
 
-pub fn set_dbconf(db: bool) -> Result<(), MyError> {
-    let ref mut conf = match CONFIG.write() {
-        Ok(c) => c,
-        Err(e) => return Err(MyError::ConfigWriteErr(e.to_string())),
-    };
-    conf.debug = db;
-    Ok(())
-}
-
-pub fn set_afconf(af: AstFormat) -> Result<(), MyError> {
-    let ref mut conf = match CONFIG.write() {
-        Ok(c) => c,
-        Err(e) => return Err(MyError::ConfigWriteErr(e.to_string())),
-    };
-    conf.ast_format = af;
-    Ok(())
-}
-
-pub fn set_tfconf(tf: TrigFuncArg) -> Result<(), MyError> {
-    let ref mut conf = match CONFIG.write() {
-        Ok(c) => c,
-        Err(e) => return Err(MyError::ConfigWriteErr(e.to_string())),
-    };
-    conf.trig_func_arg = tf;
-    Ok(())
-}
-
-pub fn set_lbconf(lb: f64) -> Result<(), MyError> {
-    let ref mut conf = match CONFIG.write() {
-        Ok(c) => c,
-        Err(e) => return Err(MyError::ConfigWriteErr(e.to_string())),
-    };
-    conf.log_base = lb;
-    Ok(())
-}
-
-pub fn set_ndconf(nd: u32) -> Result<(), MyError> {
-    let ref mut conf = match CONFIG.write() {
-        Ok(c) => c,
-        Err(e) => return Err(MyError::ConfigWriteErr(e.to_string())),
-    };
-    conf.num_of_digit = nd;
-    Ok(())
+pub fn config_writer() -> Result<std::sync::RwLockWriteGuard<'static, Config>, MyError> {
+    match crate::CONFIG.try_write() {
+        Ok(c) => Ok(c),
+        Err(e) => Err(MyError::ConfigReadErr(e.to_string())),
+    }
 }

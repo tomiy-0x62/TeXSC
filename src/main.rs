@@ -74,7 +74,8 @@ fn main() {
 
     // formulas from command line arg
     if let Some(form) = matches.value_of("tex formulas") {
-        set_afconf(AstFormat::None).expect("couldn't change ast_format config");
+        let mut conf = config_writer().expect("couldn't change ast_format config");
+        conf.ast_format = AstFormat::None;
         let mut vars: HashMap<String, f64> = HashMap::new();
         for line in form.split('\n') {
             process_form(line.replace("\r", ""), &mut vars);
@@ -84,7 +85,8 @@ fn main() {
 
     // formulas from file
     if let Some(file_name) = matches.value_of("file") {
-        set_afconf(AstFormat::None).expect("couldn't change ast_format config");
+        let mut conf = config_writer().expect("couldn't change ast_format config");
+        conf.ast_format = AstFormat::None;
         let f: File = File::open(file_name).expect(file_name);
         let reader: BufReader<File> = BufReader::new(f);
         let mut vars: HashMap<String, f64> = HashMap::new();
@@ -144,8 +146,8 @@ fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Option<f64> {
             }
         },
     };
-    let conf = match read_config() {
-        Ok(c) => c,
+    let num_of_digit = match config_reader() {
+        Ok(c) => c.num_of_digit,
         Err(e) => {
             eprintlnc!(e);
             return None;
@@ -154,7 +156,7 @@ fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Option<f64> {
     match calc(ast_root, vars) {
         Ok(result) => {
             debugln!("resutl: {}", result);
-            println!("{}", num_formatter(result, conf.num_of_digit));
+            println!("{}", num_formatter(result, num_of_digit));
             Some(result)
         }
         Err(e) => {
@@ -204,10 +206,7 @@ fn calc(node: Box<parser::Node>, vars: &HashMap<String, f64>) -> Result<f64, MyE
         }
     }
 
-    let conf = match read_config() {
-        Ok(c) => c,
-        Err(e) => return Err(MyError::ConfigReadErr(e.to_string())),
-    };
+    let conf = config_reader()?;
 
     match (*node).node_kind {
         NodeKind::NdAdd => Ok(loperand + roperand),

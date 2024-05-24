@@ -270,18 +270,18 @@ impl Parser<'_> {
                 self.lex.format_err_loc(),
             ));
         }
-        self.show_ast(&ast);
-        self.show_ast_in_s_expr_rec(&ast);
+        self.show_ast(&ast)?;
+        self.show_ast_in_s_expr_rec(&ast)?;
         Ok(ast)
     }
 
-    fn show_ast(&self, ast: &Box<Node>) {
-        let conf = read_config().unwrap();
-        if cfg!(debug_assertions)
+    fn show_ast(&self, ast: &Box<Node>) -> Result<(), MyError> {
+        let conf = config_reader()?;
+        let is_show_ast = cfg!(debug_assertions)
             || conf.debug
             || conf.ast_format == AstFormat::Tree
-            || conf.ast_format == AstFormat::Both
-        {
+            || conf.ast_format == AstFormat::Both;
+        if is_show_ast {
             let mut msg = String::new();
             let mut node = ast;
             let mut level = 0;
@@ -354,19 +354,21 @@ impl Parser<'_> {
             }
             eprintln!("{}", msg);
         }
+        Ok(())
     }
 
-    fn show_ast_in_s_expr_rec(&self, node: &Box<Node>) {
-        let conf = read_config().unwrap();
-        if cfg!(debug_assertions)
+    fn show_ast_in_s_expr_rec(&self, node: &Box<Node>) -> Result<(), MyError> {
+        let conf = config_reader()?;
+        let is_show_ast = cfg!(debug_assertions)
             || conf.debug
-            || conf.ast_format == AstFormat::Sexpr
-            || conf.ast_format == AstFormat::Both
-        {
+            || conf.ast_format == AstFormat::Tree
+            || conf.ast_format == AstFormat::Both;
+        if is_show_ast {
             let mut s_expr = String::new();
             s_expr = self.show_ast_in_s_expr_rec_inner(node, s_expr, &mut HashSet::new(), false);
             eprintln!("{}\n", s_expr);
         }
+        Ok(())
     }
 
     fn show_ast_in_s_expr_rec_inner(
