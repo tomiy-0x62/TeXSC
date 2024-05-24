@@ -115,7 +115,7 @@ impl Config {
             #[cfg(target_family = "windows")]
             {
                 conf_path.push("AppData");
-                conf_path.push("Local");
+                conf_path.push("Roaming");
             }
             conf_path.push("tsc");
 
