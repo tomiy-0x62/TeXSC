@@ -5,6 +5,7 @@ use crate::config::*;
 use crate::error::*;
 use crate::parser::lexer::{self, Lexer};
 use crate::parser::*;
+use crate::CONFIG;
 use crate::CONSTS;
 
 pub fn process_tsccommand(
@@ -79,6 +80,27 @@ pub fn process_tsccommand(
                 ))
             }
         },
+        ":write" => match &*t2.token {
+            "conf" => read_config()?.write_to_file()?,
+            _ => {
+                return Err(MyError::UnexpectedInput(
+                    "conf".to_string(),
+                    t2.token.clone(),
+                ))
+            }
+        },
+        ":reload" => match &*t2.token {
+            "conf" => CONFIG
+                .write()
+                .expect("couldn't write CONFIG")
+                .load_from_file()?,
+            _ => {
+                return Err(MyError::UnexpectedInput(
+                    "conf".to_string(),
+                    t2.token.clone(),
+                ))
+            }
+        },
         ":help" => cmd_help(),
         ":show" => match &*t2.token {
             "var" => show_variables(vars)?,
@@ -144,6 +166,10 @@ fn cmd_help() {
     {: <12}
         set ast format
     {: <12}
+        write current config to config.toml
+    {: <12}
+        reload config
+    {: <12}
         show variable or config or embedded const number",
         ":TSC_COMMAND {option}".yellow(),
         "description".yellow(),
@@ -153,6 +179,8 @@ fn cmd_help() {
         ":rlen {num(u32)}".green(),
         ":trarg {rad|deg}".green(),
         ":astform {tree|sexpr|both|none}".green(),
+        ":write conf".green(),
+        ":reload conf".green(),
         ":show {var|const|config|conf}".green()
     );
 }

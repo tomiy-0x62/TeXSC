@@ -65,6 +65,11 @@ fn main() {
                 .required(false),
         );
 
+    match CONFIG.write().expect("").load_from_file() {
+        Ok(()) => eprintln!("config loaded from config.toml"),
+        Err(e) => eprintln!("config load failed: {}", e.to_string()),
+    }
+
     let matches = app.get_matches();
 
     // formulas from command line arg

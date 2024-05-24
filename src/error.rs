@@ -3,6 +3,10 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum MyError {
+    #[error("couldn't load config: {0}")]
+    ConfigLoadErr(String),
+    #[error("couldn't find config file: {0}")]
+    NoConfigErr(String),
     #[error("couldn't read config: {0}")]
     ConfigReadErr(String),
     #[error("couldn't write config: {0}")]
@@ -21,6 +25,8 @@ pub enum MyError {
     InvalidBinFormat(String),
     #[error("{0}")]
     ParseFloatError(#[from] ParseFloatError),
+    #[error("{0}")]
+    TomlDeserializeError(#[from] toml::de::Error),
     #[error("There is no token to process")]
     NoToken,
     #[error("invalid input {0}")]

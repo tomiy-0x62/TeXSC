@@ -1,9 +1,16 @@
 use crate::error::*;
 use crate::CONFIG;
+use dirs;
+use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::fs;
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
 use text_colorizer::*;
+use toml;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AstFormat {
     Tree,
     Sexpr,
@@ -22,7 +29,7 @@ impl fmt::Display for AstFormat {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub enum TrigFuncArg {
     Radian,
     Degree,
@@ -37,6 +44,7 @@ impl fmt::Display for TrigFuncArg {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Config {
     pub debug: bool,                // デバッグ出力の有無
     pub ast_format: AstFormat,      // ASTのフォーマット
@@ -67,6 +75,70 @@ impl fmt::Display for Config {
             "num_of_digit".cyan(),
             self.num_of_digit
         )
+    }
+}
+
+impl Config {
+    pub fn load_from_file(&mut self) -> Result<(), MyError> {
+        let mut conf_dir = Self::config_dir(false)?;
+        conf_dir.push("config.toml");
+        if conf_dir.exists() {
+            let conf_str = fs::read_to_string(conf_dir).unwrap();
+            let config: Result<Config, toml::de::Error> = toml::from_str(&conf_str);
+            match config {
+                Ok(c) => {
+                    *self = c;
+                    Ok(())
+                }
+                Err(e) => Err(MyError::TomlDeserializeError(e)),
+            }
+        } else {
+            return Err(MyError::NoConfigErr(format!("{:?}", conf_dir)));
+        }
+    }
+
+    pub fn write_to_file(&self) -> Result<(), MyError> {
+        let mut conf_dir = Self::config_dir(true)?;
+        conf_dir.push("config.toml");
+        let mut config_file = File::create(conf_dir).unwrap();
+        let config_toml = toml::to_string(self).expect("couldn't serialize config");
+        write!(config_file, "{}", config_toml).expect("couldn't write config to config.toml");
+        config_file.flush().expect("failed flush file I/O");
+        Ok(())
+    }
+
+    fn config_dir(is_create: bool) -> Result<PathBuf, MyError> {
+        if let Some(mut conf_path) = dirs::home_dir() {
+            #[cfg(target_family = "unix")]
+            {
+                conf_path.push(".config");
+            }
+            #[cfg(target_family = "windows")]
+            {
+                conf_path.push("AppData");
+                conf_path.push("Local");
+            }
+            conf_path.push("tsc");
+
+            if conf_path.exists() {
+                Ok(conf_path)
+            } else {
+                if is_create {
+                    match fs::create_dir(conf_path.clone()) {
+                        Ok(()) => Ok(conf_path),
+                        Err(e) => Err(MyError::ConfigWriteErr(format!(
+                            "couldn't create {:?}, {}",
+                            conf_path,
+                            e.to_string()
+                        ))),
+                    }
+                } else {
+                    Err(MyError::ConfigLoadErr(format!("not found {:?}", conf_path)))
+                }
+            }
+        } else {
+            Err(MyError::ConfigLoadErr("couldn't get home dir".to_string()))
+        }
     }
 }
 
