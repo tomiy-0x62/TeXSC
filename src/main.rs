@@ -66,7 +66,7 @@ fn main() {
         );
 
     match CONFIG.write().expect("").load_from_file() {
-        Ok(()) => eprintln!("config loaded from config.toml"),
+        Ok(conf_file) => eprintln!("config loaded from {:?}", conf_file),
         Err(e) => eprintln!("config load failed: {}", e.to_string()),
     }
 

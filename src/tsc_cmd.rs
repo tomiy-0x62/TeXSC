@@ -81,7 +81,9 @@ pub fn process_tsccommand(
             }
         },
         ":write" => match &*t2.token {
-            "conf" => conf.write_to_file()?,
+            "conf" => {
+                println!("config write to {:?}", conf.write_to_file()?);
+            }
             _ => {
                 return Err(MyError::UnexpectedInput(
                     "conf".to_string(),
@@ -90,7 +92,9 @@ pub fn process_tsccommand(
             }
         },
         ":reload" => match &*t2.token {
-            "conf" => conf.load_from_file()?,
+            "conf" => {
+                println!("config reloaded from {:?}", conf.load_from_file()?);
+            }
             _ => {
                 return Err(MyError::UnexpectedInput(
                     "conf".to_string(),

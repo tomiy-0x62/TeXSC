@@ -78,32 +78,32 @@ impl fmt::Display for Config {
 }
 
 impl Config {
-    pub fn load_from_file(&mut self) -> Result<(), MyError> {
-        let mut conf_dir = Self::config_dir(false)?;
-        conf_dir.push("config.toml");
-        if conf_dir.exists() {
-            let conf_str = fs::read_to_string(conf_dir).unwrap();
+    pub fn load_from_file(&mut self) -> Result<PathBuf, MyError> {
+        let mut conf_file = Self::config_dir(false)?;
+        conf_file.push("config.toml");
+        if conf_file.exists() {
+            let conf_str = fs::read_to_string(conf_file.clone()).unwrap();
             let config: Result<Config, toml::de::Error> = toml::from_str(&conf_str);
             match config {
                 Ok(c) => {
                     *self = c;
-                    Ok(())
+                    Ok(conf_file)
                 }
                 Err(e) => Err(MyError::TomlDeserializeError(e)),
             }
         } else {
-            return Err(MyError::NoConfigErr(format!("{:?}", conf_dir)));
+            return Err(MyError::NoConfigErr(format!("{:?}", conf_file)));
         }
     }
 
-    pub fn write_to_file(&self) -> Result<(), MyError> {
-        let mut conf_dir = Self::config_dir(true)?;
-        conf_dir.push("config.toml");
-        let mut config_file = File::create(conf_dir).unwrap();
+    pub fn write_to_file(&self) -> Result<PathBuf, MyError> {
+        let mut conf_file = Self::config_dir(true)?;
+        conf_file.push("config.toml");
+        let mut config_file = File::create(conf_file.clone()).unwrap();
         let config_toml = toml::to_string(self).expect("couldn't serialize config");
         write!(config_file, "{}", config_toml).expect("couldn't write config to config.toml");
         config_file.flush().expect("failed flush file I/O");
-        Ok(())
+        Ok(conf_file)
     }
 
     fn config_dir(is_create: bool) -> Result<PathBuf, MyError> {
