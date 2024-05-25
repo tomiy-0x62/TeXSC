@@ -47,7 +47,7 @@ impl fmt::Display for TrigFuncArg {
 pub struct Config {
     pub debug: bool,                // デバッグ出力の有無
     pub ast_format: AstFormat,      // ASTのフォーマット
-    pub trig_func_arg: TrigFuncArg, // 三角関数の引数
+    pub trig_func_arg: TrigFuncArg, // 三角関数の引数, 逆三角関数の結果
     pub log_base: f64,              // logの底
     pub num_of_digit: u32,          // 結果の小数点以下の桁数
 }

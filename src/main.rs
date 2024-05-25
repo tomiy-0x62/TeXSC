@@ -208,6 +208,10 @@ fn calc(node: Box<parser::Node>, vars: &HashMap<String, f64>) -> Result<f64, MyE
 
     let conf = config_reader()?;
 
+    fn radian2degree(rad: f64) -> f64 {
+        rad * 180.0 / std::f64::consts::PI
+    }
+
     match (*node).node_kind {
         NodeKind::NdAdd => Ok(loperand + roperand),
         NodeKind::NdSub => Ok(loperand - roperand),
@@ -242,9 +246,18 @@ fn calc(node: Box<parser::Node>, vars: &HashMap<String, f64>) -> Result<f64, MyE
             TrigFuncArg::Radian => Ok(1.0 / loperand.tan()),
             TrigFuncArg::Degree => Ok(1.0 / loperand.to_radians().tan()),
         },
-        NodeKind::NdAcSin => Ok(loperand.asin()),
-        NodeKind::NdAcCos => Ok(loperand.acos()),
-        NodeKind::NdAcTan => Ok(loperand.atan()),
+        NodeKind::NdAcSin => match conf.trig_func_arg {
+            TrigFuncArg::Radian => Ok(loperand.asin()),
+            TrigFuncArg::Degree => Ok(radian2degree(loperand.asin())),
+        },
+        NodeKind::NdAcCos => match conf.trig_func_arg {
+            TrigFuncArg::Radian => Ok(loperand.acos()),
+            TrigFuncArg::Degree => Ok(radian2degree(loperand.acos())),
+        },
+        NodeKind::NdAcTan => match conf.trig_func_arg {
+            TrigFuncArg::Radian => Ok(loperand.atan()),
+            TrigFuncArg::Degree => Ok(radian2degree(loperand.atan())),
+        },
         NodeKind::NdPow => Ok(loperand.powf(roperand)),
         NodeKind::NdNeg => Ok(-loperand),
         _ => Err(MyError::UDcommandErr((*node).node_kind.to_string())),
