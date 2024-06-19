@@ -361,7 +361,7 @@ impl Parser<'_> {
         let conf = config_reader()?;
         let is_show_ast = cfg!(debug_assertions)
             || conf.debug
-            || conf.ast_format == AstFormat::Tree
+            || conf.ast_format == AstFormat::Sexpr
             || conf.ast_format == AstFormat::Both;
         if is_show_ast {
             let mut s_expr = String::new();
