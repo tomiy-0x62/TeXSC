@@ -1,6 +1,6 @@
 [package]
 name = "tsc"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["tomiy <tomiy@tomiylab.com>"]
 edition = "2018"
 description = "TeXSC: TeX Scientific Calculator"
