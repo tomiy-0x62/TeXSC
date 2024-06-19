@@ -7,8 +7,8 @@
 git clone https://github.com/tomiy-0x62/TeXSC
 cd TeXSC
 cargo build --release
+cargo install --path . # or ./target/release/tscをpathの通ったディレクトリへcopy
 ```
-ビルドしたバイナリをpathの通ったディレクトリへ移動
 
 ### Requirements
 + Rust toolchain (install using rustup)
