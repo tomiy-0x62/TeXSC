@@ -28,7 +28,7 @@ impl fmt::Display for AstFormat {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum TrigFuncArg {
     Radian,
     Degree,
