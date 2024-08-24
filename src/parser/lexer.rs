@@ -126,7 +126,7 @@ impl Lexer {
             TokenKind::TkBrace => {
                 if self.tokens[self.token_idx].token == br {
                     self.token_idx += 1;
-                    return Ok(());
+                    Ok(())
                 } else {
                     Err(MyError::UnexpectedToken(
                         br,
@@ -164,10 +164,7 @@ impl Lexer {
     }
 
     pub fn is_eot(&self) -> bool {
-        match self.tokens[self.token_idx].token_kind {
-            TokenKind::TkEOT => true,
-            _ => false,
-        }
+        matches!(self.tokens[self.token_idx].token_kind, TokenKind::TkEOT)
     }
 
     pub fn now_token(&self) -> &str {
@@ -271,7 +268,7 @@ impl Lexer {
                 push_token!(token, TkBrace);
                 formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
-            } else if let Some(_) = num.captures(&c.to_string()) {
+            } else if num.captures(&c.to_string()).is_some() {
                 if let Some(caps) = num.captures(&formulas) {
                     let token = caps.get(0).unwrap().as_str().to_string();
                     push_token!(token, TkNum);
@@ -291,7 +288,7 @@ impl Lexer {
                 return Err(MyError::InvalidInput(c.to_string()));
             }
 
-            if formulas.len() == 0 {
+            if formulas.is_empty() {
                 token_loc.push(processed_form_idx);
                 tokens.push(Token {
                     token: "EOT".to_string(),
@@ -302,30 +299,30 @@ impl Lexer {
             }
         }
 
-        return Ok(());
+        Ok(())
     }
 
     fn is_valid_texcommand(tc: &String) -> bool {
-        match &**tc {
-            "\\times" => true,
-            "\\cdot" => true,
-            "\\div" => true,
-            "\\frac" => true,
-            "\\sqrt" => true,
-            "\\log" => true,
-            "\\ln" => true,
-            "\\abs" => true,
-            "\\exp" => true,
-            "\\sin" => true,
-            "\\cos" => true,
-            "\\tan" => true,
-            "\\csc" => true,
-            "\\cot" => true,
-            "\\arcsin" => true,
-            "\\arccos" => true,
-            "\\arctan" => true,
-            _ => false,
-        }
+        matches!(
+            &**tc,
+            "\\times"
+                | "\\cdot"
+                | "\\div"
+                | "\\frac"
+                | "\\sqrt"
+                | "\\log"
+                | "\\ln"
+                | "\\abs"
+                | "\\exp"
+                | "\\sin"
+                | "\\cos"
+                | "\\tan"
+                | "\\csc"
+                | "\\cot"
+                | "\\arcsin"
+                | "\\arccos"
+                | "\\arctan"
+        )
     }
 
     /// parser内でエラーが起こっており、lexer.token_idxにエラーの原因となる
@@ -371,7 +368,7 @@ impl Lexer {
         res
     }
 
-    fn print_token(tokens: &Vec<Token>) {
+    fn print_token(tokens: &[Token]) {
         for token in tokens.iter() {
             debug!("{}:'{}', ", token.token_kind, token.token);
         }

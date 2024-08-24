@@ -15,7 +15,7 @@ pub fn process_tsccommand(
     let t1 = &lex.tokens[cmd_idx];
     let t2 = &lex.tokens[cmd_idx + 1];
     let mut conf = config_writer()?;
-    Ok(match &*t1.token {
+    match &*t1.token {
         ":debug" => match &*t2.token {
             "true" => conf.debug = true,
             "false" => conf.debug = false,
@@ -116,7 +116,8 @@ pub fn process_tsccommand(
             }
         },
         _ => return Err(MyError::UDtsccommand(t1.token.clone())),
-    })
+    }
+    Ok(())
 }
 
 fn show_variables(vars: &HashMap<String, f64>) -> Result<(), MyError> {

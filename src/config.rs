@@ -1,5 +1,4 @@
 use crate::error::*;
-use dirs;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fs;
@@ -7,7 +6,6 @@ use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 use text_colorizer::*;
-use toml;
 
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AstFormat {
@@ -92,7 +90,7 @@ impl Config {
                 Err(e) => Err(MyError::TomlDeserializeError(e)),
             }
         } else {
-            return Err(MyError::NoConfigErr(format!("{:?}", conf_file)));
+            Err(MyError::NoConfigErr(format!("{:?}", conf_file)))
         }
     }
 
@@ -121,19 +119,16 @@ impl Config {
 
             if conf_path.exists() {
                 Ok(conf_path)
-            } else {
-                if is_create {
-                    match fs::create_dir(conf_path.clone()) {
-                        Ok(()) => Ok(conf_path),
-                        Err(e) => Err(MyError::ConfigWriteErr(format!(
-                            "couldn't create {:?}, {}",
-                            conf_path,
-                            e.to_string()
-                        ))),
-                    }
-                } else {
-                    Err(MyError::ConfigLoadErr(format!("not found {:?}", conf_path)))
+            } else if is_create {
+                match fs::create_dir(conf_path.clone()) {
+                    Ok(()) => Ok(conf_path),
+                    Err(e) => Err(MyError::ConfigWriteErr(format!(
+                        "couldn't create {:?}, {}",
+                        conf_path, e
+                    ))),
                 }
+            } else {
+                Err(MyError::ConfigLoadErr(format!("not found {:?}", conf_path)))
             }
         } else {
             Err(MyError::ConfigLoadErr("couldn't get home dir".to_string()))

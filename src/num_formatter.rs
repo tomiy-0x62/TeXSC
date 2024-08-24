@@ -6,19 +6,17 @@ pub fn num_formatter(num: f64, significant_figure: u32) -> String {
     if a < significant_figure {
         if a + b < significant_figure {
             num.to_string()
+        } else if num < 1.0 {
+            let sift_digit = get_num_of_zero(num) + 1;
+            let rsifted = num * 10_f64.powf(sift_digit as f64) as f64;
+            format!(
+                "{} * 10^-{}",
+                round_n(rsifted, (significant_figure - 1) as f64),
+                sift_digit
+            )
+            .to_string()
         } else {
-            if num < 1.0 {
-                let sift_digit = get_num_of_zero(num) + 1;
-                let rsifted = num * 10_f64.powf(sift_digit as f64) as f64;
-                format!(
-                    "{} * 10^-{}",
-                    round_n(rsifted, (significant_figure - 1) as f64),
-                    sift_digit
-                )
-                .to_string()
-            } else {
-                round_n(num, (significant_figure - a) as f64).to_string()
-            }
+            round_n(num, (significant_figure - a) as f64).to_string()
         }
     } else {
         let rounded = num.round() / 10.0_f64.powf((a - significant_figure) as f64);
@@ -65,5 +63,5 @@ fn get_num_of_zero(num: f64) -> u32 {
 
 fn round_n(num: f64, n: f64) -> f64 {
     // num: 123.4567, n: 2 -> 123.45
-    (num * 10.0_f64.powf(n) as f64).round() / 10.0_f64.powf(n)
+    (num * 10.0_f64.powf(n)).round() / 10.0_f64.powf(n)
 }

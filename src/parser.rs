@@ -15,116 +15,116 @@ use crate::debugln;
 #[derive(Clone, Copy)]
 pub enum NodeKind {
     // 1引数
-    NdSin,
-    NdCos,
-    NdTan,
-    NdCsc,
-    NdSec,
-    NdCot,
-    NdAcSin,
-    NdAcCos,
-    NdAcTan,
-    NdSqrt,
-    NdLog,
-    NdLn,
-    NdAbs,
-    NdExp,
+    Sin,
+    Cos,
+    Tan,
+    Csc,
+    Sec,
+    Cot,
+    AcSin,
+    AcCos,
+    AcTan,
+    Sqrt,
+    Log,
+    Ln,
+    Abs,
+    Exp,
     // 2引数
-    NdAdd,
-    NdSub,
-    NdMul,
-    NdDiv,
+    Add,
+    Sub,
+    Mul,
+    Div,
     // 前置1引数
-    NdNeg,
+    Neg,
     // 後置1引数
-    NdPow,
+    Pow,
     // 数字
-    NdNum,
+    Num,
     // 変数
-    NdVar,
+    Var,
 }
 
 impl fmt::Display for NodeKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            NodeKind::NdSin => write!(f, "NdSin"),
-            NodeKind::NdCos => write!(f, "NdCos"),
-            NodeKind::NdTan => write!(f, "NdTan"),
-            NodeKind::NdCsc => write!(f, "NdCsc"),
-            NodeKind::NdSec => write!(f, "NdSec"),
-            NodeKind::NdCot => write!(f, "NdCot"),
-            NodeKind::NdAcSin => write!(f, "NdAcSin"),
-            NodeKind::NdAcCos => write!(f, "NdAcCos"),
-            NodeKind::NdAcTan => write!(f, "NdAcTan"),
-            NodeKind::NdSqrt => write!(f, "NdSqrt"),
-            NodeKind::NdLog => write!(f, "NdLog"),
-            NodeKind::NdLn => write!(f, "NdLn"),
-            NodeKind::NdAbs => write!(f, "NdAbs"),
-            NodeKind::NdExp => write!(f, "NdExp"),
-            NodeKind::NdAdd => write!(f, "NdAdd"),
-            NodeKind::NdSub => write!(f, "NdSub"),
-            NodeKind::NdMul => write!(f, "NdMul"),
-            NodeKind::NdDiv => write!(f, "NdDiv"),
-            NodeKind::NdNeg => write!(f, "NdNeg"),
-            NodeKind::NdPow => write!(f, "NdPow"),
-            NodeKind::NdNum => write!(f, "NdNum"),
-            NodeKind::NdVar => write!(f, "NdVar"),
+            NodeKind::Sin => write!(f, "Sin"),
+            NodeKind::Cos => write!(f, "Cos"),
+            NodeKind::Tan => write!(f, "Tan"),
+            NodeKind::Csc => write!(f, "Csc"),
+            NodeKind::Sec => write!(f, "Sec"),
+            NodeKind::Cot => write!(f, "Cot"),
+            NodeKind::AcSin => write!(f, "AcSin"),
+            NodeKind::AcCos => write!(f, "AcCos"),
+            NodeKind::AcTan => write!(f, "AcTan"),
+            NodeKind::Sqrt => write!(f, "Sqrt"),
+            NodeKind::Log => write!(f, "Log"),
+            NodeKind::Ln => write!(f, "Ln"),
+            NodeKind::Abs => write!(f, "Abs"),
+            NodeKind::Exp => write!(f, "Exp"),
+            NodeKind::Add => write!(f, "Add"),
+            NodeKind::Sub => write!(f, "Sub"),
+            NodeKind::Mul => write!(f, "Mul"),
+            NodeKind::Div => write!(f, "Div"),
+            NodeKind::Neg => write!(f, "Neg"),
+            NodeKind::Pow => write!(f, "Pow"),
+            NodeKind::Num => write!(f, "Num"),
+            NodeKind::Var => write!(f, "Var"),
         }
     }
 }
 
 impl NodeKind {
-    fn to_op_str(&self) -> &str {
+    fn to_op_str(self) -> String {
         match self {
-            NodeKind::NdSin => "Sin",
-            NodeKind::NdCos => "Cos",
-            NodeKind::NdTan => "Tan",
-            NodeKind::NdCsc => "Csc",
-            NodeKind::NdSec => "Sec",
-            NodeKind::NdCot => "Cot",
-            NodeKind::NdAcSin => "AcSin",
-            NodeKind::NdAcCos => "AcCos",
-            NodeKind::NdAcTan => "AcTan",
-            NodeKind::NdSqrt => "Sqrt",
-            NodeKind::NdLog => "Log",
-            NodeKind::NdLn => "Ln",
-            NodeKind::NdAbs => "Abs",
-            NodeKind::NdExp => "exp",
-            NodeKind::NdAdd => "+",
-            NodeKind::NdSub => "-",
-            NodeKind::NdMul => "*",
-            NodeKind::NdDiv => "/",
-            NodeKind::NdNeg => "-",
-            NodeKind::NdPow => "Pow",
-            NodeKind::NdNum => "Num",
-            NodeKind::NdVar => "Var",
+            NodeKind::Sin => "Sin".to_string(),
+            NodeKind::Cos => "Cos".to_string(),
+            NodeKind::Tan => "Tan".to_string(),
+            NodeKind::Csc => "Csc".to_string(),
+            NodeKind::Sec => "Sec".to_string(),
+            NodeKind::Cot => "Cot".to_string(),
+            NodeKind::AcSin => "AcSin".to_string(),
+            NodeKind::AcCos => "AcCos".to_string(),
+            NodeKind::AcTan => "AcTan".to_string(),
+            NodeKind::Sqrt => "Sqrt".to_string(),
+            NodeKind::Log => "Log".to_string(),
+            NodeKind::Ln => "Ln".to_string(),
+            NodeKind::Abs => "Abs".to_string(),
+            NodeKind::Exp => "exp".to_string(),
+            NodeKind::Add => "+".to_string(),
+            NodeKind::Sub => "-".to_string(),
+            NodeKind::Mul => "*".to_string(),
+            NodeKind::Div => "/".to_string(),
+            NodeKind::Neg => "-".to_string(),
+            NodeKind::Pow => "Pow".to_string(),
+            NodeKind::Num => "Num".to_string(),
+            NodeKind::Var => "Var".to_string(),
         }
     }
 
-    fn to_lisp_op_str(&self) -> &str {
+    fn to_lisp_op_str(self) -> String {
         match self {
-            NodeKind::NdSin => "sin",
-            NodeKind::NdCos => "cos",
-            NodeKind::NdTan => "tan",
-            NodeKind::NdCsc => "Csc",
-            NodeKind::NdSec => "Sec",
-            NodeKind::NdCot => "Cot",
-            NodeKind::NdAcSin => "asin",
-            NodeKind::NdAcCos => "acos",
-            NodeKind::NdAcTan => "atan",
-            NodeKind::NdSqrt => "sqrt",
-            NodeKind::NdLog => "log",
-            NodeKind::NdLn => "Ln",
-            NodeKind::NdAbs => "abs",
-            NodeKind::NdExp => "exp",
-            NodeKind::NdAdd => "+",
-            NodeKind::NdSub => "-",
-            NodeKind::NdMul => "*",
-            NodeKind::NdDiv => "/",
-            NodeKind::NdNeg => "-",
-            NodeKind::NdPow => "expt",
-            NodeKind::NdNum => "Num",
-            NodeKind::NdVar => "Var",
+            NodeKind::Sin => "sin".to_string(),
+            NodeKind::Cos => "cos".to_string(),
+            NodeKind::Tan => "tan".to_string(),
+            NodeKind::Csc => "Csc".to_string(),
+            NodeKind::Sec => "Sec".to_string(),
+            NodeKind::Cot => "Cot".to_string(),
+            NodeKind::AcSin => "asin".to_string(),
+            NodeKind::AcCos => "acos".to_string(),
+            NodeKind::AcTan => "atan".to_string(),
+            NodeKind::Sqrt => "sqrt".to_string(),
+            NodeKind::Log => "log".to_string(),
+            NodeKind::Ln => "Ln".to_string(),
+            NodeKind::Abs => "abs".to_string(),
+            NodeKind::Exp => "exp".to_string(),
+            NodeKind::Add => "+".to_string(),
+            NodeKind::Sub => "-".to_string(),
+            NodeKind::Mul => "*".to_string(),
+            NodeKind::Div => "/".to_string(),
+            NodeKind::Neg => "-".to_string(),
+            NodeKind::Pow => "expt".to_string(),
+            NodeKind::Num => "Num".to_string(),
+            NodeKind::Var => "Var".to_string(),
         }
     }
 }
@@ -159,7 +159,7 @@ pub struct Parser<'a> {
 
 impl Parser<'_> {
     pub fn print_vars(&self) {
-        for i in self.vars.into_iter() {
+        for i in self.vars.iter() {
             debugln!("{:?}", i);
         }
     }
@@ -179,7 +179,7 @@ impl Parser<'_> {
                         ))
                     }
                 }
-                if !(lex.tokens[i + 2].token == "=") {
+                if lex.tokens[i + 2].token != "=" {
                     return Err(MyError::UnexpectedToken(
                         "=".to_string(),
                         lex.tokens[i + 2].token.clone(),
@@ -229,17 +229,12 @@ impl Parser<'_> {
                     }
                 }
                 to_delete_el.push(i + 3);
-            } else {
-                match lex.tokens[i].token_kind {
-                    lexer::TokenKind::TkTscCommand => {
-                        to_delete_el.push(i);
-                        tsc_cmd::process_tsccommand(&lex, i, vars)?;
-                        match &*lex.tokens[i].token {
-                            ":help" => (),
-                            _ => to_delete_el.push(i + 1),
-                        }
-                    }
-                    _ => (),
+            } else if let lexer::TokenKind::TkTscCommand = lex.tokens[i].token_kind {
+                to_delete_el.push(i);
+                tsc_cmd::process_tsccommand(&lex, i, vars)?;
+                match &*lex.tokens[i].token {
+                    ":help" => (),
+                    _ => to_delete_el.push(i + 1),
                 }
             }
         }
@@ -275,7 +270,7 @@ impl Parser<'_> {
         Ok(ast)
     }
 
-    fn show_ast(&self, ast: &Box<Node>) -> Result<(), MyError> {
+    fn show_ast(&self, ast: &Node) -> Result<(), MyError> {
         let conf = config_reader()?;
         let is_show_ast = cfg!(debug_assertions)
             || conf.debug
@@ -302,39 +297,31 @@ impl Parser<'_> {
                                 msg += "└";
                                 no_show_bar.push(level - 1);
                             }
-                        } else {
-                            if !no_show_bar.iter().any(|e| e == &(i / TREE_WIDTH)) {
-                                msg += "│";
-                            } else {
-                                msg += " ";
-                            }
-                        }
-                    } else {
-                        if i > TREE_WIDTH * (level - 1) {
-                            msg += "─";
+                        } else if !no_show_bar.iter().any(|e| e == &(i / TREE_WIDTH)) {
+                            msg += "│";
                         } else {
                             msg += " ";
                         }
+                    } else if i > TREE_WIDTH * (level - 1) {
+                        msg += "─";
+                    } else {
+                        msg += " ";
                     }
                 }
                 // nodeを追加
                 match node.node_kind {
-                    NodeKind::NdNum | NodeKind::NdVar => match node.val.clone().unwrap() {
+                    NodeKind::Num | NodeKind::Var => match node.val.clone().unwrap() {
                         NumOrVar::Num(n) => msg += &(n.to_string()),
                         NumOrVar::Var(v) => match self.vars.get(&v) {
                             Some(n) => msg += &format!("{} = {}", v, n),
                             None => msg += &v,
                         },
                     },
-                    _ => msg += node.node_kind.to_op_str(),
+                    _ => msg += &node.node_kind.to_op_str(),
                 }
                 msg += "\n";
                 // treeのトラバース、levelの変更
-                if node.left_node.is_some() && node.right_node.is_some() {
-                    is_next_have_chiled = true;
-                } else {
-                    is_next_have_chiled = false;
-                }
+                is_next_have_chiled = node.left_node.is_some() && node.right_node.is_some();
                 if node.right_node.is_some() {
                     tr_node_stack.push(node.right_node.as_ref().unwrap());
                     tr_level_stack.push(level + 1);
@@ -357,7 +344,7 @@ impl Parser<'_> {
         Ok(())
     }
 
-    fn show_ast_in_s_expr_rec(&self, node: &Box<Node>) -> Result<(), MyError> {
+    fn show_ast_in_s_expr_rec(&self, node: &Node) -> Result<(), MyError> {
         let conf = config_reader()?;
         let is_show_ast = cfg!(debug_assertions)
             || conf.debug
@@ -374,14 +361,14 @@ impl Parser<'_> {
 
     fn show_ast_in_s_expr_rec_inner(
         &self,
-        node: &Box<Node>,
+        node: &Node,
         mut s_expr: String,
         is_var_printed: &mut HashSet<String>,
         is_2arg_left: bool,
         mut is_deg2rad_printed: bool,
     ) -> String {
         match node.node_kind {
-            NodeKind::NdNum | NodeKind::NdVar => {
+            NodeKind::Num | NodeKind::Var => {
                 match node.val.clone().unwrap() {
                     NumOrVar::Num(n) => s_expr += &n.to_string(),
                     NumOrVar::Var(v) => {
@@ -410,7 +397,7 @@ impl Parser<'_> {
                     == TrigFuncArg::Degree
                 {
                     match node.node_kind {
-                        NodeKind::NdSin | NodeKind::NdCos | NodeKind::NdTan => {
+                        NodeKind::Sin | NodeKind::Cos | NodeKind::Tan => {
                             if !is_deg2rad_printed {
                                 s_expr = format!(
                                     "(defun degree2radian (deg) (/ (* deg pi) 180))\n{}",
@@ -590,7 +577,7 @@ impl Parser<'_> {
                 msg += ml_space;
                 for i in 0..lyer.len() {
                     match lyer[i].node_kind {
-                        Some(NodeKind::NdNum) => {
+                        Some(NodeKind::Num) => {
                             msg += &format!(
                                 "  {:^10}  {}",
                                 match lyer[i].val {
@@ -657,7 +644,7 @@ impl Parser<'_> {
                         _ => return Err(MyError::InvalidHexFormat(num_str.to_string())),
                     };
                     num += n * 16.0_f64.powf(num_str.len() as f64 - figure);
-                    figure = figure + 1.0;
+                    figure += 1.0;
                 }
             }
         }
@@ -674,7 +661,7 @@ impl Parser<'_> {
                         return Err(MyError::InvalidBinFormat(num_str.to_string()));
                     }
                     num += n * 2.0_f64.powf(num_str.len() as f64 - figure);
-                    figure = figure + 1.0;
+                    figure += 1.0;
                 }
                 Err(e) => return Err(MyError::ParseFloatError(e)),
             }
@@ -685,10 +672,8 @@ impl Parser<'_> {
     pub fn f64_from_str(num_str: &str) -> Result<f64, MyError> {
         if num_str.len() < 2 {
             match f64::from_str(num_str) {
-                Ok(num) => {
-                    return Ok(num);
-                }
-                Err(e) => return Err(MyError::ParseFloatError(e)),
+                Ok(num) => Ok(num),
+                Err(e) => Err(MyError::ParseFloatError(e)),
             }
         } else {
             match &num_str[0..2] {
@@ -696,7 +681,7 @@ impl Parser<'_> {
                 "0b" => Parser::bin2dec(&num_str[2..]),
                 _ => match f64::from_str(num_str) {
                     Ok(num) => Ok(num),
-                    Err(e) => return Err(MyError::ParseFloatError(e)),
+                    Err(e) => Err(MyError::ParseFloatError(e)),
                 },
             }
         }
@@ -722,7 +707,7 @@ impl Parser<'_> {
 
     fn new_node_num(val: f64) -> Box<Node> {
         Box::new(Node {
-            node_kind: NodeKind::NdNum,
+            node_kind: NodeKind::Num,
             right_node: None,
             left_node: None,
             val: Some(NumOrVar::Num(val)),
@@ -731,7 +716,7 @@ impl Parser<'_> {
 
     fn new_node_var(var: String) -> Box<Node> {
         Box::new(Node {
-            node_kind: NodeKind::NdVar,
+            node_kind: NodeKind::Var,
             right_node: None,
             left_node: None,
             val: Some(NumOrVar::Var(var)),
@@ -761,9 +746,9 @@ impl Parser<'_> {
         let mut node: Box<Node> = self.mul()?;
         loop {
             if self.lex.consume("+".to_string()) {
-                node = Parser::new_node(NodeKind::NdAdd, node, self.mul()?);
+                node = Parser::new_node(NodeKind::Add, node, self.mul()?);
             } else if self.lex.consume("-".to_string()) {
-                node = Parser::new_node(NodeKind::NdSub, node, self.mul()?);
+                node = Parser::new_node(NodeKind::Sub, node, self.mul()?);
             } else {
                 Parser::show_node("expr".to_string(), &node);
                 return Ok(node);
@@ -775,16 +760,13 @@ impl Parser<'_> {
         let mut node: Box<Node> = self.noobmul()?;
         Parser::show_node("noobmul".to_string(), &node);
         loop {
-            if self.lex.consume("*".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.noobmul()?);
-            } else if self.lex.consume("\\times".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.noobmul()?);
-            } else if self.lex.consume("\\cdot".to_string()) {
-                node = Parser::new_node(NodeKind::NdMul, node, self.noobmul()?);
-            } else if self.lex.consume("\\div".to_string()) {
-                node = Parser::new_node(NodeKind::NdDiv, node, self.noobmul()?);
-            } else if self.lex.consume("/".to_string()) {
-                node = Parser::new_node(NodeKind::NdDiv, node, self.noobmul()?);
+            if self.lex.consume("*".to_string())
+                || self.lex.consume("\\times".to_string())
+                || self.lex.consume("\\cdot".to_string())
+            {
+                node = Parser::new_node(NodeKind::Mul, node, self.noobmul()?);
+            } else if self.lex.consume("\\div".to_string()) || self.lex.consume("/".to_string()) {
+                node = Parser::new_node(NodeKind::Div, node, self.noobmul()?);
             } else {
                 Parser::show_node("mul".to_string(), &node);
                 return Ok(node);
@@ -801,14 +783,14 @@ impl Parser<'_> {
                 Ok(n) => {
                     self.lex.discard_ctx()?;
                     match n.node_kind {
-                        NodeKind::NdNum => {
+                        NodeKind::Num => {
                             return Err(MyError::InvalidInput(
                                 "don't allowed nulmber literal on right operand of noobvious mul"
                                     .to_string(),
                             ));
                         }
                         _ => {
-                            node = Parser::new_node(NodeKind::NdMul, node, n);
+                            node = Parser::new_node(NodeKind::Mul, node, n);
                         }
                     }
                 }
@@ -829,7 +811,7 @@ impl Parser<'_> {
     fn signed(&mut self) -> Result<Box<Node>, MyError> {
         if self.lex.consume("-".to_string()) {
             let mut node = self.expo()?;
-            node = Parser::new_unary_node(NodeKind::NdNeg, node);
+            node = Parser::new_unary_node(NodeKind::Neg, node);
             Ok(node)
         } else {
             Ok(self.expo()?)
@@ -844,7 +826,7 @@ impl Parser<'_> {
                 self.lex.expect_br("{".to_string())?;
                 let cnode: Box<Node> = self.expr()?;
                 self.lex.expect_br("}".to_string())?;
-                node = Parser::new_node(NodeKind::NdPow, node, cnode);
+                node = Parser::new_node(NodeKind::Pow, node, cnode);
             } else {
                 Parser::show_node("mul".to_string(), &node);
                 return Ok(node);
@@ -865,51 +847,51 @@ impl Parser<'_> {
             self.lex.expect_br("{".to_string())?;
             let rnode: Box<Node> = self.expr()?;
             self.lex.expect_br("}".to_string())?;
-            let node = Parser::new_node(NodeKind::NdDiv, lnode, rnode);
+            let node = Parser::new_node(NodeKind::Div, lnode, rnode);
             return Ok(node);
         }
 
         if self.lex.consume("\\sqrt".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdSqrt, self.carg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::Sqrt, self.carg_node()?));
         }
         if self.lex.consume("\\abs".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdAbs, self.parg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::Abs, self.parg_node()?));
         }
         if self.lex.consume("\\exp".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdExp, self.parg_node()?));
+            return Ok(Parser::new_unary_node(NodeKind::Exp, self.parg_node()?));
         }
         if self.lex.consume("\\log".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdLog, self.signed()?));
+            return Ok(Parser::new_unary_node(NodeKind::Log, self.signed()?));
         }
         if self.lex.consume("\\ln".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdLn, self.signed()?));
+            return Ok(Parser::new_unary_node(NodeKind::Ln, self.signed()?));
         }
         if self.lex.consume("\\sin".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdSin, self.signed()?));
+            return Ok(Parser::new_unary_node(NodeKind::Sin, self.signed()?));
         }
         if self.lex.consume("\\cos".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdCos, self.signed()?));
+            return Ok(Parser::new_unary_node(NodeKind::Cos, self.signed()?));
         }
         if self.lex.consume("\\tan".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdTan, self.signed()?));
+            return Ok(Parser::new_unary_node(NodeKind::Tan, self.signed()?));
         }
         if self.lex.consume("\\csc".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdCsc, self.signed()?));
+            return Ok(Parser::new_unary_node(NodeKind::Csc, self.signed()?));
         }
         if self.lex.consume("\\sec".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdSec, self.signed()?));
+            return Ok(Parser::new_unary_node(NodeKind::Sec, self.signed()?));
         }
         if self.lex.consume("\\cot".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdCot, self.signed()?));
+            return Ok(Parser::new_unary_node(NodeKind::Cot, self.signed()?));
         }
         if self.lex.consume("\\arcsin".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdAcSin, self.signed()?));
+            return Ok(Parser::new_unary_node(NodeKind::AcSin, self.signed()?));
         }
         if self.lex.consume("\\arccos".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdAcCos, self.signed()?));
+            return Ok(Parser::new_unary_node(NodeKind::AcCos, self.signed()?));
         }
         if self.lex.consume("\\arctan".to_string()) {
-            return Ok(Parser::new_unary_node(NodeKind::NdAcTan, self.signed()?));
+            return Ok(Parser::new_unary_node(NodeKind::AcTan, self.signed()?));
         }
 
         let num_node = self.num()?;
@@ -922,7 +904,7 @@ impl Parser<'_> {
                 NumstrOrVar::Num(num) => Ok(Parser::new_node_num(Parser::f64_from_str(&num)?)),
                 NumstrOrVar::Var(var) => Ok(Parser::new_node_var(var)),
             },
-            Err(e) => return Err(e),
+            Err(e) => Err(e),
         }
     }
 

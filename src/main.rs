@@ -67,7 +67,7 @@ fn main() {
 
     match CONFIG.write().expect("").load_from_file() {
         Ok(conf_file) => eprintln!("config loaded from {:?}", conf_file),
-        Err(e) => eprintln!("config load failed: {}", e.to_string()),
+        Err(e) => eprintln!("config load failed: {}", e),
     }
 
     let matches = app.get_matches();
@@ -153,7 +153,7 @@ fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Option<f64> {
             return None;
         }
     };
-    match calc(ast_root, vars) {
+    match calc(*ast_root, vars) {
         Ok(result) => {
             debugln!("resutl: {}", result);
             println!("{}", num_formatter(result, num_of_digit));
@@ -166,10 +166,10 @@ fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Option<f64> {
     }
 }
 
-fn calc(node: Box<parser::Node>, vars: &HashMap<String, f64>) -> Result<f64, MyError> {
-    match (*node).node_kind {
-        NodeKind::NdNum | NodeKind::NdVar => {
-            return Ok(match (*node).val.unwrap() {
+fn calc(node: parser::Node, vars: &HashMap<String, f64>) -> Result<f64, MyError> {
+    match node.node_kind {
+        NodeKind::Num | NodeKind::Var => {
+            return Ok(match node.val.unwrap() {
                 NumOrVar::Num(n) => n,
                 NumOrVar::Var(v) => match vars.get(&v) {
                     Some(n) => *n,
@@ -183,25 +183,25 @@ fn calc(node: Box<parser::Node>, vars: &HashMap<String, f64>) -> Result<f64, MyE
     let loperand: f64;
     let mut roperand: f64 = 1.0;
 
-    if let Some(left) = (*node).left_node {
-        loperand = getoperand(left, vars)?;
+    if let Some(left) = node.left_node {
+        loperand = getoperand(*left, vars)?;
     } else {
-        // NdNum, NdVar以外でleftがNoneはエラー
+        // Num, Var以外でleftがNoneはエラー
         // ここに到達した => 不正なAST
         return Err(MyError::BrokenAstErr);
     }
 
-    if let Some(right) = (*node).right_node {
-        roperand = getoperand(right, vars)?;
+    if let Some(right) = node.right_node {
+        roperand = getoperand(*right, vars)?;
     } else {
-        // NdNum, NdVar以外でrightがNoneはありえる
+        // Num, Var以外でrightがNoneはありえる
         // 前置, 1引数のノードの場合 => 正常
         // それ以外 => 不正なAST
-        match (*node).node_kind {
-            NodeKind::NdAdd => return Err(MyError::BrokenAstErr),
-            NodeKind::NdSub => return Err(MyError::BrokenAstErr),
-            NodeKind::NdDiv => return Err(MyError::BrokenAstErr),
-            NodeKind::NdMul => return Err(MyError::BrokenAstErr),
+        match node.node_kind {
+            NodeKind::Add => return Err(MyError::BrokenAstErr),
+            NodeKind::Sub => return Err(MyError::BrokenAstErr),
+            NodeKind::Div => return Err(MyError::BrokenAstErr),
+            NodeKind::Mul => return Err(MyError::BrokenAstErr),
             _ => (),
         }
     }
@@ -212,62 +212,62 @@ fn calc(node: Box<parser::Node>, vars: &HashMap<String, f64>) -> Result<f64, MyE
         rad * 180.0 / std::f64::consts::PI
     }
 
-    match (*node).node_kind {
-        NodeKind::NdAdd => Ok(loperand + roperand),
-        NodeKind::NdSub => Ok(loperand - roperand),
-        NodeKind::NdMul => Ok(loperand * roperand),
-        NodeKind::NdDiv => Ok(loperand / roperand),
-        NodeKind::NdSqrt => Ok(loperand.sqrt()),
-        NodeKind::NdLog => Ok(loperand.log(conf.log_base)),
-        NodeKind::NdLn => Ok(loperand.log(std::f64::consts::E)),
-        NodeKind::NdAbs => Ok(loperand.abs()),
-        NodeKind::NdExp => Ok(std::f64::consts::E.powf(loperand)),
-        NodeKind::NdSin => match conf.trig_func_arg {
+    match node.node_kind {
+        NodeKind::Add => Ok(loperand + roperand),
+        NodeKind::Sub => Ok(loperand - roperand),
+        NodeKind::Mul => Ok(loperand * roperand),
+        NodeKind::Div => Ok(loperand / roperand),
+        NodeKind::Sqrt => Ok(loperand.sqrt()),
+        NodeKind::Log => Ok(loperand.log(conf.log_base)),
+        NodeKind::Ln => Ok(loperand.log(std::f64::consts::E)),
+        NodeKind::Abs => Ok(loperand.abs()),
+        NodeKind::Exp => Ok(std::f64::consts::E.powf(loperand)),
+        NodeKind::Sin => match conf.trig_func_arg {
             TrigFuncArg::Radian => Ok(loperand.sin()),
             TrigFuncArg::Degree => Ok(loperand.to_radians().sin()),
         },
-        NodeKind::NdCos => match conf.trig_func_arg {
+        NodeKind::Cos => match conf.trig_func_arg {
             TrigFuncArg::Radian => Ok(loperand.cos()),
             TrigFuncArg::Degree => Ok(loperand.to_radians().cos()),
         },
-        NodeKind::NdTan => match conf.trig_func_arg {
+        NodeKind::Tan => match conf.trig_func_arg {
             TrigFuncArg::Radian => Ok(loperand.tan()),
             TrigFuncArg::Degree => Ok(loperand.to_radians().tan()),
         },
-        NodeKind::NdCsc => match conf.trig_func_arg {
+        NodeKind::Csc => match conf.trig_func_arg {
             TrigFuncArg::Radian => Ok(1.0 / loperand.sin()),
             TrigFuncArg::Degree => Ok(1.0 / loperand.to_radians().sin()),
         },
-        NodeKind::NdSec => match conf.trig_func_arg {
+        NodeKind::Sec => match conf.trig_func_arg {
             TrigFuncArg::Radian => Ok(1.0 / loperand.cos()),
             TrigFuncArg::Degree => Ok(1.0 / loperand.to_radians().cos()),
         },
-        NodeKind::NdCot => match conf.trig_func_arg {
+        NodeKind::Cot => match conf.trig_func_arg {
             TrigFuncArg::Radian => Ok(1.0 / loperand.tan()),
             TrigFuncArg::Degree => Ok(1.0 / loperand.to_radians().tan()),
         },
-        NodeKind::NdAcSin => match conf.trig_func_arg {
+        NodeKind::AcSin => match conf.trig_func_arg {
             TrigFuncArg::Radian => Ok(loperand.asin()),
             TrigFuncArg::Degree => Ok(radian2degree(loperand.asin())),
         },
-        NodeKind::NdAcCos => match conf.trig_func_arg {
+        NodeKind::AcCos => match conf.trig_func_arg {
             TrigFuncArg::Radian => Ok(loperand.acos()),
             TrigFuncArg::Degree => Ok(radian2degree(loperand.acos())),
         },
-        NodeKind::NdAcTan => match conf.trig_func_arg {
+        NodeKind::AcTan => match conf.trig_func_arg {
             TrigFuncArg::Radian => Ok(loperand.atan()),
             TrigFuncArg::Degree => Ok(radian2degree(loperand.atan())),
         },
-        NodeKind::NdPow => Ok(loperand.powf(roperand)),
-        NodeKind::NdNeg => Ok(-loperand),
-        _ => Err(MyError::UDcommandErr((*node).node_kind.to_string())),
+        NodeKind::Pow => Ok(loperand.powf(roperand)),
+        NodeKind::Neg => Ok(-loperand),
+        _ => Err(MyError::UDcommandErr(node.node_kind.to_string())),
     }
 }
 
-fn getoperand(node: Box<parser::Node>, vars: &HashMap<String, f64>) -> Result<f64, MyError> {
-    match &(*node).node_kind {
-        NodeKind::NdNum | NodeKind::NdVar => {
-            return Ok(match (*node).val.unwrap() {
+fn getoperand(node: parser::Node, vars: &HashMap<String, f64>) -> Result<f64, MyError> {
+    match &node.node_kind {
+        NodeKind::Num | NodeKind::Var => {
+            return Ok(match node.val.unwrap() {
                 NumOrVar::Num(n) => n,
                 NumOrVar::Var(v) => match vars.get(&v) {
                     Some(n) => *n,
