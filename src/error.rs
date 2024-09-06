@@ -1,4 +1,4 @@
-use std::num::ParseFloatError;
+use std::num::{ParseFloatError, ParseIntError};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -23,8 +23,10 @@ pub enum MyError {
     InvalidHexFormat(String),
     #[error("Invalid binary format '{0}'")]
     InvalidBinFormat(String),
-    #[error("{0}")]
+    #[error("couldn't parse Fload. {0}")]
     ParseFloatError(#[from] ParseFloatError),
+    #[error("couldn't parse Int. {0}")]
+    ParseIntError(#[from] ParseIntError),
     #[error("{0}")]
     TomlDeserializeError(#[from] toml::de::Error),
     #[error("There is no token to process")]

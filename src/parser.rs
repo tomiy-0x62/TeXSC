@@ -231,10 +231,9 @@ impl Parser<'_> {
                 to_delete_el.push(i + 3);
             } else if let lexer::TokenKind::TkTscCommand = lex.tokens[i].token_kind {
                 to_delete_el.push(i);
-                tsc_cmd::process_tsccommand(&lex, i, vars)?;
-                match &*lex.tokens[i].token {
-                    ":help" => (),
-                    _ => to_delete_el.push(i + 1),
+                let consumed = tsc_cmd::process_tsccommand(&lex, i, vars)?;
+                for n in 1..consumed {
+                    to_delete_el.push(i + n)
                 }
             }
         }
@@ -624,7 +623,7 @@ impl Parser<'_> {
     }
     */
 
-    fn hex2dec(num_str: &str) -> Result<f64, MyError> {
+    fn hex2dec_f64(num_str: &str) -> Result<f64, MyError> {
         let mut num: f64 = 0.0;
         let mut figure: f64 = 1.0;
         for i in num_str.chars() {
@@ -651,7 +650,34 @@ impl Parser<'_> {
         Ok(num)
     }
 
-    fn bin2dec(num_str: &str) -> Result<f64, MyError> {
+    fn hex2dec_u64(num_str: &str) -> Result<u64, MyError> {
+        let mut num: u64 = 0;
+        let mut figure: u32 = 1;
+        for i in num_str.chars() {
+            match u64::from_str(&i.to_string()) {
+                Ok(n) => {
+                    num += n * 16_u64.pow(num_str.len() as u32 - figure);
+                    figure += 1;
+                }
+                Err(_) => {
+                    let n: u64 = match &i.to_string()[0..1] {
+                        "a" | "A" => 10,
+                        "b" | "B" => 11,
+                        "c" | "C" => 12,
+                        "d" | "D" => 13,
+                        "e" | "E" => 14,
+                        "f" | "F" => 15,
+                        _ => return Err(MyError::InvalidHexFormat(num_str.to_string())),
+                    };
+                    num += n * 16_u64.pow(num_str.len() as u32 - figure);
+                    figure += 1;
+                }
+            }
+        }
+        Ok(num)
+    }
+
+    fn bin2dec_f64(num_str: &str) -> Result<f64, MyError> {
         let mut num: f64 = 0.0;
         let mut figure: f64 = 1.0;
         for i in num_str.chars() {
@@ -669,6 +695,24 @@ impl Parser<'_> {
         Ok(num)
     }
 
+    fn bin2dec_u64(num_str: &str) -> Result<u64, MyError> {
+        let mut num: u64 = 0;
+        let mut figure: u32 = 1;
+        for i in num_str.chars() {
+            match u64::from_str(&i.to_string()) {
+                Ok(n) => {
+                    if n > 1 {
+                        return Err(MyError::InvalidBinFormat(num_str.to_string()));
+                    }
+                    num += n * 2_u64.pow(num_str.len() as u32 - figure);
+                    figure += 1;
+                }
+                Err(e) => return Err(MyError::ParseIntError(e)),
+            }
+        }
+        Ok(num)
+    }
+
     pub fn f64_from_str(num_str: &str) -> Result<f64, MyError> {
         if num_str.len() < 2 {
             match f64::from_str(num_str) {
@@ -677,11 +721,29 @@ impl Parser<'_> {
             }
         } else {
             match &num_str[0..2] {
-                "0x" => Parser::hex2dec(&num_str[2..]),
-                "0b" => Parser::bin2dec(&num_str[2..]),
+                "0x" => Parser::hex2dec_f64(&num_str[2..]),
+                "0b" => Parser::bin2dec_f64(&num_str[2..]),
                 _ => match f64::from_str(num_str) {
                     Ok(num) => Ok(num),
                     Err(e) => Err(MyError::ParseFloatError(e)),
+                },
+            }
+        }
+    }
+
+    pub fn u64_from_str(num_str: &str) -> Result<u64, MyError> {
+        if num_str.len() < 2 {
+            match u64::from_str(num_str) {
+                Ok(num) => Ok(num),
+                Err(e) => Err(MyError::ParseIntError(e)),
+            }
+        } else {
+            match &num_str[0..2] {
+                "0x" => Parser::hex2dec_u64(&num_str[2..]),
+                "0b" => Parser::bin2dec_u64(&num_str[2..]),
+                _ => match u64::from_str(num_str) {
+                    Ok(num) => Ok(num),
+                    Err(e) => Err(MyError::ParseIntError(e)),
                 },
             }
         }
