@@ -576,7 +576,6 @@ version = "0.2.2"
 dependencies = [
  "clap",
  "dirs",
- "lazy_static",
  "regex",
  "rustyline",
  "serde",

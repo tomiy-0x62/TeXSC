@@ -2,14 +2,13 @@
 
 use self::parser::NumOrVar;
 use clap::{Arg, Command};
-use lazy_static::lazy_static;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::sync::RwLock;
+use std::sync::{LazyLock, RwLock};
 
 use parser::NodeKind;
 use text_colorizer::*;
@@ -28,25 +27,24 @@ use config::*;
 use error::*;
 use num_formatter::num_formatter;
 
-lazy_static! {
-    pub static ref CONFIG: RwLock<Config> = {
-        RwLock::new(config::Config {
-            debug: false,
-            ast_format: AstFormat::Both,
-            trig_func_arg: TrigFuncArg::Radian,
-            log_base: std::f64::consts::E,
-            num_of_digit: 12,
-        })
-    };
-    pub static ref CONSTS: RwLock<HashMap<String, f64>> = {
-        RwLock::new({
-            let mut consts = HashMap::new();
-            consts.insert("e".to_string(), std::f64::consts::E);
-            consts.insert("\\pi".to_string(), std::f64::consts::PI);
-            consts
-        })
-    };
-}
+pub static CONFIG: LazyLock<RwLock<Config>> = LazyLock::new(|| {
+    RwLock::new(config::Config {
+        debug: false,
+        ast_format: AstFormat::Both,
+        trig_func_arg: TrigFuncArg::Radian,
+        log_base: std::f64::consts::E,
+        num_of_digit: 12,
+    })
+});
+
+pub static CONSTS: LazyLock<RwLock<HashMap<String, f64>>> = LazyLock::new(|| {
+    RwLock::new({
+        let mut consts = HashMap::new();
+        consts.insert("e".to_string(), std::f64::consts::E);
+        consts.insert("\\pi".to_string(), std::f64::consts::PI);
+        consts
+    })
+});
 
 fn main() {
     let app = Command::new("tsc")
