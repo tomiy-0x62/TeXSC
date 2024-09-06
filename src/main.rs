@@ -72,8 +72,10 @@ fn main() {
 
     // formulas from command line arg
     if let Some(form) = matches.value_of("tex formulas") {
-        let mut conf = config_writer().expect("couldn't change ast_format config");
-        conf.ast_format = AstFormat::None;
+        {
+            let mut conf = config_writer().expect("couldn't change ast_format config");
+            conf.ast_format = AstFormat::None;
+        }
         let mut vars: HashMap<String, f64> = HashMap::new();
         for line in form.split('\n') {
             process_form(line.replace("\r", ""), &mut vars);
@@ -83,8 +85,10 @@ fn main() {
 
     // formulas from file
     if let Some(file_name) = matches.value_of("file") {
-        let mut conf = config_writer().expect("couldn't change ast_format config");
-        conf.ast_format = AstFormat::None;
+        {
+            let mut conf = config_writer().expect("couldn't change ast_format config");
+            conf.ast_format = AstFormat::None;
+        }
         let f: File = File::open(file_name).expect(file_name);
         let reader: BufReader<File> = BufReader::new(f);
         let mut vars: HashMap<String, f64> = HashMap::new();
