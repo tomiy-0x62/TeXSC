@@ -47,4 +47,6 @@ pub enum MyError {
     UnexpectedInput(String, String),
     #[error("unexpected operation to lexer: {0}")]
     UnexpectedOpToLexer(String),
+    #[error("received quit command")]
+    Quit,
 }

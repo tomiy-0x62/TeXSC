@@ -16,6 +16,12 @@ pub fn process_tsccommand(
     let t2 = &lex.tokens[cmd_idx + 1];
     let mut conf = config_writer()?;
     match &*t1.token {
+        ":q" => {
+            return Err(MyError::UnexpectedInput(
+                "true/false".to_string(),
+                t2.token.clone(),
+            ))
+        }
         ":debug" => match &*t2.token {
             "true" => conf.debug = true,
             "false" => conf.debug = false,
@@ -150,6 +156,8 @@ fn cmd_help() {
         "{: <14}
   {}
     {: <12}
+        exit tsc
+    {: <12}
         show this help
     {: <12}
         set debug flag
@@ -169,6 +177,7 @@ fn cmd_help() {
         show variable or config or embedded const number",
         ":TSC_COMMAND {option}".yellow(),
         "description".yellow(),
+        ":q".green(),
         ":help".green(),
         ":debug {true|false}".green(),
         ":logbase {num(f64)}".green(),

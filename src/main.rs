@@ -93,7 +93,9 @@ fn main() {
         }
         let mut vars: HashMap<String, f64> = HashMap::new();
         for line in form.split('\n') {
-            process_form(line.replace("\r", ""), &mut vars);
+            if let Err(e) = process_form(line.replace("\r", ""), &mut vars) {
+                eprintlnc!(e);
+            }
         }
         return;
     }
@@ -108,7 +110,9 @@ fn main() {
         let reader: BufReader<File> = BufReader::new(f);
         let mut vars: HashMap<String, f64> = HashMap::new();
         for line in reader.lines() {
-            process_form(line.unwrap(), &mut vars);
+            if let Err(e) = process_form(line.unwrap(), &mut vars) {
+                eprintlnc!(e);
+            }
         }
         return;
     }
@@ -130,56 +134,36 @@ fn main() {
             Err(ReadlineError::Eof) => return,
             Err(err) => panic!("{}", err),
         };
-        if form.trim() == "exit" {
+        if form.trim() == ":q" {
             return;
         }
-        process_form(form.to_string(), &mut vars);
+        match process_form(form.to_string(), &mut vars) {
+            Ok(_) => (),
+            Err(MyError::Quit) => return,
+            Err(MyError::NoToken) => (),
+            Err(e) => eprintlnc!(e),
+        }
     }
 }
 
-fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Option<f64> {
-    let lex = match parser::lexer::Lexer::new(form) {
-        Ok(l) => l,
-        Err(e) => {
-            eprintlnc!(e);
-            return None;
-        }
-    };
-    let mut _pars = match parser::Parser::new(lex, vars) {
-        Ok(p) => p,
-        Err(e) => {
-            eprintlnc!(e);
-            return None;
-        }
-    };
+fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Result<f64, MyError> {
+    let lex = parser::lexer::Lexer::new(form)?;
+    let mut _pars = parser::Parser::new(lex, vars)?;
     _pars.print_vars();
-    let ast_root = match _pars.build_ast() {
-        Ok(ast) => ast,
-        Err(e) => match e {
-            MyError::NoToken => return None,
-            _ => {
-                eprintlnc!(e);
-                return None;
-            }
-        },
-    };
+    let ast_root = _pars.build_ast()?;
     let num_of_digit = match config_reader() {
         Ok(c) => c.num_of_digit,
         Err(e) => {
-            eprintlnc!(e);
-            return None;
+            return Err(e);
         }
     };
     match calc(*ast_root, vars) {
         Ok(result) => {
             debugln!("resutl: {}", result);
             println!("{}", num_formatter(result, num_of_digit));
-            Some(result)
+            Ok(result)
         }
-        Err(e) => {
-            eprintlnc!(e);
-            None
-        }
+        Err(e) => Err(e),
     }
 }
 

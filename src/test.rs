@@ -15,7 +15,7 @@ fn test_calc() {
         let mut vars: HashMap<String, f64> = HashMap::new();
         for line in tc.formula.split('\n') {
             match crate::process_form(line.replace("\r", ""), &mut vars) {
-                Some(r) => {
+                Ok(r) => {
                     if (r - tc.result).abs() < 0.0001 {
                         writeln!(
                             &mut std::io::stderr(),
@@ -39,7 +39,7 @@ fn test_calc() {
                         .unwrap();
                     }
                 }
-                None => {
+                Err(_) => {
                     writeln!(
                         &mut std::io::stderr(),
                         "testcase {}: {} {}",
