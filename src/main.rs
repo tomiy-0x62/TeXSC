@@ -63,12 +63,27 @@ fn main() {
                 .required(false),
         );
 
-    match CONFIG.write().expect("").load_from_file() {
-        Ok(conf_file) => eprintln!("config loaded from {:?}", conf_file),
-        Err(e) => eprintln!("config load failed: {}", e),
-    }
-
     let matches = app.get_matches();
+
+    let is_repl =
+        !(matches.value_of("tex formulas").is_some() || matches.value_of("file").is_some());
+
+    match CONFIG
+        .write()
+        .expect("couldn't write CONFIG")
+        .load_from_file()
+    {
+        Ok(conf_file) => {
+            if is_repl {
+                eprintln!("config loaded from {:?}", conf_file)
+            }
+        }
+        Err(e) => {
+            if is_repl {
+                eprintln!("config load failed: {}", e)
+            }
+        }
+    }
 
     // formulas from command line arg
     if let Some(form) = matches.value_of("tex formulas") {
