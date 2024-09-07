@@ -1,5 +1,19 @@
 # Change Log
 
+## [0.2.3](https://github.com/tomiy-0x62/TeXSC/releases/tag/0.2.3) (2024-09-07)
+
+**Implemented enhancements:**
+
++ change how to quit tsc (`exit` -> `:q`)
+
++ add new tsc commands `:hex`, `:dec`, `:bin` 
+
++ don't show config load message when formulas form file or command line arg
+
+**Fixed bugs:**
+
++ Fix deadlock bug when formulas from file or command line arg
+
 ## [0.2.2](https://github.com/tomiy-0x62/TeXSC/releases/tag/0.2.2) (2024-06-19)
 
 **Implemented enhancements:**
