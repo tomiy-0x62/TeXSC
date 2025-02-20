@@ -1,9 +1,9 @@
 // TeX Scientific Calculator
 
 use self::parser::NumOrVar;
-use clap::{Arg, Command};
+use clap::{value_parser, Arg, Command};
 use rustyline::error::ReadlineError;
-use rustyline::Editor;
+use rustyline::DefaultEditor;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -55,18 +55,18 @@ fn main() {
             Arg::new("file")
                 .help("load formulas from file")
                 .short('f')
-                .takes_value(true),
+                .value_parser(value_parser!(String)),
         )
         .arg(
             Arg::new("tex formulas")
                 .help("tex formulas")
-                .required(false),
+                .required(false)
+                .value_parser(value_parser!(String)),
         );
 
     let matches = app.get_matches();
 
-    let is_repl =
-        !(matches.value_of("tex formulas").is_some() || matches.value_of("file").is_some());
+    let is_repl = !matches.args_present();
 
     match CONFIG
         .write()
@@ -86,7 +86,7 @@ fn main() {
     }
 
     // formulas from command line arg
-    if let Some(form) = matches.value_of("tex formulas") {
+    if let Some(form) = matches.get_one::<String>("tex formulas") {
         {
             let mut conf = config_writer().expect("couldn't change ast_format config");
             conf.ast_format = AstFormat::None;
@@ -101,7 +101,7 @@ fn main() {
     }
 
     // formulas from file
-    if let Some(file_name) = matches.value_of("file") {
+    if let Some(file_name) = matches.get_one::<String>("file") {
         {
             let mut conf = config_writer().expect("couldn't change ast_format config");
             conf.ast_format = AstFormat::None;
@@ -119,7 +119,7 @@ fn main() {
 
     // REPL
     let mut vars: HashMap<String, f64> = HashMap::new();
-    let mut rl = match Editor::<()>::new() {
+    let mut rl = match DefaultEditor::new() {
         Ok(r) => r,
         Err(_) => panic!("Can't readline!"),
     };
@@ -127,7 +127,8 @@ fn main() {
         let readline = rl.readline("tsc> ");
         let form = match readline {
             Ok(line) => {
-                rl.add_history_entry(line.as_str());
+                rl.add_history_entry(line.as_str())
+                    .expect("failed add history");
                 line
             }
             Err(ReadlineError::Interrupted) => return,
