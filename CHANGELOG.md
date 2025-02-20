@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.2.4](https://github.com/tomiy-0x62/TeXSC/releases/tag/0.2.4) (2025-02-20)
+
+**Implemented enhancements:**
+
++ add new tsc commands `:fact`, `:gcd`, `:redu`
+
 ## [0.2.3](https://github.com/tomiy-0x62/TeXSC/releases/tag/0.2.3) (2024-09-07)
 
 **Implemented enhancements:**
