@@ -7,6 +7,7 @@ use crate::parser::lexer::{self, Lexer};
 use crate::parser::*;
 use crate::CONSTS;
 
+mod gcd;
 mod prime_factorize;
 
 pub fn process_tsccommand(
@@ -178,6 +179,62 @@ pub fn process_tsccommand(
                 }
             }
         }
+        ":gcd" | ":redu" => {
+            let mut counter = 0;
+            let mut nums = Vec::new();
+            loop {
+                let t = &lex.tokens[cmd_idx + 1 + counter];
+                match t.token_kind {
+                    lexer::TokenKind::TkNum => match Parser::u64_from_str(&t.token) {
+                        Ok(num) => {
+                            if num == 0 {
+                                return Err(MyError::InvalidInput(format!(
+                                    "{} don't allow 0",
+                                    t1.token
+                                )));
+                            } else {
+                                nums.push(num);
+                                counter += 1;
+                            }
+                        }
+                        Err(e) => return Err(e),
+                    },
+                    _ => break,
+                }
+            }
+            consumed_token = counter + 1;
+            if nums.len() < 2 {
+                return Err(MyError::InvalidInput(format!(
+                    "{} requires two or more numbers",
+                    t1.token
+                )));
+            }
+            if t1.token == ":gcd" {
+                let mut msg = String::from("gcd(");
+                for n in &nums {
+                    msg += &format!("{}, ", n);
+                }
+                msg.pop();
+                msg.pop();
+                msg += ")";
+                println!("{} = {}", msg, gcd::gcd(nums));
+            } else if t1.token == ":redu" {
+                let mut msg = String::new();
+                for n in &nums {
+                    msg += &format!("{} : ", n);
+                }
+                msg.pop();
+                msg.pop();
+                msg += "= ";
+                let gcd = gcd::gcd(nums.clone());
+                for n in &nums {
+                    msg += &format!("{} : ", n / gcd);
+                }
+                msg.pop();
+                msg.pop();
+                println!("{}", msg,);
+            }
+        }
         ":help" => {
             consumed_token = 1;
             cmd_help()
@@ -258,6 +315,10 @@ fn cmd_help() {
     {: <12}
         prime factorize number
     {: <12}
+        calcuate greatest common divisor
+    {: <12}
+        divide numbers by greatest common divisor
+    {: <12}
         show variable or config or embedded const number",
         ":TSC_COMMAND {option}".yellow(),
         "description".yellow(),
@@ -274,6 +335,8 @@ fn cmd_help() {
         ":dec {num(u64)} ...".green(),
         ":bin {num(u64)} ...".green(),
         ":fact {num(u64)}".green(),
+        ":gcd {num(u64)} {num(u64)} ...".green(),
+        ":redu {num(u64)} {num(u64)} ...".green(),
         ":show {var|const|config|conf}".green()
     );
 }
