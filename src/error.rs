@@ -31,7 +31,7 @@ pub enum MyError {
     TomlDeserializeError(#[from] toml::de::Error),
     #[error("There is no token to process")]
     NoToken,
-    #[error("invalid input {0}")]
+    #[error("invalid input: {0}")]
     InvalidInput(String),
     #[error("expected TkNumber but {0}\n{1}")]
     NotTkNumber(String, String),
