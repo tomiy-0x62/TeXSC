@@ -7,6 +7,8 @@ use crate::parser::lexer::{self, Lexer};
 use crate::parser::*;
 use crate::CONSTS;
 
+mod prime_factorize;
+
 pub fn process_tsccommand(
     lex: &Lexer,
     cmd_idx: usize,
@@ -158,6 +160,24 @@ pub fn process_tsccommand(
             }
             println!("{msg}");
         }
+        ":fact" => {
+            consumed_token = 2;
+            match t2.token_kind {
+                lexer::TokenKind::TkNum => match Parser::u64_from_str(&t2.token) {
+                    Ok(num) => {
+                        let res = prime_factorize::factorize(num);
+                        println!("{}", res);
+                    }
+                    Err(e) => return Err(e),
+                },
+                _ => {
+                    return Err(MyError::NotTkNumber(
+                        t2.token_kind.to_string(),
+                        lex.format_err_loc_idx(cmd_idx + 1),
+                    ))
+                }
+            }
+        }
         ":help" => {
             consumed_token = 1;
             cmd_help()
@@ -236,6 +256,8 @@ fn cmd_help() {
     {: <12}
         show numbers in binary formats
     {: <12}
+        prime factorize number
+    {: <12}
         show variable or config or embedded const number",
         ":TSC_COMMAND {option}".yellow(),
         "description".yellow(),
@@ -251,6 +273,7 @@ fn cmd_help() {
         ":hex {num(u64)} ...".green(),
         ":dec {num(u64)} ...".green(),
         ":bin {num(u64)} ...".green(),
+        ":fact {num(u64)}".green(),
         ":show {var|const|config|conf}".green()
     );
 }
