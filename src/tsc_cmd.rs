@@ -1,3 +1,4 @@
+use bigdecimal::{BigDecimal, ToPrimitive};
 use std::collections::HashMap;
 use text_colorizer::*;
 
@@ -13,7 +14,7 @@ mod prime_factorize;
 pub fn process_tsccommand(
     lex: &Lexer,
     cmd_idx: usize,
-    vars: &mut HashMap<String, f64>,
+    vars: &mut HashMap<String, BigDecimal>,
 ) -> Result<usize, MyError> {
     let t1 = &lex.tokens[cmd_idx];
     let t2 = &lex.tokens[cmd_idx + 1];
@@ -42,12 +43,12 @@ pub fn process_tsccommand(
         ":logbase" => {
             consumed_token = 2;
             match t2.token_kind {
-                lexer::TokenKind::TkNum => match Parser::f64_from_str(&t2.token) {
+                lexer::TokenKind::TkNum => match Parser::bigdecimal_from_str(&t2.token) {
                     Ok(num) => conf.log_base = num,
                     Err(e) => return Err(e),
                 },
                 lexer::TokenKind::TkVariable => match vars.get(&t2.token) {
-                    Some(num) => conf.log_base = *num,
+                    Some(num) => conf.log_base = num.clone(),
                     None => return Err(MyError::UDvariableErr(t2.token.to_string())),
                 },
                 _ => {
@@ -66,7 +67,7 @@ pub fn process_tsccommand(
                     Err(e) => return Err(e),
                 },
                 lexer::TokenKind::TkVariable => match vars.get(&t2.token) {
-                    Some(num) => conf.num_of_digit = *num as u32,
+                    Some(num) => conf.num_of_digit = num.to_u32().unwrap(),
                     None => return Err(MyError::UDvariableErr(t2.token.to_string())),
                 },
                 _ => {
@@ -259,7 +260,7 @@ pub fn process_tsccommand(
     Ok(consumed_token)
 }
 
-fn show_variables(vars: &HashMap<String, f64>) -> Result<(), MyError> {
+fn show_variables(vars: &HashMap<String, BigDecimal>) -> Result<(), MyError> {
     let consts = match CONSTS.read() {
         Ok(consts) => consts,
         Err(e) => return Err(MyError::ConstsReadErr(e.to_string())),

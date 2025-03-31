@@ -1,3 +1,4 @@
+use bigdecimal::{BigDecimal, ParseBigDecimalError};
 use std::num::{ParseFloatError, ParseIntError};
 use thiserror::Error;
 
@@ -25,6 +26,8 @@ pub enum MyError {
     InvalidBinFormat(String),
     #[error("couldn't parse Float. {0}")]
     ParseFloatError(#[from] ParseFloatError),
+    #[error("couldn't parse BigDecimal. {0}")]
+    ParseBigDecimalError(#[from] ParseBigDecimalError),
     #[error("couldn't parse Int. {0}")]
     ParseIntError(#[from] ParseIntError),
     #[error("{0}")]
@@ -49,6 +52,10 @@ pub enum MyError {
     UnexpectedInput(String, String),
     #[error("unexpected operation to lexer: {0}")]
     UnexpectedOpToLexer(String),
+    #[error("couldn't calculate: {0}")]
+    CalcErr(String),
+    #[error("couldn't convert BigDecimal to {0}: {1}")]
+    ConvertErr(String, BigDecimal),
     #[error("received quit command")]
     Quit,
 }

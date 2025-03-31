@@ -1,6 +1,7 @@
 // TeX Scientific Calculator
 
 use self::parser::NumOrVar;
+use bigdecimal::{BigDecimal, FromPrimitive};
 use clap::{value_parser, Arg, Command};
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
@@ -15,6 +16,7 @@ use text_colorizer::*;
 
 mod config;
 mod error;
+mod math_functions;
 mod num_formatter;
 mod parser;
 mod tsc_cmd;
@@ -32,16 +34,22 @@ pub static CONFIG: LazyLock<RwLock<Config>> = LazyLock::new(|| {
         debug: false,
         ast_format: AstFormat::Both,
         trig_func_arg: TrigFuncArg::Radian,
-        log_base: std::f64::consts::E,
+        log_base: BigDecimal::from_f64(std::f64::consts::E).unwrap(),
         num_of_digit: 12,
     })
 });
 
-pub static CONSTS: LazyLock<RwLock<HashMap<String, f64>>> = LazyLock::new(|| {
+pub static CONSTS: LazyLock<RwLock<HashMap<String, BigDecimal>>> = LazyLock::new(|| {
     RwLock::new({
         let mut consts = HashMap::new();
-        consts.insert("e".to_string(), std::f64::consts::E);
-        consts.insert("\\pi".to_string(), std::f64::consts::PI);
+        consts.insert(
+            "e".to_string(),
+            BigDecimal::from_f64(std::f64::consts::E).unwrap(),
+        );
+        consts.insert(
+            "\\pi".to_string(),
+            BigDecimal::from_f64(std::f64::consts::PI).unwrap(),
+        );
         consts
     })
 });
@@ -91,7 +99,7 @@ fn main() {
             let mut conf = config_writer().expect("couldn't change ast_format config");
             conf.ast_format = AstFormat::None;
         }
-        let mut vars: HashMap<String, f64> = HashMap::new();
+        let mut vars: HashMap<String, BigDecimal> = HashMap::new();
         for line in form.split('\n') {
             if let Err(e) = process_form(line.replace("\r", ""), &mut vars) {
                 eprintlnc!(e);
@@ -108,7 +116,7 @@ fn main() {
         }
         let f: File = File::open(file_name).expect(file_name);
         let reader: BufReader<File> = BufReader::new(f);
-        let mut vars: HashMap<String, f64> = HashMap::new();
+        let mut vars: HashMap<String, BigDecimal> = HashMap::new();
         for line in reader.lines() {
             if let Err(e) = process_form(line.unwrap(), &mut vars) {
                 eprintlnc!(e);
@@ -118,7 +126,7 @@ fn main() {
     }
 
     // REPL
-    let mut vars: HashMap<String, f64> = HashMap::new();
+    let mut vars: HashMap<String, BigDecimal> = HashMap::new();
     let mut rl = match DefaultEditor::new() {
         Ok(r) => r,
         Err(_) => panic!("Can't readline!"),
@@ -147,7 +155,10 @@ fn main() {
     }
 }
 
-fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Result<f64, MyError> {
+fn process_form(
+    form: String,
+    vars: &mut HashMap<String, BigDecimal>,
+) -> Result<BigDecimal, MyError> {
     let lex = parser::lexer::Lexer::new(form)?;
     let mut _pars = parser::Parser::new(lex, vars)?;
     _pars.print_vars();
@@ -161,20 +172,21 @@ fn process_form(form: String, vars: &mut HashMap<String, f64>) -> Result<f64, My
     match calc(*ast_root, vars) {
         Ok(result) => {
             debugln!("resutl: {}", result);
-            println!("{}", num_formatter(result, num_of_digit));
+            // println!("{}", num_formatter(result, num_of_digit));
+            println!("{}", result);
             Ok(result)
         }
         Err(e) => Err(e),
     }
 }
 
-fn calc(node: parser::Node, vars: &HashMap<String, f64>) -> Result<f64, MyError> {
+fn calc(node: parser::Node, vars: &HashMap<String, BigDecimal>) -> Result<BigDecimal, MyError> {
     match node.node_kind {
         NodeKind::Num | NodeKind::Var => {
             return Ok(match node.val.unwrap() {
                 NumOrVar::Num(n) => n,
                 NumOrVar::Var(v) => match vars.get(&v) {
-                    Some(n) => *n,
+                    Some(n) => n.clone(),
                     None => return Err(MyError::UDvariableErr(v)),
                 },
             })
@@ -182,8 +194,8 @@ fn calc(node: parser::Node, vars: &HashMap<String, f64>) -> Result<f64, MyError>
         _ => (),
     }
 
-    let loperand: f64;
-    let mut roperand: f64 = 1.0;
+    let loperand: BigDecimal;
+    let mut roperand: BigDecimal = BigDecimal::from(1);
 
     if let Some(left) = node.left_node {
         loperand = getoperand(*left, vars)?;
@@ -210,8 +222,12 @@ fn calc(node: parser::Node, vars: &HashMap<String, f64>) -> Result<f64, MyError>
 
     let conf = config_reader()?;
 
-    fn radian2degree(rad: f64) -> f64 {
-        rad * 180.0 / std::f64::consts::PI
+    fn radian2degree(rad: BigDecimal) -> BigDecimal {
+        rad * BigDecimal::from(180) / BigDecimal::from_f64(std::f64::consts::PI).unwrap()
+    }
+
+    fn degree2radian(deg: BigDecimal) -> BigDecimal {
+        deg * BigDecimal::from_f64(std::f64::consts::PI).unwrap() / BigDecimal::from(180)
     }
 
     match node.node_kind {
@@ -219,60 +235,68 @@ fn calc(node: parser::Node, vars: &HashMap<String, f64>) -> Result<f64, MyError>
         NodeKind::Sub => Ok(loperand - roperand),
         NodeKind::Mul => Ok(loperand * roperand),
         NodeKind::Div => Ok(loperand / roperand),
-        NodeKind::Sqrt => Ok(loperand.sqrt()),
-        NodeKind::Log => Ok(loperand.log(conf.log_base)),
-        NodeKind::Ln => Ok(loperand.log(std::f64::consts::E)),
+        NodeKind::Sqrt => loperand
+            .sqrt()
+            .ok_or(MyError::CalcErr("failed calc sqrt".to_string())),
+        NodeKind::Log => Ok(math_functions::log(conf.log_base.clone(), loperand)?),
+        NodeKind::Ln => Ok(math_functions::log(
+            BigDecimal::from_f64(std::f64::consts::E).unwrap(),
+            loperand,
+        )?),
         NodeKind::Abs => Ok(loperand.abs()),
-        NodeKind::Exp => Ok(std::f64::consts::E.powf(loperand)),
+        NodeKind::Exp => Ok(loperand.exp()),
         NodeKind::Sin => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(loperand.sin()),
-            TrigFuncArg::Degree => Ok(loperand.to_radians().sin()),
+            TrigFuncArg::Radian => Ok(math_functions::sin(loperand)?),
+            TrigFuncArg::Degree => Ok(math_functions::sin(degree2radian(loperand))?),
         },
         NodeKind::Cos => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(loperand.cos()),
-            TrigFuncArg::Degree => Ok(loperand.to_radians().cos()),
+            TrigFuncArg::Radian => Ok(math_functions::cos(loperand)?),
+            TrigFuncArg::Degree => Ok(math_functions::cos(degree2radian(loperand))?),
         },
         NodeKind::Tan => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(loperand.tan()),
-            TrigFuncArg::Degree => Ok(loperand.to_radians().tan()),
+            TrigFuncArg::Radian => Ok(math_functions::tan(loperand)?),
+            TrigFuncArg::Degree => Ok(math_functions::tan(degree2radian(loperand))?),
         },
         NodeKind::Csc => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(1.0 / loperand.sin()),
-            TrigFuncArg::Degree => Ok(1.0 / loperand.to_radians().sin()),
+            TrigFuncArg::Radian => Ok(1.0 / math_functions::sin(loperand)?),
+            TrigFuncArg::Degree => Ok(1.0 / math_functions::sin(degree2radian(loperand))?),
         },
         NodeKind::Sec => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(1.0 / loperand.cos()),
-            TrigFuncArg::Degree => Ok(1.0 / loperand.to_radians().cos()),
+            TrigFuncArg::Radian => Ok(1.0 / math_functions::cos(loperand)?),
+            TrigFuncArg::Degree => Ok(1.0 / math_functions::cos(degree2radian(loperand))?),
         },
         NodeKind::Cot => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(1.0 / loperand.tan()),
-            TrigFuncArg::Degree => Ok(1.0 / loperand.to_radians().tan()),
+            TrigFuncArg::Radian => Ok(1.0 / math_functions::tan(loperand)?),
+            TrigFuncArg::Degree => Ok(1.0 / math_functions::tan(degree2radian(loperand))?),
         },
         NodeKind::AcSin => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(loperand.asin()),
-            TrigFuncArg::Degree => Ok(radian2degree(loperand.asin())),
+            TrigFuncArg::Radian => Ok(math_functions::asin(loperand)?),
+            TrigFuncArg::Degree => Ok(math_functions::asin(radian2degree(loperand))?),
         },
         NodeKind::AcCos => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(loperand.acos()),
-            TrigFuncArg::Degree => Ok(radian2degree(loperand.acos())),
+            TrigFuncArg::Radian => Ok(math_functions::acos(loperand)?),
+            TrigFuncArg::Degree => Ok(math_functions::acos(radian2degree(loperand))?),
         },
         NodeKind::AcTan => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(loperand.atan()),
-            TrigFuncArg::Degree => Ok(radian2degree(loperand.atan())),
+            TrigFuncArg::Radian => Ok(math_functions::atan(loperand)?),
+            TrigFuncArg::Degree => Ok(math_functions::atan(radian2degree(loperand))?),
         },
-        NodeKind::Pow => Ok(loperand.powf(roperand)),
+        NodeKind::Pow => Ok(math_functions::pow(loperand, roperand)?),
         NodeKind::Neg => Ok(-loperand),
         _ => Err(MyError::UDcommandErr(node.node_kind.to_string())),
     }
 }
 
-fn getoperand(node: parser::Node, vars: &HashMap<String, f64>) -> Result<f64, MyError> {
+fn getoperand(
+    node: parser::Node,
+    vars: &HashMap<String, BigDecimal>,
+) -> Result<BigDecimal, MyError> {
     match &node.node_kind {
         NodeKind::Num | NodeKind::Var => {
             return Ok(match node.val.unwrap() {
                 NumOrVar::Num(n) => n,
                 NumOrVar::Var(v) => match vars.get(&v) {
-                    Some(n) => *n,
+                    Some(n) => n.clone(),
                     None => return Err(MyError::UDvariableErr(v)),
                 },
             })

@@ -1,10 +1,11 @@
+use bigdecimal::{BigDecimal, FromPrimitive};
 use std::collections::HashMap;
 use std::io::Write;
 use text_colorizer::*;
 
 struct TestCase {
     formula: String,
-    result: f64,
+    result: BigDecimal,
 }
 
 #[test]
@@ -12,11 +13,12 @@ fn test_calc() {
     let test_cases = get_testsaces();
     let mut test_success = 0;
     for (i, tc) in test_cases.iter().enumerate() {
-        let mut vars: HashMap<String, f64> = HashMap::new();
+        let mut vars: HashMap<String, BigDecimal> = HashMap::new();
         for line in tc.formula.split('\n') {
             match crate::process_form(line.replace("\r", ""), &mut vars) {
                 Ok(r) => {
-                    if (r - tc.result).abs() < 0.0001 {
+                    if (r.clone() - tc.result.clone()).abs() < BigDecimal::from_f64(0.0001).unwrap()
+                    {
                         writeln!(
                             &mut std::io::stderr(),
                             "testcase {}: {} {}",
@@ -66,15 +68,15 @@ fn get_testsaces() -> Vec<TestCase> {
     let mut test_cases: Vec<TestCase> = Vec::new();
     test_cases.push(TestCase {
         formula: "3+3".to_string(),
-        result: 6.0,
+        result: BigDecimal::from_f64(6.0).unwrap(),
     });
     test_cases.push(TestCase {
         formula: "\\frac {1}{2}".to_string(),
-        result: 0.5,
+        result: BigDecimal::from_f64(0.5).unwrap(),
     });
     test_cases.push(TestCase {
         formula: "-\\abs (-2)^{\\frac{1}{4/2}}^{6}".to_string(),
-        result: -8.0,
+        result: BigDecimal::from_f64(-8.0).unwrap(),
     });
     test_cases
 }

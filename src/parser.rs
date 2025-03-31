@@ -1,3 +1,4 @@
+use bigdecimal::BigDecimal;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::str::FromStr;
@@ -131,7 +132,7 @@ impl NodeKind {
 
 #[derive(Clone, Debug)]
 pub enum NumOrVar {
-    Num(f64),
+    Num(BigDecimal),
     Var(String),
 }
 
@@ -154,7 +155,7 @@ struct NodeInfo {
 
 pub struct Parser<'a> {
     lex: lexer::Lexer,
-    vars: &'a HashMap<String, f64>,
+    vars: &'a HashMap<String, BigDecimal>,
 }
 
 impl Parser<'_> {
@@ -164,7 +165,10 @@ impl Parser<'_> {
         }
     }
 
-    pub fn new(mut lex: lexer::Lexer, vars: &mut HashMap<String, f64>) -> Result<Parser, MyError> {
+    pub fn new(
+        mut lex: lexer::Lexer,
+        vars: &mut HashMap<String, BigDecimal>,
+    ) -> Result<Parser, MyError> {
         // lex から varsを構築
         let mut to_delete_el = Vec::<usize>::new();
         for i in 0..lex.tokens.len() {
@@ -188,7 +192,7 @@ impl Parser<'_> {
                 to_delete_el.push(i + 2);
                 match lex.tokens[i + 3].token_kind {
                     lexer::TokenKind::TkNum => {
-                        match Parser::f64_from_str(&lex.tokens[i + 3].token) {
+                        match Parser::bigdecimal_from_str(&lex.tokens[i + 3].token) {
                             Ok(num) => {
                                 vars.insert(lex.tokens[i + 1].token.clone(), num);
                             }
@@ -199,7 +203,7 @@ impl Parser<'_> {
                         if lex.tokens[i + 3].token == "-" {
                             match lex.tokens[i + 4].token_kind {
                                 lexer::TokenKind::TkNum => {
-                                    match Parser::f64_from_str(&lex.tokens[i + 4].token) {
+                                    match Parser::bigdecimal_from_str(&lex.tokens[i + 4].token) {
                                         Ok(num) => {
                                             vars.insert(lex.tokens[i + 1].token.clone(), -num);
                                             to_delete_el.push(i + 4);
@@ -245,7 +249,7 @@ impl Parser<'_> {
         match CONSTS.read() {
             Ok(consts) => {
                 for (name, value) in consts.iter() {
-                    vars.insert(name.to_string(), *value);
+                    vars.insert(name.to_string(), value.clone());
                 }
             }
             Err(e) => return Err(MyError::ConstsReadErr(e.to_string())),
@@ -713,6 +717,30 @@ impl Parser<'_> {
         Ok(num)
     }
 
+    pub fn bigdecimal_from_str(num_str: &str) -> Result<BigDecimal, MyError> {
+        if num_str.len() < 2 {
+            match BigDecimal::from_str(num_str) {
+                Ok(num) => Ok(num),
+                Err(e) => Err(MyError::ParseBigDecimalError(e)),
+            }
+        } else {
+            match &num_str[0..2] {
+                "0x" => {
+                    let num = Parser::hex2dec_u64(&num_str[2..])?;
+                    Ok(BigDecimal::from(num))
+                }
+                "0b" => {
+                    let num = Parser::bin2dec_u64(&num_str[2..])?;
+                    Ok(BigDecimal::from(num))
+                }
+                _ => match BigDecimal::from_str(num_str) {
+                    Ok(num) => Ok(num),
+                    Err(e) => Err(MyError::ParseBigDecimalError(e)),
+                },
+            }
+        }
+    }
+
     pub fn f64_from_str(num_str: &str) -> Result<f64, MyError> {
         if num_str.len() < 2 {
             match f64::from_str(num_str) {
@@ -767,7 +795,7 @@ impl Parser<'_> {
         })
     }
 
-    fn new_node_num(val: f64) -> Box<Node> {
+    fn new_node_num(val: BigDecimal) -> Box<Node> {
         Box::new(Node {
             node_kind: NodeKind::Num,
             right_node: None,
@@ -963,7 +991,9 @@ impl Parser<'_> {
     fn num(&mut self) -> Result<Box<Node>, MyError> {
         match self.lex.expect_number() {
             Ok(v) => match v {
-                NumstrOrVar::Num(num) => Ok(Parser::new_node_num(Parser::f64_from_str(&num)?)),
+                NumstrOrVar::Num(num) => {
+                    Ok(Parser::new_node_num(Parser::bigdecimal_from_str(&num)?))
+                }
                 NumstrOrVar::Var(var) => Ok(Parser::new_node_var(var)),
             },
             Err(e) => Err(e),
