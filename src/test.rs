@@ -10,7 +10,7 @@ struct TestCase {
 
 #[test]
 fn test_calc() {
-    let test_cases = get_testsaces();
+    let test_cases = get_testcases();
     let mut test_success = 0;
     for (i, tc) in test_cases.iter().enumerate() {
         let mut vars: HashMap<String, BigDecimal> = HashMap::new();
@@ -64,7 +64,7 @@ fn test_calc() {
     assert_eq!(test_success, test_cases.len());
 }
 
-fn get_testsaces() -> Vec<TestCase> {
+fn get_testcases() -> Vec<TestCase> {
     let mut test_cases: Vec<TestCase> = Vec::new();
     test_cases.push(TestCase {
         formula: "3+3".to_string(),
