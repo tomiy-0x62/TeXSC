@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.3.0](https://github.com/tomiy-0x62/TeXSC/releases/tag/0.3.0) (2025-07-24)
+
+**Implemented enhancements:**
+
++ use BigDecimal instead of f64
+
 ## [0.2.4](https://github.com/tomiy-0x62/TeXSC/releases/tag/0.2.4) (2025-02-20)
 
 **Implemented enhancements:**
