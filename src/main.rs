@@ -270,15 +270,15 @@ fn calc(node: parser::Node, vars: &HashMap<String, BigDecimal>) -> Result<BigDec
         },
         NodeKind::AcSin => match conf.trig_func_arg {
             TrigFuncArg::Radian => Ok(math_functions::asin(loperand)?),
-            TrigFuncArg::Degree => Ok(math_functions::asin(radian2degree(loperand))?),
+            TrigFuncArg::Degree => Ok(radian2degree(math_functions::asin(loperand)?)),
         },
         NodeKind::AcCos => match conf.trig_func_arg {
             TrigFuncArg::Radian => Ok(math_functions::acos(loperand)?),
-            TrigFuncArg::Degree => Ok(math_functions::acos(radian2degree(loperand))?),
+            TrigFuncArg::Degree => Ok(radian2degree(math_functions::acos(loperand)?)),
         },
         NodeKind::AcTan => match conf.trig_func_arg {
             TrigFuncArg::Radian => Ok(math_functions::atan(loperand)?),
-            TrigFuncArg::Degree => Ok(math_functions::atan(radian2degree(loperand))?),
+            TrigFuncArg::Degree => Ok(radian2degree(math_functions::atan(loperand)?)),
         },
         NodeKind::Pow => Ok(math_functions::pow(loperand, roperand)?),
         NodeKind::Neg => Ok(-loperand),

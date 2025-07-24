@@ -355,8 +355,14 @@ impl Parser<'_> {
             || conf.ast_format == AstFormat::Both;
         if is_show_ast {
             let mut s_expr = String::new();
-            s_expr =
-                self.show_ast_in_s_expr_rec_inner(node, s_expr, &mut HashSet::new(), false, false);
+            s_expr = self.show_ast_in_s_expr_rec_inner(
+                node,
+                s_expr,
+                &mut HashSet::new(),
+                false,
+                false,
+                false,
+            );
             eprintln!("{s_expr}\n");
         }
         Ok(())
@@ -369,6 +375,7 @@ impl Parser<'_> {
         is_var_printed: &mut HashSet<String>,
         is_2arg_left: bool,
         mut is_deg2rad_printed: bool,
+        mut is_rad2deg_printed: bool,
     ) -> String {
         match node.node_kind {
             NodeKind::Num | NodeKind::Var => {
@@ -396,6 +403,7 @@ impl Parser<'_> {
             }
             _ => {
                 let mut is_deg2rad = false;
+                let mut is_rad2deg = false;
                 if config_reader().expect("couldn't read config").trig_func_arg
                     == TrigFuncArg::Degree
                 {
@@ -411,6 +419,17 @@ impl Parser<'_> {
                                 &format!("({} (degree2radian ", node.node_kind.to_lisp_op_str());
                             is_deg2rad = true;
                         }
+                        NodeKind::AcSin | NodeKind::AcCos | NodeKind::AcTan => {
+                            if !is_rad2deg_printed {
+                                s_expr = format!(
+                                    "(defun radian2degree (rad) (/ (* rad 180) pi))\n{s_expr}"
+                                );
+                                is_rad2deg_printed = true
+                            }
+                            s_expr +=
+                                &format!("(radian2degree ({} ", node.node_kind.to_lisp_op_str());
+                            is_rad2deg = true;
+                        }
                         _ => {
                             s_expr += &format!("({} ", node.node_kind.to_lisp_op_str());
                         }
@@ -425,6 +444,7 @@ impl Parser<'_> {
                         is_var_printed,
                         true & node.right_node.is_some(),
                         is_deg2rad_printed,
+                        is_rad2deg_printed,
                     );
                 }
                 if node.right_node.is_some() {
@@ -434,9 +454,10 @@ impl Parser<'_> {
                         is_var_printed,
                         false,
                         is_deg2rad_printed,
+                        is_rad2deg_printed,
                     );
                 }
-                if is_deg2rad {
+                if is_deg2rad || is_rad2deg {
                     s_expr += ")";
                 }
                 s_expr + ") "
