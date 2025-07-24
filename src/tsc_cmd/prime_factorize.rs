@@ -17,14 +17,14 @@ impl fmt::Display for Factorized {
         {
             if *exp == 1 {
                 if is_last {
-                    write!(f, "{}", base)?;
+                    write!(f, "{base}")?;
                 } else {
-                    write!(f, "{} * ", base)?;
+                    write!(f, "{base} * ")?;
                 }
             } else if is_last {
-                write!(f, "{}^{{{}}}", base, exp)?;
+                write!(f, "{base}^{{{exp}}}")?;
             } else {
-                write!(f, "{}^{{{}}} * ", base, exp)?;
+                write!(f, "{base}^{{{exp}}} * ")?;
             }
         }
         write!(f, "")

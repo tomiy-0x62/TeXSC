@@ -83,12 +83,12 @@ fn main() {
     {
         Ok(conf_file) => {
             if is_repl {
-                eprintln!("config loaded from {:?}", conf_file)
+                eprintln!("config loaded from {conf_file:?}")
             }
         }
         Err(e) => {
             if is_repl {
-                eprintln!("config load failed: {}", e)
+                eprintln!("config load failed: {e}")
             }
         }
     }

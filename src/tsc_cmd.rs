@@ -154,9 +154,9 @@ pub fn process_tsccommand(
             let mut msg = String::new();
             for num in nums {
                 match &*t1.token {
-                    ":hex" => msg += &format!("0x{:X} ", num),
-                    ":dec" => msg += &format!("{} ", num),
-                    ":bin" => msg += &format!("0b{:b} ", num),
+                    ":hex" => msg += &format!("0x{num:X} "),
+                    ":dec" => msg += &format!("{num} "),
+                    ":bin" => msg += &format!("0b{num:b} "),
                     _ => unreachable!(),
                 }
             }
@@ -168,7 +168,7 @@ pub fn process_tsccommand(
                 lexer::TokenKind::TkNum => match Parser::u64_from_str(&t2.token) {
                     Ok(num) => {
                         let res = prime_factorize::factorize(num);
-                        println!("{}", res);
+                        println!("{res}");
                     }
                     Err(e) => return Err(e),
                 },
@@ -213,7 +213,7 @@ pub fn process_tsccommand(
             if t1.token == ":gcd" {
                 let mut msg = String::from("gcd(");
                 for n in &nums {
-                    msg += &format!("{}, ", n);
+                    msg += &format!("{n}, ");
                 }
                 msg.pop();
                 msg.pop();
@@ -222,7 +222,7 @@ pub fn process_tsccommand(
             } else if t1.token == ":redu" {
                 let mut msg = String::new();
                 for n in &nums {
-                    msg += &format!("{} : ", n);
+                    msg += &format!("{n} : ");
                 }
                 msg.pop();
                 msg.pop();
@@ -233,7 +233,7 @@ pub fn process_tsccommand(
                 }
                 msg.pop();
                 msg.pop();
-                println!("{}", msg,);
+                println!("{msg}");
             }
         }
         ":help" => {
@@ -244,8 +244,8 @@ pub fn process_tsccommand(
             consumed_token = 2;
             match &*t2.token {
                 "var" => show_variables(vars)?,
-                "config" => println!("{}", conf),
-                "conf" => println!("{}", conf),
+                "config" => println!("{conf}"),
+                "conf" => println!("{conf}"),
                 "const" => show_const()?,
                 _ => {
                     return Err(MyError::UnexpectedInput(
@@ -267,7 +267,7 @@ fn show_variables(vars: &HashMap<String, BigDecimal>) -> Result<(), MyError> {
     };
     for (name, value) in vars {
         if consts.get(name).is_none() {
-            println!("{:<6}: {}", name, value);
+            println!("{name:<6}: {value}");
         }
     }
     Ok(())
@@ -277,7 +277,7 @@ fn show_const() -> Result<(), MyError> {
     match CONSTS.read() {
         Ok(consts) => {
             for (name, value) in consts.iter() {
-                println!("{:<6}: {}", name, value);
+                println!("{name:<6}: {value}");
             }
             Ok(())
         }

@@ -316,7 +316,7 @@ impl Parser<'_> {
                     NodeKind::Num | NodeKind::Var => match node.val.clone().unwrap() {
                         NumOrVar::Num(n) => msg += &(n.to_string()),
                         NumOrVar::Var(v) => match self.vars.get(&v) {
-                            Some(n) => msg += &format!("{} = {}", v, n),
+                            Some(n) => msg += &format!("{v} = {n}"),
                             None => msg += &v,
                         },
                     },
@@ -342,7 +342,7 @@ impl Parser<'_> {
                     }
                 }
             }
-            eprintln!("{}", msg);
+            eprintln!("{msg}");
         }
         Ok(())
     }
@@ -357,7 +357,7 @@ impl Parser<'_> {
             let mut s_expr = String::new();
             s_expr =
                 self.show_ast_in_s_expr_rec_inner(node, s_expr, &mut HashSet::new(), false, false);
-            eprintln!("{}\n", s_expr);
+            eprintln!("{s_expr}\n");
         }
         Ok(())
     }
@@ -380,7 +380,7 @@ impl Parser<'_> {
                         } else {
                             if let Some(val) = self.vars.get(&v) {
                                 if is_var_printed.get(&v).is_none() {
-                                    s_expr = format!("(defvar {} {})\n{}", v, val, s_expr);
+                                    s_expr = format!("(defvar {v} {val})\n{s_expr}");
                                     is_var_printed.insert(v.clone());
                                 }
                             }
@@ -403,8 +403,7 @@ impl Parser<'_> {
                         NodeKind::Sin | NodeKind::Cos | NodeKind::Tan => {
                             if !is_deg2rad_printed {
                                 s_expr = format!(
-                                    "(defun degree2radian (deg) (/ (* deg pi) 180))\n{}",
-                                    s_expr
+                                    "(defun degree2radian (deg) (/ (* deg pi) 180))\n{s_expr}"
                                 );
                                 is_deg2rad_printed = true
                             }

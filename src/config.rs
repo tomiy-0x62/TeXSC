@@ -91,7 +91,7 @@ impl Config {
                 Err(e) => Err(MyError::TomlDeserializeError(e)),
             }
         } else {
-            Err(MyError::NoConfigErr(format!("{:?}", conf_file)))
+            Err(MyError::NoConfigErr(format!("{conf_file:?}")))
         }
     }
 
@@ -100,7 +100,7 @@ impl Config {
         conf_file.push("config.toml");
         let mut config_file = File::create(conf_file.clone()).unwrap();
         let config_toml = toml::to_string(self).expect("couldn't serialize config");
-        write!(config_file, "{}", config_toml).expect("couldn't write config to config.toml");
+        write!(config_file, "{config_toml}").expect("couldn't write config to config.toml");
         config_file.flush().expect("failed flush file I/O");
         Ok(conf_file)
     }
@@ -124,12 +124,11 @@ impl Config {
                 match fs::create_dir(conf_path.clone()) {
                     Ok(()) => Ok(conf_path),
                     Err(e) => Err(MyError::ConfigWriteErr(format!(
-                        "couldn't create {:?}, {}",
-                        conf_path, e
+                        "couldn't create {conf_path:?}, {e}"
                     ))),
                 }
             } else {
-                Err(MyError::ConfigLoadErr(format!("not found {:?}", conf_path)))
+                Err(MyError::ConfigLoadErr(format!("not found {conf_path:?}")))
             }
         } else {
             Err(MyError::ConfigLoadErr("couldn't get home dir".to_string()))
