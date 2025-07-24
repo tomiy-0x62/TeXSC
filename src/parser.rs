@@ -107,9 +107,9 @@ impl NodeKind {
             NodeKind::Sin => "sin".to_string(),
             NodeKind::Cos => "cos".to_string(),
             NodeKind::Tan => "tan".to_string(),
-            NodeKind::Csc => "Csc".to_string(),
-            NodeKind::Sec => "Sec".to_string(),
-            NodeKind::Cot => "Cot".to_string(),
+            NodeKind::Csc => "csc".to_string(),
+            NodeKind::Sec => "sec".to_string(),
+            NodeKind::Cot => "cot".to_string(),
             NodeKind::AcSin => "asin".to_string(),
             NodeKind::AcCos => "acos".to_string(),
             NodeKind::AcTan => "atan".to_string(),
@@ -355,14 +355,7 @@ impl Parser<'_> {
             || conf.ast_format == AstFormat::Both;
         if is_show_ast {
             let mut s_expr = String::new();
-            s_expr = self.show_ast_in_s_expr_rec_inner(
-                node,
-                s_expr,
-                &mut HashSet::new(),
-                false,
-                false,
-                false,
-            );
+            s_expr = self.show_ast_in_s_expr_rec_inner(node, s_expr, &mut HashSet::new(), false);
             eprintln!("{s_expr}\n");
         }
         Ok(())
@@ -372,10 +365,8 @@ impl Parser<'_> {
         &self,
         node: &Node,
         mut s_expr: String,
-        is_var_printed: &mut HashSet<String>,
+        is_var_fn_printed: &mut HashSet<String>,
         is_2arg_left: bool,
-        mut is_deg2rad_printed: bool,
-        mut is_rad2deg_printed: bool,
     ) -> String {
         match node.node_kind {
             NodeKind::Num | NodeKind::Var => {
@@ -386,9 +377,9 @@ impl Parser<'_> {
                             s_expr += "pi"
                         } else {
                             if let Some(val) = self.vars.get(&v) {
-                                if is_var_printed.get(&v).is_none() {
+                                if is_var_fn_printed.get(&v).is_none() {
                                     s_expr = format!("(defvar {v} {val})\n{s_expr}");
-                                    is_var_printed.insert(v.clone());
+                                    is_var_fn_printed.insert(v.clone());
                                 }
                             }
                             s_expr += &v
@@ -408,23 +399,49 @@ impl Parser<'_> {
                     == TrigFuncArg::Degree
                 {
                     match node.node_kind {
-                        NodeKind::Sin | NodeKind::Cos | NodeKind::Tan => {
-                            if !is_deg2rad_printed {
+                        NodeKind::Sin
+                        | NodeKind::Cos
+                        | NodeKind::Tan
+                        | NodeKind::Csc
+                        | NodeKind::Sec
+                        | NodeKind::Cot => {
+                            match node.node_kind {
+                                NodeKind::Csc => {
+                                    if !is_var_fn_printed.contains("csc") {
+                                        s_expr = format!("(defun csc (x) (/ 1 (sin x)))\n{s_expr}");
+                                        is_var_fn_printed.insert("csc".to_string());
+                                    }
+                                }
+                                NodeKind::Sec => {
+                                    if !is_var_fn_printed.contains("sec") {
+                                        s_expr = format!("(defun sec (x) (/ 1 (cos x)))\n{s_expr}");
+                                        is_var_fn_printed.insert("sec".to_string());
+                                    }
+                                }
+                                NodeKind::Cot => {
+                                    if !is_var_fn_printed.contains("cot") {
+                                        s_expr = format!("(defun cot (x) (/ 1 (tan x)))\n{s_expr}");
+                                        is_var_fn_printed.insert("cot".to_string());
+                                    }
+                                }
+                                _ => {}
+                            }
+                            if !is_var_fn_printed.contains("degree2radian") {
                                 s_expr = format!(
                                     "(defun degree2radian (deg) (/ (* deg pi) 180))\n{s_expr}"
                                 );
-                                is_deg2rad_printed = true
+                                is_var_fn_printed.insert("degree2radian".to_string());
                             }
                             s_expr +=
                                 &format!("({} (degree2radian ", node.node_kind.to_lisp_op_str());
                             is_deg2rad = true;
                         }
                         NodeKind::AcSin | NodeKind::AcCos | NodeKind::AcTan => {
-                            if !is_rad2deg_printed {
+                            if !is_var_fn_printed.contains("radian2degree") {
                                 s_expr = format!(
                                     "(defun radian2degree (rad) (/ (* rad 180) pi))\n{s_expr}"
                                 );
-                                is_rad2deg_printed = true
+                                is_var_fn_printed.insert("radian2degree".to_string());
                             }
                             s_expr +=
                                 &format!("(radian2degree ({} ", node.node_kind.to_lisp_op_str());
@@ -435,26 +452,47 @@ impl Parser<'_> {
                         }
                     }
                 } else {
-                    s_expr += &format!("({} ", node.node_kind.to_lisp_op_str());
+                    match node.node_kind {
+                        NodeKind::Csc => {
+                            if !is_var_fn_printed.contains("csc") {
+                                s_expr = format!("(defun csc (x) (/ 1 (sin x)))\n{s_expr}");
+                                is_var_fn_printed.insert("csc".to_string());
+                            }
+                            s_expr += &format!("({} ", node.node_kind.to_lisp_op_str());
+                        }
+                        NodeKind::Sec => {
+                            if !is_var_fn_printed.contains("sec") {
+                                s_expr = format!("(defun sec (x) (/ 1 (cos x)))\n{s_expr}");
+                                is_var_fn_printed.insert("sec".to_string());
+                            }
+                            s_expr += &format!("({} ", node.node_kind.to_lisp_op_str());
+                        }
+                        NodeKind::Cot => {
+                            if !is_var_fn_printed.contains("cot") {
+                                s_expr = format!("(defun cot (x) (/ 1 (tan x)))\n{s_expr}");
+                                is_var_fn_printed.insert("cot".to_string());
+                            }
+                            s_expr += &format!("({} ", node.node_kind.to_lisp_op_str());
+                        }
+                        _ => {
+                            s_expr += &format!("({} ", node.node_kind.to_lisp_op_str());
+                        }
+                    }
                 }
                 if node.left_node.is_some() {
                     s_expr = self.show_ast_in_s_expr_rec_inner(
                         node.left_node.as_ref().unwrap(),
                         s_expr,
-                        is_var_printed,
+                        is_var_fn_printed,
                         true & node.right_node.is_some(),
-                        is_deg2rad_printed,
-                        is_rad2deg_printed,
                     );
                 }
                 if node.right_node.is_some() {
                     s_expr = self.show_ast_in_s_expr_rec_inner(
                         node.right_node.as_ref().unwrap(),
                         s_expr,
-                        is_var_printed,
+                        is_var_fn_printed,
                         false,
-                        is_deg2rad_printed,
-                        is_rad2deg_printed,
                     );
                 }
                 if is_deg2rad || is_rad2deg {
