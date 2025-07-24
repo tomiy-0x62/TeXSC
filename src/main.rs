@@ -172,8 +172,7 @@ fn process_form(
     match calc(*ast_root, vars) {
         Ok(result) => {
             debugln!("resutl: {}", result);
-            // println!("{}", num_formatter(result, num_of_digit));
-            println!("{}", result);
+            println!("{}", num_formatter(result.clone(), num_of_digit));
             Ok(result)
         }
         Err(e) => Err(e),
