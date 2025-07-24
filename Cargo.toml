@@ -2,7 +2,7 @@
 name = "tsc"
 version = "0.3.0"
 authors = ["tomiy <tomiy@tomiylab.com>"]
-edition = "2021"
+edition = "2024"
 description = "TeXSC: TeX Scientific Calculator"
 license-file = "LICENSE"
 readme = "README.md"
