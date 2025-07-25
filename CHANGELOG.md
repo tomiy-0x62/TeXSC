@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.3.1](https://github.com/tomiy-0x62/TeXSC/releases/tag/0.3.1) (2025-07-25)
+
+**Implemented enhancements:**
+
++ add full support for `\log` and `\ln` in S-expr AST
+
++ add support for `\csc`, `\sec` and `\cot` in S-expr AST
+
+**Fixed bugs:**
+
++ Fix incorrect Arc{Sin|Cos|Tan} calculations when trig_func_arg is set to degrees
+
 ## [0.3.0](https://github.com/tomiy-0x62/TeXSC/releases/tag/0.3.0) (2025-07-24)
 
 **Implemented enhancements:**
