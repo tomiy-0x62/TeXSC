@@ -1,4 +1,4 @@
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, FromPrimitive};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::str::FromStr;
@@ -115,7 +115,7 @@ impl NodeKind {
             NodeKind::AcTan => "atan".to_string(),
             NodeKind::Sqrt => "sqrt".to_string(),
             NodeKind::Log => "log".to_string(),
-            NodeKind::Ln => "Ln".to_string(),
+            NodeKind::Ln => "log".to_string(),
             NodeKind::Abs => "abs".to_string(),
             NodeKind::Exp => "exp".to_string(),
             NodeKind::Add => "+".to_string(),
@@ -497,6 +497,16 @@ impl Parser<'_> {
                 }
                 if is_deg2rad || is_rad2deg {
                     s_expr += ")";
+                }
+                if let NodeKind::Log = node.node_kind {
+                    let log_base = &config_reader().expect("couldn't read config").log_base;
+                    if *log_base != BigDecimal::from_f64(std::f64::consts::E).unwrap() {
+                        if s_expr.ends_with(" ") {
+                            s_expr += &format!("{}", log_base);
+                        } else {
+                            s_expr += &format!(" {}", log_base);
+                        }
+                    }
                 }
                 s_expr + ") "
             }
