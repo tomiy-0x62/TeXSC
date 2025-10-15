@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.3.2](https://github.com/tomiy-0x62/TeXSC/releases/tag/0.3.2) (2025-10-16)
+
+**Implemented enhancements:**
+
++ change behaviour of tsc command that change output format such as `:hex`, `:dec` and `:bin`
+
++ add support for octal number literal
+
++ add new tsc command `:oct`
+
 ## [0.3.1](https://github.com/tomiy-0x62/TeXSC/releases/tag/0.3.1) (2025-07-25)
 
 **Implemented enhancements:**
