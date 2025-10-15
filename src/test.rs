@@ -17,7 +17,9 @@ fn test_calc() {
         for line in tc.formula.split('\n') {
             match crate::process_form(line.replace("\r", ""), &mut vars) {
                 Ok(r) => {
-                    if (r.clone() - tc.result.clone()).abs() < BigDecimal::from_f64(0.0001).unwrap()
+                    assert_eq!(r.len(), 1);
+                    if (r[0].clone() - tc.result.clone()).abs()
+                        < BigDecimal::from_f64(0.0001).unwrap()
                     {
                         writeln!(
                             &mut std::io::stderr(),
@@ -36,7 +38,7 @@ fn test_calc() {
                             "CALCULATION FAILED ".red(),
                             tc.formula,
                             tc.result,
-                            r
+                            r[0]
                         )
                         .unwrap();
                     }

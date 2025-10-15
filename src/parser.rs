@@ -136,6 +136,26 @@ pub enum NumOrVar {
     Var(String),
 }
 
+pub enum TscCmd {
+    Hex,
+    Dec,
+    Bin,
+}
+impl fmt::Display for TscCmd {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TscCmd::Hex => write!(f, ":hex"),
+            TscCmd::Dec => write!(f, ":dec"),
+            TscCmd::Bin => write!(f, ":bin"),
+        }
+    }
+}
+
+pub enum NodeOrCmd {
+    Node(Box<Node>),
+    TscCmd(TscCmd),
+}
+
 pub struct Node {
     pub node_kind: NodeKind,
     pub right_node: Option<Box<Node>>,
@@ -173,23 +193,23 @@ impl Parser<'_> {
         let mut to_delete_el = Vec::<usize>::new();
         for i in 0..lex.tokens.len() {
             if lex.tokens[i].token == "," {
-                to_delete_el.push(i);
                 match lex.tokens[i + 1].token_kind {
-                    lexer::TokenKind::TkVariable => to_delete_el.push(i + 1),
-                    tk => {
-                        return Err(MyError::NotTkVariable(
-                            tk.to_string(),
-                            lex.format_err_loc_idx(i + 1),
-                        ))
+                    lexer::TokenKind::TkVariable => {
+                        if lex.tokens[i + 2].token != "=" {
+                            // "," is separator
+                            continue;
+                        } else {
+                            // 変数定義: ", {var} = {value}"
+                            to_delete_el.push(i);
+                            to_delete_el.push(i + 1);
+                            to_delete_el.push(i + 2);
+                        }
+                    }
+                    _tk => {
+                        // "," is separator
+                        continue;
                     }
                 }
-                if lex.tokens[i + 2].token != "=" {
-                    return Err(MyError::UnexpectedToken(
-                        "=".to_string(),
-                        lex.tokens[i + 2].token.clone(),
-                    ));
-                }
-                to_delete_el.push(i + 2);
                 match lex.tokens[i + 3].token_kind {
                     lexer::TokenKind::TkNum => {
                         match Parser::bigdecimal_from_str(&lex.tokens[i + 3].token) {
@@ -234,9 +254,8 @@ impl Parser<'_> {
                 }
                 to_delete_el.push(i + 3);
             } else if let lexer::TokenKind::TkTscCommand = lex.tokens[i].token_kind {
-                to_delete_el.push(i);
                 let consumed = tsc_cmd::process_tsccommand(&lex, i, vars)?;
-                for n in 1..consumed {
+                for n in 0..consumed {
                     to_delete_el.push(i + n)
                 }
             }
@@ -257,20 +276,27 @@ impl Parser<'_> {
         Ok(Parser { lex, vars })
     }
 
-    pub fn build_ast(&mut self) -> Result<Box<Node>, MyError> {
+    pub fn build_ast(&mut self) -> Result<Vec<NodeOrCmd>, MyError> {
         if self.lex.is_eot() {
             return Err(MyError::NoToken);
         }
-        let ast = self.expr()?;
+        let ast_or_cmd_vec = self.expr_vec()?;
         if !self.lex.is_eot() {
             return Err(MyError::UnprocessedToekn(
                 self.lex.now_token().to_string(),
                 self.lex.format_err_loc(),
             ));
         }
-        self.show_ast(&ast)?;
-        self.show_ast_in_s_expr_rec(&ast)?;
-        Ok(ast)
+        for ast_or_cmd in &ast_or_cmd_vec {
+            match ast_or_cmd {
+                NodeOrCmd::Node(ast) => {
+                    self.show_ast(ast)?;
+                    self.show_ast_in_s_expr_rec(ast)?;
+                }
+                NodeOrCmd::TscCmd(_) => {}
+            }
+        }
+        Ok(ast_or_cmd_vec)
     }
 
     fn show_ast(&self, ast: &Node) -> Result<(), MyError> {
@@ -501,9 +527,9 @@ impl Parser<'_> {
                     let log_base = &config_reader().expect("couldn't read config").log_base;
                     if *log_base != BigDecimal::from_f64(std::f64::consts::E).unwrap() {
                         if s_expr.ends_with(" ") {
-                            s_expr += &format!("{}", log_base);
+                            s_expr += &format!("{log_base}");
                         } else {
-                            s_expr += &format!(" {}", log_base);
+                            s_expr += &format!(" {log_base}");
                         }
                     }
                 }
@@ -890,14 +916,57 @@ impl Parser<'_> {
     }
 
     /*
+    expr_vec  = ","? (expr | tsc_cmd) (","? expr | ","? tsc_cmd)*
+    tsc_cmd   = ":hex" | ":dec" | ":bin"
     expr      = mul ("+" mul | "-" mul)*
     mul       = noobmul  ("*" noobmul | "/" noobmul | "\cdto" noobmul | "\times" noobmul | "\div" noobmul)*
-    noobmul    = sigend (expo)*
+    noobmul   = sigend (expo)*
     signed    = "-"? expo
     expo      = primary ("^" "{" expr "}")*
     primary   = num | "(" expr ")" | "\frac" "{" expr "}" "{" expr "}" | "\sqrt" "{" expr "} | "\exp" "(" expr ")" | "\abs" "(" expr ")"
                 | "\log"  signed | "\ln" signed | "\sin" signed | "\cos" signed | "\tan" signed | "\csc" signed | "\sec" signed | "\cot" signed
     */
+    /*
+    fn signed(&mut self) -> Result<Box<Node>, MyError> {
+        if self.lex.consume("-".to_string()) {
+            let mut node = self.expo()?;
+            node = Parser::new_unary_node(NodeKind::Neg, node);
+            Ok(node)
+        } else {
+            Ok(self.expo()?)
+        }
+    }
+    */
+
+    fn expr_vec(&mut self) -> Result<Vec<NodeOrCmd>, MyError> {
+        let mut res = Vec::new();
+        loop {
+            let _b = self.lex.consume_seq();
+            if _b {
+                debugln!("consume sqp");
+            }
+            match self.lex.consume_tsc_cmd() {
+                Ok(tsc_cmd) => {
+                    debugln!("expr_vec: create TscCmd {tsc_cmd}");
+                    res.push(NodeOrCmd::TscCmd(tsc_cmd));
+                }
+                Err(e) => match e {
+                    MyError::NotTkTscCmd => {
+                        let node = self.expr()?;
+                        res.push(NodeOrCmd::Node(node));
+                    }
+                    MyError::UDcommandErr(e) => {
+                        return Err(MyError::UDcommandErr(e));
+                    }
+                    _ => unreachable!(),
+                },
+            }
+            if self.lex.is_eot() {
+                break;
+            }
+        }
+        Ok(res)
+    }
 
     fn expr(&mut self) -> Result<Box<Node>, MyError> {
         let mut node: Box<Node> = self.mul()?;
@@ -938,15 +1007,19 @@ impl Parser<'_> {
             self.lex.save_ctx();
             match self.expo() {
                 Ok(n) => {
-                    self.lex.discard_ctx()?;
                     match n.node_kind {
                         NodeKind::Num => {
+                            /*
                             return Err(MyError::InvalidInput(
                                 "don't allowed nulmber literal on right operand of noobvious mul"
                                     .to_string(),
                             ));
+                            */
+                            self.lex.revert_ctx()?;
+                            return Ok(node);
                         }
                         _ => {
+                            self.lex.discard_ctx()?;
                             node = Parser::new_node(NodeKind::Mul, node, n);
                         }
                     }

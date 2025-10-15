@@ -1,5 +1,7 @@
 use crate::math_functions::pow;
 use bigdecimal::BigDecimal;
+use num_bigint::{Sign, ToBigInt};
+use num_traits::Signed;
 
 pub fn num_formatter(num: BigDecimal, significant_figure: u32) -> String {
     if significant_figure == 0 {
@@ -26,6 +28,44 @@ pub fn num_formatter(num: BigDecimal, significant_figure: u32) -> String {
         let rounded = num.round(0) / 10.0_f64.powf((a - significant_figure) as f64);
         let fraction = rounded / 10.0_f64.powf((significant_figure - 1) as f64);
         format!("{} * 10^{}", fraction, a - 1).to_string()
+    }
+}
+
+pub fn num_hex_formatter(num: BigDecimal, significant_figure: u32) -> String {
+    if num.is_integer() {
+        let bigint = num.to_bigint().unwrap();
+        match bigint.sign() {
+            Sign::Minus => format!("-0x{}", bigint.abs().to_str_radix(16)),
+            _ => format!("0x{}", bigint.to_str_radix(16)),
+        }
+    } else {
+        num_formatter(num, significant_figure)
+    }
+}
+
+pub fn num_bin_formatter(num: BigDecimal, significant_figure: u32) -> String {
+    if num.is_integer() {
+        let bigint = num.to_bigint().unwrap();
+        let sign = match bigint.sign() {
+            Sign::Minus => "-",
+            _ => "",
+        };
+        let num_bin = bigint.abs().to_str_radix(2);
+        let len = ((num_bin.len() - 1) / 8 + 1) * 8;
+        let pad_len = len - num_bin.len();
+        let mut zeros = "00000000".to_string();
+        zeros.truncate(pad_len);
+        let pad_added = format!("{zeros}{num_bin}");
+        let sep_added = pad_added
+            .as_bytes()
+            .chunks(8)
+            .map(std::str::from_utf8)
+            .collect::<Result<Vec<&str>, _>>()
+            .unwrap()
+            .join("_");
+        format!("{sign}0b{sep_added}")
+    } else {
+        num_formatter(num, significant_figure)
     }
 }
 

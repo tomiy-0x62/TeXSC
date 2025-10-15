@@ -42,6 +42,8 @@ pub enum MyError {
     NotTkBrace(String, String, String),
     #[error("expected TkVariable but {0}\n{1}")]
     NotTkVariable(String, String),
+    #[error("expected TkTscCmd but not")]
+    NotTkTscCmd,
     #[error("undefined variable '{0}'")]
     UDvariableErr(String),
     #[error("expected {0} but {1}")]

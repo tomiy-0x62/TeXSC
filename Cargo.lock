@@ -615,6 +615,7 @@ dependencies = [
  "bigdecimal",
  "clap",
  "dirs",
+ "num-bigint",
  "num-traits",
  "regex",
  "rustyline",

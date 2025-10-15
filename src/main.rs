@@ -11,7 +11,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::sync::{LazyLock, RwLock};
 
-use parser::NodeKind;
+use parser::{NodeKind, NodeOrCmd, TscCmd};
 use text_colorizer::*;
 
 mod config;
@@ -27,7 +27,7 @@ mod test;
 
 use config::*;
 use error::*;
-use num_formatter::num_formatter;
+use num_formatter::{num_bin_formatter, num_formatter, num_hex_formatter};
 
 pub static CONFIG: LazyLock<RwLock<Config>> = LazyLock::new(|| {
     RwLock::new(config::Config {
@@ -155,28 +155,60 @@ fn main() {
     }
 }
 
+enum OutpuFormat {
+    Default,
+    Hex,
+    Dec,
+    Bin,
+}
+
 fn process_form(
     form: String,
     vars: &mut HashMap<String, BigDecimal>,
-) -> Result<BigDecimal, MyError> {
+) -> Result<Vec<BigDecimal>, MyError> {
     let lex = parser::lexer::Lexer::new(form)?;
     let mut _pars = parser::Parser::new(lex, vars)?;
     _pars.print_vars();
-    let ast_root = _pars.build_ast()?;
+    let ast_or_cmd_vec = _pars.build_ast()?;
     let num_of_digit = match config_reader() {
         Ok(c) => c.num_of_digit,
         Err(e) => {
             return Err(e);
         }
     };
-    match calc(*ast_root, vars) {
-        Ok(result) => {
-            debugln!("resutl: {}", result);
-            println!("{}", num_formatter(result.clone(), num_of_digit));
-            Ok(result)
+    let mut res = Vec::new();
+    let mut out_from = OutpuFormat::Default;
+    for ast_or_cmd in ast_or_cmd_vec {
+        match ast_or_cmd {
+            NodeOrCmd::Node(ast_root) => match calc(*ast_root, vars) {
+                Ok(result) => {
+                    debugln!("resutl: {}", result);
+                    res.push(result.clone());
+                    match out_from {
+                        OutpuFormat::Default => {
+                            println!("{}", num_formatter(result.clone(), num_of_digit));
+                        }
+                        OutpuFormat::Hex => {
+                            println!("{}", num_hex_formatter(result.clone(), num_of_digit));
+                        }
+                        OutpuFormat::Dec => {
+                            println!("{}", num_formatter(result.clone(), 0));
+                        }
+                        OutpuFormat::Bin => {
+                            println!("{}", num_bin_formatter(result.clone(), num_of_digit));
+                        }
+                    }
+                }
+                Err(e) => return Err(e),
+            },
+            parser::NodeOrCmd::TscCmd(cmd) => match cmd {
+                TscCmd::Hex => out_from = OutpuFormat::Hex,
+                TscCmd::Dec => out_from = OutpuFormat::Dec,
+                TscCmd::Bin => out_from = OutpuFormat::Bin,
+            },
         }
-        Err(e) => Err(e),
     }
+    Ok(res)
 }
 
 fn calc(node: parser::Node, vars: &HashMap<String, BigDecimal>) -> Result<BigDecimal, MyError> {

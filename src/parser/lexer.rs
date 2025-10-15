@@ -2,6 +2,7 @@ use regex::Regex;
 use std::fmt;
 use text_colorizer::*;
 
+use super::TscCmd;
 use crate::debug;
 use crate::debugln;
 use crate::error::*;
@@ -14,6 +15,7 @@ pub enum TokenKind {
     TkVariable,
     TkNum,
     TkBrace,
+    TkSeparaotr,
     TkEOT,
 }
 
@@ -31,6 +33,7 @@ impl fmt::Display for TokenKind {
             TokenKind::TkVariable => write!(f, "TkVariable"),
             TokenKind::TkNum => write!(f, "TkNum"),
             TokenKind::TkBrace => write!(f, "TkBrace"),
+            TokenKind::TkSeparaotr => write!(f, "TkSeparaotr"),
             TokenKind::TkEOT => write!(f, "TkEOT"),
         }
     }
@@ -110,6 +113,7 @@ impl Lexer {
         match self.tokens[self.token_idx].token_kind {
             TokenKind::TkOperator => (),
             TokenKind::TkBrace => (),
+            TokenKind::TkSeparaotr => (),
             TokenKind::TkTexCommand => (),
             _ => return false,
         }
@@ -118,6 +122,31 @@ impl Lexer {
             true
         } else {
             false
+        }
+    }
+
+    pub fn consume_seq(&mut self) -> bool {
+        if let TokenKind::TkSeparaotr = self.tokens[self.token_idx].token_kind {
+            self.token_idx += 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn consume_tsc_cmd(&mut self) -> Result<TscCmd, MyError> {
+        match self.tokens[self.token_idx].token_kind {
+            TokenKind::TkTscCommand => {
+                let token = &*self.tokens[self.token_idx].token;
+                self.token_idx += 1;
+                Ok(match token {
+                    ":hex" => TscCmd::Hex,
+                    ":dec" => TscCmd::Dec,
+                    ":bin" => TscCmd::Bin,
+                    cmd => return Err(MyError::UDcommandErr(cmd.to_string())),
+                })
+            }
+            _ => Err(MyError::NotTkTscCmd),
         }
     }
 
@@ -186,10 +215,11 @@ impl Lexer {
     ) -> Result<(), MyError> {
         let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap();
         let tsc_command = Regex::new(r":[A-Za-z]*").unwrap();
-        let operator = Regex::new(r"\+|-|\*|=|/|!|_|,|\^|\|").unwrap();
+        let operator = Regex::new(r"\+|-|\*|=|/|!|_|\^|\|").unwrap();
         let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap();
         let num = Regex::new(r"0x[0-9a-fA-F]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap();
         let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap();
+        let separator = Regex::new(r",").unwrap();
         let mut processed_form_idx = 0;
 
         'search: loop {
@@ -266,6 +296,11 @@ impl Lexer {
             } else if let Some(caps) = braces.captures(&c.to_string()) {
                 let token = caps.get(0).unwrap().as_str().to_string();
                 push_token!(token, TkBrace);
+                formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
+                ismatch = true;
+            } else if let Some(caps) = separator.captures(&c.to_string()) {
+                let token = caps.get(0).unwrap().as_str().to_string();
+                push_token!(token, TkSeparaotr);
                 formulas = formulas.replacen(caps.get(0).unwrap().as_str(), "", 1);
                 ismatch = true;
             } else if num.captures(&c.to_string()).is_some() {

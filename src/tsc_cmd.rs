@@ -135,32 +135,7 @@ pub fn process_tsccommand(
             }
         }
         ":hex" | ":dec" | ":bin" => {
-            let mut counter = 0;
-            let mut nums = Vec::new();
-            loop {
-                let t = &lex.tokens[cmd_idx + 1 + counter];
-                match t.token_kind {
-                    lexer::TokenKind::TkNum => match Parser::u64_from_str(&t.token) {
-                        Ok(num) => {
-                            nums.push(num);
-                            counter += 1;
-                        }
-                        Err(e) => return Err(e),
-                    },
-                    _ => break,
-                }
-            }
-            consumed_token = counter + 1;
-            let mut msg = String::new();
-            for num in nums {
-                match &*t1.token {
-                    ":hex" => msg += &format!("0x{num:X} "),
-                    ":dec" => msg += &format!("{num} "),
-                    ":bin" => msg += &format!("0b{num:b} "),
-                    _ => unreachable!(),
-                }
-            }
-            println!("{msg}");
+            consumed_token = 0;
         }
         ":fact" => {
             consumed_token = 2;
@@ -308,11 +283,11 @@ fn cmd_help() {
     {: <12}
         reload config
     {: <12}
-        show numbers in hexadecimal formats
+        after this command show value of expression in hexadecimal formats
     {: <12}
-        show numbers in decimal formats
+        after this command show value of expression in decimal formats
     {: <12}
-        show numbers in binary formats
+        after this command show value of expression in binary formats which 0-pad to the nearest octet boundary
     {: <12}
         prime factorize number
     {: <12}
@@ -332,9 +307,9 @@ fn cmd_help() {
         ":astform {tree|sexpr|both|none}".green(),
         ":write conf".green(),
         ":reload conf".green(),
-        ":hex {num(u64)} ...".green(),
-        ":dec {num(u64)} ...".green(),
-        ":bin {num(u64)} ...".green(),
+        ":hex {tex formulas} ...".green(),
+        ":dec {tex formulas} ...".green(),
+        ":bin {tex formulas} ...".green(),
         ":fact {num(u64)}".green(),
         ":gcd {num(u64)} {num(u64)} ...".green(),
         ":redu {num(u64)} {num(u64)} ...".green(),
