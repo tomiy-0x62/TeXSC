@@ -40,9 +40,9 @@ pub fn factorize(num: u64) -> Factorized {
     for i in 2..num {
         if i * i > num {
             break;
-        } else if n % i == 0 {
+        } else if n.is_multiple_of(i) {
             let mut exp = 0;
-            while n % i == 0 {
+            while n.is_multiple_of(i) {
                 n /= i;
                 exp += 1;
             }

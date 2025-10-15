@@ -168,7 +168,7 @@ impl Parser<'_> {
     pub fn new(
         mut lex: lexer::Lexer,
         vars: &mut HashMap<String, BigDecimal>,
-    ) -> Result<Parser, MyError> {
+    ) -> Result<Parser<'_>, MyError> {
         // lex から varsを構築
         let mut to_delete_el = Vec::<usize>::new();
         for i in 0..lex.tokens.len() {
@@ -376,11 +376,10 @@ impl Parser<'_> {
                         if v == "\\pi" {
                             s_expr += "pi"
                         } else {
-                            if let Some(val) = self.vars.get(&v) {
-                                if is_var_fn_printed.get(&v).is_none() {
+                            if let Some(val) = self.vars.get(&v)
+                                && is_var_fn_printed.get(&v).is_none() {
                                     s_expr = format!("(defvar {v} {val})\n{s_expr}");
                                     is_var_fn_printed.insert(v.clone());
-                                }
                             }
                             s_expr += &v
                         }
