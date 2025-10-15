@@ -55,7 +55,7 @@ pub struct Lexer {
 
 /*
 tokenの種類
-- 数値リテラル: 0x54, 0b100011, 534
+- 数値リテラル: 0x54, 0b100011, 534, 052
 - TeXコマンド: \log, \sum
 - コマンド: sin, cos
 - かっこ: (, ), {, }
@@ -143,6 +143,7 @@ impl Lexer {
                     ":hex" => TscCmd::Hex,
                     ":dec" => TscCmd::Dec,
                     ":bin" => TscCmd::Bin,
+                    ":oct" => TscCmd::Oct,
                     cmd => return Err(MyError::UDcommandErr(cmd.to_string())),
                 })
             }
@@ -217,7 +218,7 @@ impl Lexer {
         let tsc_command = Regex::new(r":[A-Za-z]*").unwrap();
         let operator = Regex::new(r"\+|-|\*|=|/|!|_|\^|\|").unwrap();
         let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap();
-        let num = Regex::new(r"0x[0-9a-fA-F]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap();
+        let num = Regex::new(r"0x[0-9a-fA-F]+|0[0-7]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap();
         let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap();
         let separator = Regex::new(r",").unwrap();
         let mut processed_form_idx = 0;

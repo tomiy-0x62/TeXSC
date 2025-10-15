@@ -24,6 +24,8 @@ pub enum MyError {
     InvalidHexFormat(String),
     #[error("Invalid binary format '{0}'")]
     InvalidBinFormat(String),
+    #[error("Invalid octal format '{0}'")]
+    InvalidOctalFormat(String),
     #[error("couldn't parse Float. {0}")]
     ParseFloatError(#[from] ParseFloatError),
     #[error("couldn't parse BigDecimal. {0}")]

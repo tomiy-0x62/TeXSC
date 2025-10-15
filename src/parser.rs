@@ -140,6 +140,7 @@ pub enum TscCmd {
     Hex,
     Dec,
     Bin,
+    Oct,
 }
 impl fmt::Display for TscCmd {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -147,6 +148,7 @@ impl fmt::Display for TscCmd {
             TscCmd::Hex => write!(f, ":hex"),
             TscCmd::Dec => write!(f, ":dec"),
             TscCmd::Bin => write!(f, ":bin"),
+            TscCmd::Oct => write!(f, ":oct"),
         }
     }
 }
@@ -810,6 +812,42 @@ impl Parser<'_> {
         Ok(num)
     }
 
+    fn oct2dec_f64(num_str: &str) -> Result<f64, MyError> {
+        let mut num: f64 = 0.0;
+        let mut figure: f64 = 1.0;
+        for i in num_str.chars() {
+            match f64::from_str(&i.to_string()) {
+                Ok(n) => {
+                    if n > 7.0_f64 {
+                        return Err(MyError::InvalidOctalFormat(num_str.to_string()));
+                    }
+                    num += n * 8.0_f64.powf(num_str.len() as f64 - figure);
+                    figure += 1.0;
+                }
+                Err(e) => return Err(MyError::ParseFloatError(e)),
+            }
+        }
+        Ok(num)
+    }
+
+    fn oct2dec_u64(num_str: &str) -> Result<u64, MyError> {
+        let mut num: u64 = 0;
+        let mut figure: u32 = 1;
+        for i in num_str.chars() {
+            match u64::from_str(&i.to_string()) {
+                Ok(n) => {
+                    if n > 7 {
+                        return Err(MyError::InvalidOctalFormat(num_str.to_string()));
+                    }
+                    num += n * 8_u64.pow(num_str.len() as u32 - figure);
+                    figure += 1;
+                }
+                Err(e) => return Err(MyError::ParseIntError(e)),
+            }
+        }
+        Ok(num)
+    }
+
     pub fn bigdecimal_from_str(num_str: &str) -> Result<BigDecimal, MyError> {
         if num_str.len() < 2 {
             match BigDecimal::from_str(num_str) {
@@ -817,14 +855,22 @@ impl Parser<'_> {
                 Err(e) => Err(MyError::ParseBigDecimalError(e)),
             }
         } else {
-            match &num_str[0..2] {
-                "0x" => {
-                    let num = Parser::hex2dec_u64(&num_str[2..])?;
-                    Ok(BigDecimal::from(num))
-                }
-                "0b" => {
-                    let num = Parser::bin2dec_u64(&num_str[2..])?;
-                    Ok(BigDecimal::from(num))
+            match &num_str[0..1] {
+                "0" => {
+                    match &num_str[0..2] {
+                        "0x" => {
+                            let num = Parser::hex2dec_u64(&num_str[2..])?;
+                            Ok(BigDecimal::from(num))
+                        }
+                        "0b" => {
+                            let num = Parser::bin2dec_u64(&num_str[2..])?;
+                            Ok(BigDecimal::from(num))
+                        }
+                        _ => {
+                            let num = Parser::oct2dec_u64(&num_str[1..])?;
+                            Ok(BigDecimal::from(num))
+                        },
+                    }
                 }
                 _ => match BigDecimal::from_str(num_str) {
                     Ok(num) => Ok(num),
@@ -841,9 +887,14 @@ impl Parser<'_> {
                 Err(e) => Err(MyError::ParseFloatError(e)),
             }
         } else {
-            match &num_str[0..2] {
-                "0x" => Parser::hex2dec_f64(&num_str[2..]),
-                "0b" => Parser::bin2dec_f64(&num_str[2..]),
+            match &num_str[0..1] {
+                "0" => {
+                    match &num_str[0..2] {
+                        "0x" => Parser::hex2dec_f64(&num_str[2..]),
+                        "0b" => Parser::bin2dec_f64(&num_str[2..]),
+                        _ => Parser::oct2dec_f64(&num_str[1..]),
+                    }
+                }
                 _ => match f64::from_str(num_str) {
                     Ok(num) => Ok(num),
                     Err(e) => Err(MyError::ParseFloatError(e)),

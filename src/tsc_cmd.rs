@@ -134,7 +134,7 @@ pub fn process_tsccommand(
                 }
             }
         }
-        ":hex" | ":dec" | ":bin" => {
+        ":hex" | ":dec" | ":bin" | ":oct" => {
             consumed_token = 0;
         }
         ":fact" => {
@@ -289,6 +289,8 @@ fn cmd_help() {
     {: <12}
         after this command show value of expression in binary formats which 0-pad to the nearest octet boundary
     {: <12}
+        after this command show value of expression in octal formats
+    {: <12}
         prime factorize number
     {: <12}
         calcuate greatest common divisor
@@ -310,6 +312,7 @@ fn cmd_help() {
         ":hex {tex formulas} ...".green(),
         ":dec {tex formulas} ...".green(),
         ":bin {tex formulas} ...".green(),
+        ":oct {tex formulas} ...".green(),
         ":fact {num(u64)}".green(),
         ":gcd {num(u64)} {num(u64)} ...".green(),
         ":redu {num(u64)} {num(u64)} ...".green(),

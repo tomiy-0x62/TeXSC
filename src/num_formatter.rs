@@ -69,6 +69,18 @@ pub fn num_bin_formatter(num: BigDecimal, significant_figure: u32) -> String {
     }
 }
 
+pub fn num_oct_formatter(num: BigDecimal, significant_figure: u32) -> String {
+    if num.is_integer() {
+        let bigint = num.to_bigint().unwrap();
+        match bigint.sign() {
+            Sign::Minus => format!("-0{}", bigint.abs().to_str_radix(8)),
+            _ => format!("0{}", bigint.to_str_radix(8)),
+        }
+    } else {
+        num_formatter(num, significant_figure)
+    }
+}
+
 fn get_num_of_digit(num: BigDecimal) -> (u32, u32) {
     // num: 3.14 -> (1, 2)
     enum State {

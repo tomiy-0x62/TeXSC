@@ -27,7 +27,7 @@ mod test;
 
 use config::*;
 use error::*;
-use num_formatter::{num_bin_formatter, num_formatter, num_hex_formatter};
+use num_formatter::{num_bin_formatter, num_formatter, num_hex_formatter, num_oct_formatter};
 
 pub static CONFIG: LazyLock<RwLock<Config>> = LazyLock::new(|| {
     RwLock::new(config::Config {
@@ -160,6 +160,7 @@ enum OutpuFormat {
     Hex,
     Dec,
     Bin,
+    Oct,
 }
 
 fn process_form(
@@ -197,6 +198,9 @@ fn process_form(
                         OutpuFormat::Bin => {
                             println!("{}", num_bin_formatter(result.clone(), num_of_digit));
                         }
+                        OutpuFormat::Oct => {
+                            println!("{}", num_oct_formatter(result.clone(), num_of_digit));
+                        }
                     }
                 }
                 Err(e) => return Err(e),
@@ -205,6 +209,7 @@ fn process_form(
                 TscCmd::Hex => out_from = OutpuFormat::Hex,
                 TscCmd::Dec => out_from = OutpuFormat::Dec,
                 TscCmd::Bin => out_from = OutpuFormat::Bin,
+                TscCmd::Oct => out_from = OutpuFormat::Oct,
             },
         }
     }
