@@ -17,7 +17,7 @@ dirs = "6"
 num-bigint = "0.4.6"
 num-traits = "0.2.19"
 regex = "1.5.5"
-rustyline = "16"
+rustyline = "17"
 serde = { version = "1.0.202",  features = ["derive"] }
 text-colorizer = "1.0.0"
 thiserror= "2"
