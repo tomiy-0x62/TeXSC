@@ -187,19 +187,19 @@ fn process_form(
                     res.push(result.clone());
                     match out_from {
                         OutpuFormat::Default => {
-                            println!("{}", num_formatter(result.clone(), num_of_digit));
+                            println!("{}", num_formatter(&result, num_of_digit));
                         }
                         OutpuFormat::Hex => {
-                            println!("{}", num_hex_formatter(result.clone(), num_of_digit));
+                            println!("{}", num_hex_formatter(&result, num_of_digit));
                         }
                         OutpuFormat::Dec => {
-                            println!("{}", num_formatter(result.clone(), 0));
+                            println!("{}", num_formatter(&result, 0));
                         }
                         OutpuFormat::Bin => {
-                            println!("{}", num_bin_formatter(result.clone(), num_of_digit));
+                            println!("{}", num_bin_formatter(&result, num_of_digit));
                         }
                         OutpuFormat::Oct => {
-                            println!("{}", num_oct_formatter(result.clone(), num_of_digit));
+                            println!("{}", num_oct_formatter(&result, num_of_digit));
                         }
                     }
                 }

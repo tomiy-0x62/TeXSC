@@ -3,21 +3,20 @@ use bigdecimal::BigDecimal;
 use num_bigint::{Sign, ToBigInt};
 use num_traits::Signed;
 
-pub fn num_formatter(num: BigDecimal, significant_figure: u32) -> String {
+pub fn num_formatter(num: &BigDecimal, significant_figure: u32) -> String {
     if significant_figure == 0 {
         return num.to_string();
     }
-    let (a, b) = get_num_of_digit(num.clone());
+    let (a, b) = get_num_of_digit(num);
     if a < significant_figure {
         if a + b < significant_figure {
             num.to_string()
-        } else if num < BigDecimal::from(1) {
-            let sift_digit = get_num_of_zero(num.clone()) + 1;
-            let rsifted =
-                num.clone() * pow(BigDecimal::from(10), BigDecimal::from(sift_digit)).unwrap();
+        } else if *num < BigDecimal::from(1) {
+            let sift_digit = get_num_of_zero(num) + 1;
+            let rsifted = num * pow(BigDecimal::from(10), BigDecimal::from(sift_digit)).unwrap();
             format!(
                 "{} * 10^-{}",
-                round_n(rsifted, significant_figure - 1),
+                round_n(&rsifted, significant_figure - 1),
                 sift_digit
             )
             .to_string()
@@ -31,7 +30,7 @@ pub fn num_formatter(num: BigDecimal, significant_figure: u32) -> String {
     }
 }
 
-pub fn num_hex_formatter(num: BigDecimal, significant_figure: u32) -> String {
+pub fn num_hex_formatter(num: &BigDecimal, significant_figure: u32) -> String {
     if num.is_integer() {
         let bigint = num.to_bigint().unwrap();
         match bigint.sign() {
@@ -43,7 +42,7 @@ pub fn num_hex_formatter(num: BigDecimal, significant_figure: u32) -> String {
     }
 }
 
-pub fn num_bin_formatter(num: BigDecimal, significant_figure: u32) -> String {
+pub fn num_bin_formatter(num: &BigDecimal, significant_figure: u32) -> String {
     if num.is_integer() {
         let bigint = num.to_bigint().unwrap();
         let sign = match bigint.sign() {
@@ -69,7 +68,7 @@ pub fn num_bin_formatter(num: BigDecimal, significant_figure: u32) -> String {
     }
 }
 
-pub fn num_oct_formatter(num: BigDecimal, significant_figure: u32) -> String {
+pub fn num_oct_formatter(num: &BigDecimal, significant_figure: u32) -> String {
     if num.is_integer() {
         let bigint = num.to_bigint().unwrap();
         match bigint.sign() {
@@ -81,7 +80,7 @@ pub fn num_oct_formatter(num: BigDecimal, significant_figure: u32) -> String {
     }
 }
 
-fn get_num_of_digit(num: BigDecimal) -> (u32, u32) {
+fn get_num_of_digit(num: &BigDecimal) -> (u32, u32) {
     // num: 3.14 -> (1, 2)
     enum State {
         Seisu,
@@ -103,9 +102,9 @@ fn get_num_of_digit(num: BigDecimal) -> (u32, u32) {
     (a, b)
 }
 
-fn get_num_of_zero(num: BigDecimal) -> u32 {
+fn get_num_of_zero(num: &BigDecimal) -> u32 {
     // num: 0.00012 -> 3
-    assert!(num < BigDecimal::from(1));
+    assert!(*num < BigDecimal::from(1));
     let mut num_of_zero = 0;
     for c in num.to_string().replace("0.", "").chars() {
         if c == '0' {
@@ -117,7 +116,7 @@ fn get_num_of_zero(num: BigDecimal) -> u32 {
     num_of_zero
 }
 
-fn round_n(num: BigDecimal, n: u32) -> BigDecimal {
+fn round_n(num: &BigDecimal, n: u32) -> BigDecimal {
     // num: 123.4567, n: 2 -> 123.45
     (num * pow(BigDecimal::from(10), BigDecimal::from(n)).unwrap()).round(0)
         / pow(BigDecimal::from(10), BigDecimal::from(n)).unwrap()
@@ -141,7 +140,7 @@ mod test {
         let test_cases = get_testcases();
         let mut test_success = 0;
         for (i, tc) in test_cases.iter().enumerate() {
-            let res = num_formatter(tc.num.clone(), tc.sf);
+            let res = num_formatter(&tc.num, tc.sf);
             if res == tc.result {
                 writeln!(
                     &mut std::io::stderr(),

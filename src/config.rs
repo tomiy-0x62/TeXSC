@@ -81,7 +81,7 @@ impl Config {
         let mut conf_file = Self::config_dir(false)?;
         conf_file.push("config.toml");
         if conf_file.exists() {
-            let conf_str = fs::read_to_string(conf_file.clone()).unwrap();
+            let conf_str = fs::read_to_string(&conf_file).unwrap();
             let config: Result<Config, toml::de::Error> = toml::from_str(&conf_str);
             match config {
                 Ok(c) => {
@@ -98,7 +98,7 @@ impl Config {
     pub fn write_to_file(&self) -> Result<PathBuf, MyError> {
         let mut conf_file = Self::config_dir(true)?;
         conf_file.push("config.toml");
-        let mut config_file = File::create(conf_file.clone()).unwrap();
+        let mut config_file = File::create(&conf_file).unwrap();
         let config_toml = toml::to_string(self).expect("couldn't serialize config");
         write!(config_file, "{config_toml}").expect("couldn't write config to config.toml");
         config_file.flush().expect("failed flush file I/O");
@@ -121,7 +121,7 @@ impl Config {
             if conf_path.exists() {
                 Ok(conf_path)
             } else if is_create {
-                match fs::create_dir(conf_path.clone()) {
+                match fs::create_dir(&conf_path) {
                     Ok(()) => Ok(conf_path),
                     Err(e) => Err(MyError::ConfigWriteErr(format!(
                         "couldn't create {conf_path:?}, {e}"

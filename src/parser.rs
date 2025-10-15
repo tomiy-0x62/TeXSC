@@ -398,20 +398,21 @@ impl Parser<'_> {
     ) -> String {
         match node.node_kind {
             NodeKind::Num | NodeKind::Var => {
-                match node.val.clone().unwrap() {
-                    NumOrVar::Num(n) => s_expr += &n.to_string(),
-                    NumOrVar::Var(v) => {
+                match &node.val {
+                    Some(NumOrVar::Num(n)) => s_expr += &n.to_string(),
+                    Some(NumOrVar::Var(v)) => {
                         if v == "\\pi" {
                             s_expr += "pi"
                         } else {
-                            if let Some(val) = self.vars.get(&v)
-                                && is_var_fn_printed.get(&v).is_none() {
+                            if let Some(val) = self.vars.get(v)
+                                && is_var_fn_printed.get(v).is_none() {
                                     s_expr = format!("(defvar {v} {val})\n{s_expr}");
                                     is_var_fn_printed.insert(v.clone());
                             }
-                            s_expr += &v
+                            s_expr += v
                         }
                     }
+                    None => unreachable!(),
                 }
                 if is_2arg_left {
                     s_expr + " "
