@@ -4,21 +4,24 @@ use text_colorizer::*;
 
 use crate::config::*;
 use crate::error::*;
-use crate::parser::lexer::{self, Lexer};
-use crate::parser::*;
+use crate::parser::Parser;
+use crate::str2num::*;
+use crate::tokenizer::TokenKind;
 use crate::CONSTS;
 
 mod gcd;
 mod prime_factorize;
 
 pub fn process_tsccommand(
-    lex: &Lexer,
+    parser: &Parser,
     cmd_idx: usize,
     vars: &mut HashMap<String, BigDecimal>,
 ) -> Result<usize, MyError> {
-    let t1 = &lex.tokens[cmd_idx];
-    let t2 = &lex.tokens[cmd_idx + 1];
+    let t1 = parser.get_token(cmd_idx);
+    let t2 = parser.get_token(cmd_idx + 1);
+    println!("before config_writer");
     let mut conf = config_writer()?;
+    println!("after config_writer");
     let consumed_token;
     match &*t1.token {
         ":q" => {
@@ -43,38 +46,38 @@ pub fn process_tsccommand(
         ":logbase" => {
             consumed_token = 2;
             match t2.token_kind {
-                lexer::TokenKind::TkNum => match Parser::bigdecimal_from_str(&t2.token) {
+                TokenKind::TkNum => match bigdecimal_from_str(&t2.token) {
                     Ok(num) => conf.log_base = num,
                     Err(e) => return Err(e),
                 },
-                lexer::TokenKind::TkVariable => match vars.get(&t2.token) {
+                TokenKind::TkVariable => match vars.get(&t2.token) {
                     Some(num) => conf.log_base = num.clone(),
                     None => return Err(MyError::UDvariableErr(t2.token.to_string())),
                 },
                 _ => {
                     return Err(MyError::NotTkNumber(
                         t2.token_kind.to_string(),
-                        lex.format_err_loc_idx(cmd_idx + 1),
-                    ))
+                        parser.format_err_loc_idx(cmd_idx + 1),
+                    ));
                 }
             }
         }
         ":rlen" => {
             consumed_token = 2;
             match t2.token_kind {
-                lexer::TokenKind::TkNum => match Parser::f64_from_str(&t2.token) {
+                TokenKind::TkNum => match f64_from_str(&t2.token) {
                     Ok(num) => conf.num_of_digit = num as u32,
                     Err(e) => return Err(e),
                 },
-                lexer::TokenKind::TkVariable => match vars.get(&t2.token) {
+                TokenKind::TkVariable => match vars.get(&t2.token) {
                     Some(num) => conf.num_of_digit = num.to_u32().unwrap(),
                     None => return Err(MyError::UDvariableErr(t2.token.to_string())),
                 },
                 _ => {
                     return Err(MyError::NotTkNumber(
                         t2.token_kind.to_string(),
-                        lex.format_err_loc_idx(cmd_idx + 1),
-                    ))
+                        parser.format_err_loc_idx(cmd_idx + 1),
+                    ));
                 }
             }
         }
@@ -140,7 +143,7 @@ pub fn process_tsccommand(
         ":fact" => {
             consumed_token = 2;
             match t2.token_kind {
-                lexer::TokenKind::TkNum => match Parser::u64_from_str(&t2.token) {
+                TokenKind::TkNum => match u64_from_str(&t2.token) {
                     Ok(num) => {
                         let res = prime_factorize::factorize(num);
                         println!("{res}");
@@ -150,8 +153,8 @@ pub fn process_tsccommand(
                 _ => {
                     return Err(MyError::NotTkNumber(
                         t2.token_kind.to_string(),
-                        lex.format_err_loc_idx(cmd_idx + 1),
-                    ))
+                        parser.format_err_loc_idx(cmd_idx + 1),
+                    ));
                 }
             }
         }
@@ -159,9 +162,9 @@ pub fn process_tsccommand(
             let mut counter = 0;
             let mut nums = Vec::new();
             loop {
-                let t = &lex.tokens[cmd_idx + 1 + counter];
+                let t = parser.get_token(cmd_idx + 1 + counter);
                 match t.token_kind {
-                    lexer::TokenKind::TkNum => match Parser::u64_from_str(&t.token) {
+                    TokenKind::TkNum => match u64_from_str(&t.token) {
                         Ok(num) => {
                             if num == 0 {
                                 return Err(MyError::InvalidInput(format!(

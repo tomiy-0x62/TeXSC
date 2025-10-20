@@ -1,6 +1,6 @@
 // TeX Scientific Calculator
 
-use self::parser::NumOrVar;
+use self::parser::{NumOrVar, Parser};
 use bigdecimal::{BigDecimal, FromPrimitive};
 use clap::{value_parser, Arg, Command};
 use rustyline::error::ReadlineError;
@@ -14,11 +14,14 @@ use std::sync::{LazyLock, RwLock};
 use parser::{NodeKind, NodeOrCmd, TscCmd};
 use text_colorizer::*;
 
+mod ast_printer;
 mod config;
 mod error;
 mod math_functions;
 mod num_formatter;
 mod parser;
+mod str2num;
+mod tokenizer;
 mod tsc_cmd;
 #[macro_use]
 mod macros;
@@ -167,10 +170,13 @@ fn process_form(
     form: String,
     vars: &mut HashMap<String, BigDecimal>,
 ) -> Result<Vec<BigDecimal>, MyError> {
-    let lex = parser::lexer::Lexer::new(form)?;
-    let mut _pars = parser::Parser::new(lex, vars)?;
-    _pars.print_vars();
-    let ast_or_cmd_vec = _pars.build_ast()?;
+    debugln!("form: '{}'", form);
+    let form: String = form.replace("\n", "").replace("\t", "").replace("\r", "");
+    let mut pars = Parser::new(form.clone())?;
+    for i in vars.iter() {
+        debugln!("{:?}", i);
+    }
+    let ast_or_cmd_vec = pars.build_ast(vars)?;
     let num_of_digit = match config_reader() {
         Ok(c) => c.num_of_digit,
         Err(e) => {
