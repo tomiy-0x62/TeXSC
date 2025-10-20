@@ -146,6 +146,6 @@ pub fn config_reader() -> Result<std::sync::RwLockReadGuard<'static, Config>, My
 pub fn config_writer() -> Result<std::sync::RwLockWriteGuard<'static, Config>, MyError> {
     match crate::CONFIG.try_write() {
         Ok(c) => Ok(c),
-        Err(e) => Err(MyError::ConfigReadErr(e.to_string())),
+        Err(e) => Err(MyError::ConfigWriteErr(e.to_string())),
     }
 }
