@@ -1,5 +1,5 @@
 use crate::error::*;
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, FromPrimitive};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fs;
@@ -73,6 +73,18 @@ impl fmt::Display for Config {
             "num_of_digit".cyan(),
             self.num_of_digit
         )
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            debug: false,
+            ast_format: AstFormat::Both,
+            trig_func_arg: TrigFuncArg::Radian,
+            log_base: BigDecimal::from_f64(std::f64::consts::E).unwrap(),
+            num_of_digit: 12,
+        }
     }
 }
 

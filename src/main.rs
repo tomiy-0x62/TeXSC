@@ -32,15 +32,7 @@ use config::*;
 use error::*;
 use num_formatter::{num_bin_formatter, num_formatter, num_hex_formatter, num_oct_formatter};
 
-pub static CONFIG: LazyLock<RwLock<Config>> = LazyLock::new(|| {
-    RwLock::new(config::Config {
-        debug: false,
-        ast_format: AstFormat::Both,
-        trig_func_arg: TrigFuncArg::Radian,
-        log_base: BigDecimal::from_f64(std::f64::consts::E).unwrap(),
-        num_of_digit: 12,
-    })
-});
+pub static CONFIG: LazyLock<RwLock<Config>> = LazyLock::new(|| RwLock::new(Config::default()));
 
 pub static CONSTS: LazyLock<RwLock<HashMap<String, BigDecimal>>> = LazyLock::new(|| {
     RwLock::new({
