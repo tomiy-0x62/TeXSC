@@ -571,9 +571,9 @@ impl Parser {
     fn expr_vec(&mut self) -> Result<Vec<NodeOrCmd>, MyError> {
         let mut res = Vec::new();
         loop {
-            let _b = self.consume_seq();
-            if _b {
-                debugln!("consume sqp");
+            let b = self.consume_seq();
+            if b {
+                debugln!("consume seq");
             }
             match self.consume_tsc_cmd() {
                 Ok(tsc_cmd) => {
