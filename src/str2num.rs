@@ -145,6 +145,10 @@ pub fn bigdecimal_from_str(num_str: &str) -> Result<BigDecimal, MyError> {
                     let num = bin2dec_u64(&num_str[2..])?;
                     Ok(BigDecimal::from(num))
                 }
+                "0." => match BigDecimal::from_str(num_str) {
+                    Ok(num) => Ok(num),
+                    Err(e) => Err(MyError::ParseBigDecimalError(e)),
+                },
                 _ => {
                     let num = oct2dec_u64(&num_str[1..])?;
                     Ok(BigDecimal::from(num))
@@ -169,6 +173,10 @@ pub fn f64_from_str(num_str: &str) -> Result<f64, MyError> {
             "0" => match &num_str[0..2] {
                 "0x" => hex2dec_f64(&num_str[2..]),
                 "0b" => bin2dec_f64(&num_str[2..]),
+                "0." => match f64::from_str(num_str) {
+                    Ok(num) => Ok(num),
+                    Err(e) => Err(MyError::ParseFloatError(e)),
+                },
                 _ => oct2dec_f64(&num_str[1..]),
             },
             _ => match f64::from_str(num_str) {
@@ -190,6 +198,10 @@ pub fn u64_from_str(num_str: &str) -> Result<u64, MyError> {
             "0" => match &num_str[0..2] {
                 "0x" => hex2dec_u64(&num_str[2..]),
                 "0b" => bin2dec_u64(&num_str[2..]),
+                "0." => Err(MyError::UnexpectedInput(
+                    "u64".to_string(),
+                    num_str.to_string(),
+                )),
                 _ => oct2dec_u64(&num_str[1..]),
             },
             _ => match u64::from_str(num_str) {
