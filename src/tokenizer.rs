@@ -60,7 +60,19 @@ pub fn tokenize(formulas: &str) -> Result<(Vec<Token>, Vec<usize>), MyError> {
     let tsc_command = Regex::new(r":[A-Za-z]*").unwrap();
     let operator = Regex::new(r"\+|-|\*|=|/|!|_|\^|\|").unwrap();
     let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap();
-    let num = Regex::new(r"0x[0-9a-fA-F]+|0[0-7]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap();
+    // hex: 0x1234, 0x12_34
+    // 0x([0-9a-fA-F]+_?)*[0-9a-fA-F]+
+    // oct: 01234, 0_12_34
+    // 0([0-7]+_?)*[0-7]+
+    // bin: 0b1010, 0b10_10
+    // 0b([0-1]+_?)*[0-1]+
+    // dec(!int): '1.234', '1.2_34'
+    // ([0-9]+(_|,)?)*[0-9]+\.([0-9]+(_|,)?)*[0-9]+
+    // dec(int): '1234', '12_34', '1,234
+    // ([0-9]+(_|,)?)*[0-9]+
+    let num =
+        Regex::new(r"(0x([0-9a-fA-F]+_?)*[0-9a-fA-F]+)|(0([0-7]+_?)*[0-7]+)|(0b([0-1]+_?)*[0-1]+)|(([0-9]+(_|,)?)*[0-9]+\.([0-9]+(_|,)?)*[0-9]+)|(([0-9]+(_|,)?)*[0-9]+)")
+            .unwrap();
     let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap();
     let separator = Regex::new(r";").unwrap();
     let mut processed_form_idx = 0;

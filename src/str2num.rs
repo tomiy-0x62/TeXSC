@@ -129,6 +129,7 @@ fn oct2dec_u64(num_str: &str) -> Result<u64, MyError> {
 }
 
 pub fn bigdecimal_from_str(num_str: &str) -> Result<BigDecimal, MyError> {
+    let num_str = &num_str.replace(",", "").replace("_", "");
     if num_str.len() < 2 {
         match BigDecimal::from_str(num_str) {
             Ok(num) => Ok(num),
@@ -163,6 +164,7 @@ pub fn bigdecimal_from_str(num_str: &str) -> Result<BigDecimal, MyError> {
 }
 
 pub fn f64_from_str(num_str: &str) -> Result<f64, MyError> {
+    let num_str = &num_str.replace(",", "").replace("_", "");
     if num_str.len() < 2 {
         match f64::from_str(num_str) {
             Ok(num) => Ok(num),
@@ -188,6 +190,7 @@ pub fn f64_from_str(num_str: &str) -> Result<f64, MyError> {
 }
 
 pub fn u64_from_str(num_str: &str) -> Result<u64, MyError> {
+    let num_str = &num_str.replace(",", "").replace("_", "");
     if num_str.len() < 2 {
         match u64::from_str(num_str) {
             Ok(num) => Ok(num),
