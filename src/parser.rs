@@ -208,21 +208,21 @@ impl Parser {
         // から varsを構築
         let mut to_delete_el = Vec::<usize>::new();
         for i in 0..self.tokens.len() {
-            if self.tokens[i].token == "," {
+            if self.tokens[i].token == ";" {
                 match self.tokens[i + 1].token_kind {
                     TokenKind::TkVariable => {
                         if self.tokens[i + 2].token != "=" {
-                            // "," is separator
+                            // ";" is separator
                             continue;
                         } else {
-                            // 変数定義: ", {var} = {value}"
+                            // 変数定義: "; {var} = {value}"
                             to_delete_el.push(i);
                             to_delete_el.push(i + 1);
                             to_delete_el.push(i + 2);
                         }
                     }
                     _tk => {
-                        // "," is separator
+                        // ";" is separator
                         continue;
                     }
                 }

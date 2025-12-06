@@ -62,7 +62,7 @@ pub fn tokenize(formulas: &str) -> Result<(Vec<Token>, Vec<usize>), MyError> {
     let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap();
     let num = Regex::new(r"0x[0-9a-fA-F]+|0[0-7]+|0b[0-1]+|[0-9]+\.?[0-9]*").unwrap();
     let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap();
-    let separator = Regex::new(r",").unwrap();
+    let separator = Regex::new(r";").unwrap();
     let mut processed_form_idx = 0;
 
     let mut formulas = formulas;
