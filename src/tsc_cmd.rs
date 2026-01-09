@@ -19,9 +19,7 @@ pub fn process_tsccommand(
 ) -> Result<usize, MyError> {
     let t1 = parser.get_token(cmd_idx);
     let t2 = parser.get_token(cmd_idx + 1);
-    println!("before config_writer");
     let mut conf = config_writer()?;
-    println!("after config_writer");
     let consumed_token;
     match &*t1.token {
         ":q" => {
