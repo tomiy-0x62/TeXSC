@@ -44,7 +44,7 @@ pub fn process_tsccommand(
         ":logbase" => {
             consumed_token = 2;
             match t2.token_kind {
-                TokenKind::TkNum => match bigdecimal_from_str(&t2.token) {
+                TokenKind::TkNum(f) => match bigdecimal_from_str(f, &t2.token) {
                     Ok(num) => conf.log_base = num,
                     Err(e) => return Err(e),
                 },
@@ -63,7 +63,7 @@ pub fn process_tsccommand(
         ":rlen" => {
             consumed_token = 2;
             match t2.token_kind {
-                TokenKind::TkNum => match f64_from_str(&t2.token) {
+                TokenKind::TkNum(f) => match f64_from_str(f, &t2.token) {
                     Ok(num) => conf.num_of_digit = num as u32,
                     Err(e) => return Err(e),
                 },
@@ -141,7 +141,7 @@ pub fn process_tsccommand(
         ":fact" => {
             consumed_token = 2;
             match t2.token_kind {
-                TokenKind::TkNum => match u64_from_str(&t2.token) {
+                TokenKind::TkNum(f) => match u64_from_str(f, &t2.token) {
                     Ok(num) => {
                         let res = prime_factorize::factorize(num);
                         println!("{res}");
@@ -162,7 +162,7 @@ pub fn process_tsccommand(
             loop {
                 let t = parser.get_token(cmd_idx + 1 + counter);
                 match t.token_kind {
-                    TokenKind::TkNum => match u64_from_str(&t.token) {
+                    TokenKind::TkNum(f) => match u64_from_str(f, &t.token) {
                         Ok(num) => {
                             if num == 0 {
                                 return Err(MyError::InvalidInput(format!(

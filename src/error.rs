@@ -32,6 +32,10 @@ pub enum MyError {
     ParseBigDecimalError(#[from] ParseBigDecimalError),
     #[error("couldn't parse Int. {0}")]
     ParseIntError(#[from] ParseIntError),
+    #[error("couldn't parse f64. {0}")]
+    ParseF64Error(String),
+    #[error("couldn't parse u64. {0}")]
+    ParseU64Error(String),
     #[error("{0}")]
     TomlDeserializeError(#[from] toml::de::Error),
     #[error("There is no token to process")]

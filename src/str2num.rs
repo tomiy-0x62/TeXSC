@@ -1,5 +1,7 @@
 use crate::error::MyError;
+use crate::tokenizer::NumFormat;
 use bigdecimal::BigDecimal;
+use num_traits::ToPrimitive;
 use std::str::FromStr;
 
 fn hex2dec_f64(num_str: &str) -> Result<f64, MyError> {
@@ -128,89 +130,82 @@ fn oct2dec_u64(num_str: &str) -> Result<u64, MyError> {
     Ok(num)
 }
 
-pub fn bigdecimal_from_str(num_str: &str) -> Result<BigDecimal, MyError> {
+fn scientific2dec_f64(num_str: &str) -> Result<f64, MyError> {
+    let bigdecimal = match BigDecimal::from_str(num_str) {
+        Ok(bi) => bi,
+        Err(e) => return Err(MyError::ParseBigDecimalError(e)),
+    };
+    match bigdecimal.to_f64() {
+        Some(res) => Ok(res),
+        None => Err(MyError::ParseF64Error(num_str.to_string())),
+    }
+}
+
+fn scientific2dec_u64(num_str: &str) -> Result<u64, MyError> {
+    let bigdecimal = match BigDecimal::from_str(num_str) {
+        Ok(bi) => bi,
+        Err(e) => return Err(MyError::ParseBigDecimalError(e)),
+    };
+    match bigdecimal.to_u64() {
+        Some(res) => Ok(res),
+        None => Err(MyError::ParseU64Error(num_str.to_string())),
+    }
+}
+
+pub fn bigdecimal_from_str(format: NumFormat, num_str: &str) -> Result<BigDecimal, MyError> {
     let num_str = &num_str.replace(",", "").replace("_", "");
-    if num_str.len() < 2 {
-        match BigDecimal::from_str(num_str) {
+    match format {
+        NumFormat::Scientific => match BigDecimal::from_str(num_str) {
             Ok(num) => Ok(num),
             Err(e) => Err(MyError::ParseBigDecimalError(e)),
+        },
+        NumFormat::Hex => {
+            let num = hex2dec_u64(&num_str[2..])?;
+            Ok(BigDecimal::from(num))
         }
-    } else {
-        match &num_str[0..1] {
-            "0" => match &num_str[0..2] {
-                "0x" => {
-                    let num = hex2dec_u64(&num_str[2..])?;
-                    Ok(BigDecimal::from(num))
-                }
-                "0b" => {
-                    let num = bin2dec_u64(&num_str[2..])?;
-                    Ok(BigDecimal::from(num))
-                }
-                "0." => match BigDecimal::from_str(num_str) {
-                    Ok(num) => Ok(num),
-                    Err(e) => Err(MyError::ParseBigDecimalError(e)),
-                },
-                _ => {
-                    let num = oct2dec_u64(&num_str[1..])?;
-                    Ok(BigDecimal::from(num))
-                }
-            },
-            _ => match BigDecimal::from_str(num_str) {
-                Ok(num) => Ok(num),
-                Err(e) => Err(MyError::ParseBigDecimalError(e)),
-            },
+        NumFormat::Oct => {
+            let num = oct2dec_u64(&num_str[1..])?;
+            Ok(BigDecimal::from(num))
         }
+        NumFormat::Bin => {
+            let num = bin2dec_u64(&num_str[2..])?;
+            Ok(BigDecimal::from(num))
+        }
+        NumFormat::Dec | NumFormat::DecInt => match BigDecimal::from_str(num_str) {
+            Ok(num) => Ok(num),
+            Err(e) => Err(MyError::ParseBigDecimalError(e)),
+        },
     }
 }
 
-pub fn f64_from_str(num_str: &str) -> Result<f64, MyError> {
+pub fn f64_from_str(format: NumFormat, num_str: &str) -> Result<f64, MyError> {
     let num_str = &num_str.replace(",", "").replace("_", "");
-    if num_str.len() < 2 {
-        match f64::from_str(num_str) {
+    match format {
+        NumFormat::Scientific => scientific2dec_f64(num_str),
+        NumFormat::Hex => hex2dec_f64(&num_str[2..]),
+        NumFormat::Oct => oct2dec_f64(&num_str[1..]),
+        NumFormat::Bin => bin2dec_f64(&num_str[2..]),
+        NumFormat::Dec | NumFormat::DecInt => match f64::from_str(num_str) {
             Ok(num) => Ok(num),
             Err(e) => Err(MyError::ParseFloatError(e)),
-        }
-    } else {
-        match &num_str[0..1] {
-            "0" => match &num_str[0..2] {
-                "0x" => hex2dec_f64(&num_str[2..]),
-                "0b" => bin2dec_f64(&num_str[2..]),
-                "0." => match f64::from_str(num_str) {
-                    Ok(num) => Ok(num),
-                    Err(e) => Err(MyError::ParseFloatError(e)),
-                },
-                _ => oct2dec_f64(&num_str[1..]),
-            },
-            _ => match f64::from_str(num_str) {
-                Ok(num) => Ok(num),
-                Err(e) => Err(MyError::ParseFloatError(e)),
-            },
-        }
+        },
     }
 }
 
-pub fn u64_from_str(num_str: &str) -> Result<u64, MyError> {
+pub fn u64_from_str(format: NumFormat, num_str: &str) -> Result<u64, MyError> {
     let num_str = &num_str.replace(",", "").replace("_", "");
-    if num_str.len() < 2 {
-        match u64::from_str(num_str) {
+    match format {
+        NumFormat::Scientific => scientific2dec_u64(num_str),
+        NumFormat::Hex => hex2dec_u64(&num_str[2..]),
+        NumFormat::Oct => oct2dec_u64(&num_str[1..]),
+        NumFormat::Bin => bin2dec_u64(&num_str[2..]),
+        NumFormat::Dec => Err(MyError::UnexpectedInput(
+            "u64".to_string(),
+            num_str.to_string(),
+        )),
+        NumFormat::DecInt => match u64::from_str(num_str) {
             Ok(num) => Ok(num),
             Err(e) => Err(MyError::ParseIntError(e)),
-        }
-    } else {
-        match &num_str[0..1] {
-            "0" => match &num_str[0..2] {
-                "0x" => hex2dec_u64(&num_str[2..]),
-                "0b" => bin2dec_u64(&num_str[2..]),
-                "0." => Err(MyError::UnexpectedInput(
-                    "u64".to_string(),
-                    num_str.to_string(),
-                )),
-                _ => oct2dec_u64(&num_str[1..]),
-            },
-            _ => match u64::from_str(num_str) {
-                Ok(num) => Ok(num),
-                Err(e) => Err(MyError::ParseIntError(e)),
-            },
-        }
+        },
     }
 }

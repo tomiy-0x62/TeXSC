@@ -227,17 +227,19 @@ impl Parser {
                     }
                 }
                 match self.tokens[i + 3].token_kind {
-                    TokenKind::TkNum => match bigdecimal_from_str(&self.tokens[i + 3].token) {
-                        Ok(num) => {
-                            vars.insert(self.tokens[i + 1].token.clone(), num);
+                    TokenKind::TkNum(f) => {
+                        match bigdecimal_from_str(f, &self.tokens[i + 3].token) {
+                            Ok(num) => {
+                                vars.insert(self.tokens[i + 1].token.clone(), num);
+                            }
+                            Err(e) => return Err(e),
                         }
-                        Err(e) => return Err(e),
-                    },
+                    }
                     TokenKind::TkOperator => {
                         if self.tokens[i + 3].token == "-" {
                             match self.tokens[i + 4].token_kind {
-                                TokenKind::TkNum => {
-                                    match bigdecimal_from_str(&self.tokens[i + 4].token) {
+                                TokenKind::TkNum(f) => {
+                                    match bigdecimal_from_str(f, &self.tokens[i + 4].token) {
                                         Ok(num) => {
                                             vars.insert(self.tokens[i + 1].token.clone(), -num);
                                             to_delete_el.push(i + 4);
@@ -481,11 +483,12 @@ impl Parser {
 
     pub fn expect_number(&mut self) -> Result<NumstrOrVar, MyError> {
         match self.tokens[self.token_idx].token_kind {
-            TokenKind::TkNum => {
+            TokenKind::TkNum(f) => {
                 self.token_idx += 1;
-                Ok(NumstrOrVar::Num(
+                Ok(NumstrOrVar::Num((
+                    f,
                     self.tokens[self.token_idx - 1].token.clone(),
-                ))
+                )))
             }
             TokenKind::TkVariable => {
                 self.token_idx += 1;
@@ -761,7 +764,9 @@ impl Parser {
     fn num(&mut self) -> Result<Box<Node>, MyError> {
         match self.expect_number() {
             Ok(v) => match v {
-                NumstrOrVar::Num(num) => Ok(Parser::new_node_num(bigdecimal_from_str(&num)?)),
+                NumstrOrVar::Num((format, num)) => {
+                    Ok(Parser::new_node_num(bigdecimal_from_str(format, &num)?))
+                }
                 NumstrOrVar::Var(var) => Ok(Parser::new_node_var(var)),
             },
             Err(e) => Err(e),
