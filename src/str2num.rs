@@ -209,3 +209,185 @@ pub fn u64_from_str(format: NumFormat, num_str: &str) -> Result<u64, MyError> {
         },
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use bigdecimal::BigDecimal;
+    use std::io::Write;
+    use text_colorizer::*;
+
+    struct TestCaseBigDecimal {
+        num_str: String,
+        num_format: super::NumFormat,
+        result: BigDecimal,
+    }
+
+    struct TestCaseU64 {
+        num_str: String,
+        num_format: super::NumFormat,
+        result: u64,
+    }
+
+    struct TestCaseF64 {
+        num_str: String,
+        num_format: super::NumFormat,
+        result: f64,
+    }
+
+    macro_rules! test_something_from_str {
+        ($tc:ident, $method:ident) => {
+            let mut test_success = 0;
+            for (i, tc) in $tc.iter().enumerate() {
+                match super::$method(tc.num_format, &tc.num_str) {
+                    Ok(res) => {
+                        if res == tc.result {
+                            writeln!(
+                                &mut std::io::stderr(),
+                                "testcase {}: {} {}",
+                                i,
+                                "SUCCESSED          ".green(),
+                                tc.num_str
+                            )
+                            .unwrap();
+                            test_success += 1;
+                        } else {
+                            writeln!(
+                                &mut std::io::stderr(),
+                                "testcase {}: {} {} -> {}, but expected {}",
+                                i,
+                                "NOT MATCH          ".red(),
+                                tc.num_str,
+                                res,
+                                tc.result
+                            )
+                            .unwrap();
+                        }
+                    }
+                    Err(e) => {
+                        writeln!(
+                            &mut std::io::stderr(),
+                            "testcase {}: {} {}, '{}'",
+                            i,
+                            "CONVERSION FAILED  ".red(),
+                            tc.num_str,
+                            e
+                        )
+                        .unwrap();
+                    }
+                }
+            }
+            writeln!(
+                &mut std::io::stderr(),
+                "testcase {}/{} SUCCESSED",
+                test_success,
+                $tc.len(),
+            )
+            .unwrap();
+            assert_eq!(test_success, $tc.len());
+        };
+    }
+
+    #[test]
+    fn test_bigdecimal_from_str() {
+        let mut test_cases = Vec::new();
+        test_cases.push(TestCaseBigDecimal {
+            num_str: "1.16E-6".to_string(),
+            num_format: crate::tokenizer::NumFormat::Scientific,
+            result: BigDecimal::from(116) / BigDecimal::from(100000000),
+        });
+        test_cases.push(TestCaseBigDecimal {
+            num_str: "0x1234".to_string(),
+            num_format: crate::tokenizer::NumFormat::Hex,
+            result: BigDecimal::from(4660),
+        });
+        test_cases.push(TestCaseBigDecimal {
+            num_str: "01234".to_string(),
+            num_format: crate::tokenizer::NumFormat::Oct,
+            result: BigDecimal::from(668),
+        });
+        test_cases.push(TestCaseBigDecimal {
+            num_str: "0b1010".to_string(),
+            num_format: crate::tokenizer::NumFormat::Bin,
+            result: BigDecimal::from(10),
+        });
+        test_cases.push(TestCaseBigDecimal {
+            num_str: "0.1234".to_string(),
+            num_format: crate::tokenizer::NumFormat::Dec,
+            result: BigDecimal::from(1234) / BigDecimal::from(10000),
+        });
+        test_cases.push(TestCaseBigDecimal {
+            num_str: "1".to_string(),
+            num_format: crate::tokenizer::NumFormat::DecInt,
+            result: BigDecimal::from(1),
+        });
+        test_something_from_str!(test_cases, bigdecimal_from_str);
+    }
+
+    #[test]
+    fn test_f64_from_str() {
+        let mut test_cases = Vec::new();
+        test_cases.push(TestCaseF64 {
+            num_str: "1.16E-6".to_string(),
+            num_format: crate::tokenizer::NumFormat::Scientific,
+            result: 0.00000116,
+        });
+        test_cases.push(TestCaseF64 {
+            num_str: "0x1234".to_string(),
+            num_format: crate::tokenizer::NumFormat::Hex,
+            result: 4660.,
+        });
+        test_cases.push(TestCaseF64 {
+            num_str: "01234".to_string(),
+            num_format: crate::tokenizer::NumFormat::Oct,
+            result: 668.,
+        });
+        test_cases.push(TestCaseF64 {
+            num_str: "0b1010".to_string(),
+            num_format: crate::tokenizer::NumFormat::Bin,
+            result: 10.,
+        });
+        test_cases.push(TestCaseF64 {
+            num_str: "0.1234".to_string(),
+            num_format: crate::tokenizer::NumFormat::Dec,
+            result: 0.1234,
+        });
+        test_cases.push(TestCaseF64 {
+            num_str: "1".to_string(),
+            num_format: crate::tokenizer::NumFormat::DecInt,
+            result: 1.,
+        });
+        test_something_from_str!(test_cases, f64_from_str);
+    }
+
+    #[test]
+    fn test_u64_from_str() {
+        let mut test_cases = Vec::new();
+        test_cases.push(TestCaseU64 {
+            num_str: "1.16E+6".to_string(),
+            num_format: crate::tokenizer::NumFormat::Scientific,
+            result: 1160000,
+        });
+        test_cases.push(TestCaseU64 {
+            num_str: "0x1234".to_string(),
+            num_format: crate::tokenizer::NumFormat::Hex,
+            result: 4660,
+        });
+        test_cases.push(TestCaseU64 {
+            num_str: "01234".to_string(),
+            num_format: crate::tokenizer::NumFormat::Oct,
+            result: 668,
+        });
+        test_cases.push(TestCaseU64 {
+            num_str: "0b1010".to_string(),
+            num_format: crate::tokenizer::NumFormat::Bin,
+            result: 10,
+        });
+        test_cases.push(TestCaseU64 {
+            num_str: "1".to_string(),
+            num_format: crate::tokenizer::NumFormat::DecInt,
+            result: 1,
+        });
+        test_something_from_str!(test_cases, u64_from_str);
+    }
+}

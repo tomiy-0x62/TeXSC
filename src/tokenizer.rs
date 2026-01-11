@@ -273,3 +273,48 @@ fn is_valid_texcommand(tc: &String) -> bool {
             | "\\arctan"
     )
 }
+
+#[cfg(test)]
+mod test {
+    use super::{NumFormat, Token, TokenKind};
+    #[test]
+    fn test_tokenize() {
+        let formulas = "1.16E-6 * 0x1 - \\frac{\\sin \\pi}{0b10} / 0x12 + 0.2";
+        let t = vec![
+            new_token("1.16E-6", TokenKind::TkNum(NumFormat::Scientific)),
+            new_token("*", TokenKind::TkOperator),
+            new_token("0x1", TokenKind::TkNum(NumFormat::Hex)),
+            new_token("-", TokenKind::TkOperator),
+            new_token("\\frac", TokenKind::TkTexCommand),
+            new_token("{", TokenKind::TkBrace),
+            new_token("\\sin", TokenKind::TkTexCommand),
+            new_token("\\pi", TokenKind::TkVariable),
+            new_token("}", TokenKind::TkBrace),
+            new_token("{", TokenKind::TkBrace),
+            new_token("0b10", TokenKind::TkNum(NumFormat::Bin)),
+            new_token("}", TokenKind::TkBrace),
+            new_token("/", TokenKind::TkOperator),
+            new_token("0x12", TokenKind::TkNum(NumFormat::Hex)),
+            new_token("+", TokenKind::TkOperator),
+            new_token("0.2", TokenKind::TkNum(NumFormat::Dec)),
+            new_token("EOT", TokenKind::TkEOT),
+        ];
+        let s = vec![
+            0, 8, 10, 14, 16, 21, 22, 27, 30, 31, 32, 36, 38, 40, 45, 47, 50,
+        ];
+        match super::tokenize(formulas) {
+            Ok((tokens, sizes)) => {
+                assert_eq!(tokens, t);
+                assert_eq!(sizes, s);
+            }
+            Err(e) => panic!("{}", e),
+        }
+    }
+
+    fn new_token(t: &str, k: TokenKind) -> Token {
+        Token {
+            token: t.to_string(),
+            token_kind: k,
+        }
+    }
+}
