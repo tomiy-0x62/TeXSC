@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.3.4](https://github.com/tomiy-0x62/TeXSC/releases/tag/0.3.4) (2026-01-11)
+
+**Implemented enhancements:**
+
++ add support for scientific notation(E notation) number literal
+
++ add support for numeric literals containing `,` or `_` as digit separators
+
++ change separator for splitting expressions from `,` to `;`
+
 ## [0.3.3](https://github.com/tomiy-0x62/TeXSC/releases/tag/0.3.3) (2025-12-06)
 
 **Implemented enhancements:**
