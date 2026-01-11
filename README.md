@@ -6,8 +6,11 @@
 ```
 git clone https://github.com/tomiy-0x62/TeXSC
 cd TeXSC
+# install to ~/.cargo/bin
+cargo install --path .
+# or install to preferred directory
 cargo build --release
-cargo install --path . # or ./target/release/tscをpathの通ったディレクトリへcopy
+cp target/release/tsc /path/to/preferred_directory
 ```
 
 ### Requirements
@@ -337,7 +340,7 @@ tsc> \sin \frac{\pi}{2}; x^{2} ;x=3
 
 1行に数式と変数宣言の両方を含めた場合、数式と変数宣言の順序は自由
 
-変数名に使えるのは正規表現r"[A-Za-z][A-Za-z0-9]\*"にマッチするもの
+変数名に使えるのは正規表現`r"[A-Za-z][A-Za-z0-9]\*"`にマッチするもの
 ```
 tsc> 6+x ; x = 36
 42
