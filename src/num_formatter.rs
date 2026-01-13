@@ -15,7 +15,7 @@ pub fn num_formatter(num: &BigDecimal, significant_figure: u32) -> String {
             let sift_digit = get_num_of_zero(num) + 1;
             let rsifted = num * pow(BigDecimal::from(10), BigDecimal::from(sift_digit)).unwrap();
             format!(
-                "{} * 10^-{}",
+                "{} * 10^{{-{}}}",
                 round_n(&rsifted, significant_figure - 1),
                 sift_digit
             )
@@ -26,7 +26,7 @@ pub fn num_formatter(num: &BigDecimal, significant_figure: u32) -> String {
     } else {
         let rounded = num.round(0) / 10.0_f64.powf((a - significant_figure) as f64);
         let fraction = rounded / 10.0_f64.powf((significant_figure - 1) as f64);
-        format!("{} * 10^{}", fraction, a - 1).to_string()
+        format!("{} * 10^{{{}}}", fraction, a - 1).to_string()
     }
 }
 
