@@ -33,7 +33,7 @@ use crate::parser::{Node, NodeKind, NumOrVar};
                                 no_show_bar.push(level - 1);
                             }
                         } else if !no_show_bar.iter().any(|e| e == &(i / TREE_WIDTH)) {
-                            msg += "";
+                            msg += "│";
                         } else {
                             msg += " ";
                         }
