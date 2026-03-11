@@ -79,10 +79,10 @@ pub fn tokenize(formulas: &str) -> Result<(Vec<Token>, Vec<usize>), MyError> {
     let mut tokens: Vec<Token> = Vec::new();
     let mut token_loc: Vec<usize> = Vec::new();
 
-    let tex_command = Regex::new(r"\\[A-Za-z]*").unwrap();
-    let tsc_command = Regex::new(r":[A-Za-z]*").unwrap();
-    let operator = Regex::new(r"\+|-|\*|=|/|!|_|\^|\|").unwrap();
-    let var = Regex::new(r"[A-Za-z][A-Za-z0-9]*").unwrap();
+    let tex_command = Regex::new(r"^\\[A-Za-z]*").unwrap();
+    let tsc_command = Regex::new(r"^:[A-Za-z]*").unwrap();
+    let operator = Regex::new(r"^(\+|-|\*|=|/|!|_|\^|\|)").unwrap();
+    let var = Regex::new(r"^[A-Za-z][A-Za-z0-9]*").unwrap();
     // scientific: 1.16E-6
     let scientific_pat = r"[1-9]\.[0-9]+E(\+|-)[1-9]+";
     // hex: 0x1234, 0x12_34
@@ -105,8 +105,8 @@ pub fn tokenize(formulas: &str) -> Result<(Vec<Token>, Vec<usize>), MyError> {
         scientific_pat, hex_pat, oct_pat, bin_pat, dec_pat, decint_pat
     );
     let num = Regex::new(&num_pat).unwrap();
-    let braces = Regex::new(r"\(|\)|\[|\]|\{|\}").unwrap();
-    let separator = Regex::new(r";").unwrap();
+    let braces = Regex::new(r"^(\(|\)|\[|\]|\{|\})").unwrap();
+    let separator = Regex::new(r"^;").unwrap();
     let mut processed_form_idx = 0;
 
     let mut formulas = formulas;
@@ -279,7 +279,7 @@ mod test {
     use super::{NumFormat, Token, TokenKind};
     #[test]
     fn test_tokenize() {
-        let formulas = "1.16E-6 * 0x1 - \\frac{\\sin \\pi}{0b10} / 0x12 + 0.2";
+        let formulas = "1.16E-6 * 0x1 - \\frac{\\sin \\pi}{0b10} / 0x12 + 0.2; \\log a ;a=3";
         let t = vec![
             new_token("1.16E-6", TokenKind::TkNum(NumFormat::Scientific)),
             new_token("*", TokenKind::TkOperator),
@@ -297,10 +297,18 @@ mod test {
             new_token("0x12", TokenKind::TkNum(NumFormat::Hex)),
             new_token("+", TokenKind::TkOperator),
             new_token("0.2", TokenKind::TkNum(NumFormat::Dec)),
+            new_token(";", TokenKind::TkSeparaotr),
+            new_token("\\log", TokenKind::TkTexCommand),
+            new_token("a", TokenKind::TkVariable),
+            new_token(";", TokenKind::TkSeparaotr),
+            new_token("a", TokenKind::TkVariable),
+            new_token("=", TokenKind::TkOperator),
+            new_token("3", TokenKind::TkNum(NumFormat::DecInt)),
             new_token("EOT", TokenKind::TkEOT),
         ];
         let s = vec![
-            0, 8, 10, 14, 16, 21, 22, 27, 30, 31, 32, 36, 38, 40, 45, 47, 50,
+            0, 8, 10, 14, 16, 21, 22, 27, 30, 31, 32, 36, 38, 40, 45, 47, 50, 52, 57, 59, 60, 61,
+            62, 63,
         ];
         match super::tokenize(formulas) {
             Ok((tokens, sizes)) => {
