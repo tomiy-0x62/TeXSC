@@ -57,12 +57,12 @@ use crate::parser::{Node, NodeKind, NumOrVar};
                 msg += "\n";
                 // treeのトラバース、levelの変更
                 is_next_have_chiled = node.left_node.is_some() && node.right_node.is_some();
-                if node.right_node.is_some() {
-                    tr_node_stack.push(node.right_node.as_ref().unwrap());
+                if let Some(rnode) = &node.right_node {
+                    tr_node_stack.push(rnode);
                     tr_level_stack.push(level + 1);
                 }
-                if node.left_node.is_some() {
-                    node = node.left_node.as_ref().unwrap();
+                if let Some(lnode) = &node.left_node {
+                    node = lnode;
                     level += 1;
                 } else {
                     match tr_node_stack.pop() {
@@ -211,18 +211,18 @@ use crate::parser::{Node, NodeKind, NumOrVar};
                         }
                     }
                 }
-                if node.left_node.is_some() {
+                if let Some(lnode) = &node.left_node {
                     s_expr = show_ast_in_s_expr_rec_inner(
-                        node.left_node.as_ref().unwrap(),
+                        lnode,
                         vars,
                         s_expr,
                         is_var_fn_printed,
                         true & node.right_node.is_some(),
                     );
                 }
-                if node.right_node.is_some() {
+                if let Some(rnode) = &node.right_node{
                     s_expr = show_ast_in_s_expr_rec_inner(
-                        node.right_node.as_ref().unwrap(),
+                        rnode,
                         vars,
                         s_expr,
                         is_var_fn_printed,
