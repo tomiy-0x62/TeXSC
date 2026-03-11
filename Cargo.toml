@@ -21,4 +21,4 @@ rustyline = "17"
 serde = { version = "1.0.202",  features = ["derive"] }
 text-colorizer = "1.0.0"
 thiserror= "2"
-toml = "0.9"
+toml = "1.0"
