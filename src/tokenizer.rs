@@ -101,7 +101,7 @@ pub fn tokenize(formulas: &str) -> Result<(Vec<Token>, Vec<usize>), MyError> {
             .unwrap();
     */
     let num_pat = format!(
-        r"(?P<scientific>{})|(?P<hex>{})|(?P<oct>{})|(?P<bin>{})|(?P<dec>{})|(?P<decint>{})",
+        r"^((?P<scientific>{})|(?P<hex>{})|(?P<oct>{})|(?P<bin>{})|(?P<dec>{})|(?P<decint>{}))",
         scientific_pat, hex_pat, oct_pat, bin_pat, dec_pat, decint_pat
     );
     let num = Regex::new(&num_pat).unwrap();
