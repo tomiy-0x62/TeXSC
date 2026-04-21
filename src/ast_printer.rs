@@ -138,24 +138,21 @@ use crate::parser::{Node, NodeKind, NumOrVar};
                         | NodeKind::Sec
                         | NodeKind::Cot => {
                             match node.node_kind {
-                                NodeKind::Csc => {
-                                    if !is_var_fn_printed.contains("csc") {
+                                NodeKind::Csc
+                                    if !is_var_fn_printed.contains("csc") => {
                                         s_expr = format!("(defun csc (x) (/ 1 (sin x)))\n{s_expr}");
                                         is_var_fn_printed.insert("csc".to_string());
                                     }
-                                }
-                                NodeKind::Sec => {
-                                    if !is_var_fn_printed.contains("sec") {
+                                NodeKind::Sec
+                                    if !is_var_fn_printed.contains("sec") => {
                                         s_expr = format!("(defun sec (x) (/ 1 (cos x)))\n{s_expr}");
                                         is_var_fn_printed.insert("sec".to_string());
                                     }
-                                }
-                                NodeKind::Cot => {
-                                    if !is_var_fn_printed.contains("cot") {
+                                NodeKind::Cot
+                                    if !is_var_fn_printed.contains("cot") => {
                                         s_expr = format!("(defun cot (x) (/ 1 (tan x)))\n{s_expr}");
                                         is_var_fn_printed.insert("cot".to_string());
                                     }
-                                }
                                 _ => {}
                             }
                             if !is_var_fn_printed.contains("degree2radian") {
