@@ -66,4 +66,6 @@ pub enum MyError {
     ConvertErr(String, BigDecimal),
     #[error("received quit command")]
     Quit,
+    #[error("received multiple line")]
+    MultipleLine,
 }

@@ -18,7 +18,7 @@ fn test_calc() {
             match crate::process_form(line.replace("\r", ""), &mut vars) {
                 Ok(r) => {
                     assert_eq!(r.len(), 1);
-                    if (r[0].clone() - tc.result.clone()).abs()
+                    if (r[0].0.clone() - tc.result.clone()).abs()
                         < BigDecimal::from_f64(0.0001).unwrap()
                     {
                         writeln!(
@@ -38,7 +38,7 @@ fn test_calc() {
                             "CALCULATION FAILED ".red(),
                             tc.formula,
                             tc.result,
-                            r[0]
+                            r[0].0
                         )
                         .unwrap();
                     }

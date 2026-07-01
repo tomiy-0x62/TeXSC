@@ -1,7 +1,6 @@
 // TeX Scientific Calculator
 
-use self::parser::{NumOrVar, Parser};
-use bigdecimal::{BigDecimal, FromPrimitive};
+use bigdecimal::BigDecimal;
 use clap::{value_parser, Arg, Command};
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
@@ -9,45 +8,11 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::sync::{LazyLock, RwLock};
 
-use parser::{NodeKind, NodeOrCmd, TscCmd};
-use text_colorizer::*;
-
-mod ast_printer;
-mod config;
-mod error;
-mod math_functions;
-mod num_formatter;
-mod parser;
-mod str2num;
-mod tokenizer;
-mod tsc_cmd;
-#[macro_use]
-mod macros;
-#[cfg(test)]
-mod test;
-
-use config::*;
-use error::*;
-use num_formatter::{num_bin_formatter, num_formatter, num_hex_formatter, num_oct_formatter};
-
-pub static CONFIG: LazyLock<RwLock<Config>> = LazyLock::new(|| RwLock::new(Config::default()));
-
-pub static CONSTS: LazyLock<RwLock<HashMap<String, BigDecimal>>> = LazyLock::new(|| {
-    RwLock::new({
-        let mut consts = HashMap::new();
-        consts.insert(
-            "e".to_string(),
-            BigDecimal::from_f64(std::f64::consts::E).unwrap(),
-        );
-        consts.insert(
-            "\\pi".to_string(),
-            BigDecimal::from_f64(std::f64::consts::PI).unwrap(),
-        );
-        consts
-    })
-});
+use tsc::config::{config_writer, AstFormat};
+use tsc::error::MyError;
+use tsc::load_config_from_file;
+use tsc::process_form;
 
 fn main() {
     let app = Command::new("tsc")
@@ -69,35 +34,24 @@ fn main() {
 
     let matches = app.get_matches();
 
-    let is_repl = !matches.args_present();
-
-    match CONFIG
-        .write()
-        .expect("couldn't write CONFIG")
-        .load_from_file()
-    {
-        Ok(conf_file) => {
-            if is_repl {
-                eprintln!("config loaded from {conf_file:?}")
-            }
-        }
-        Err(e) => {
-            if is_repl {
-                eprintln!("config load failed: {e}")
-            }
-        }
-    }
+    load_config_from_file();
 
     // formulas from command line arg
     if let Some(form) = matches.get_one::<String>("tex formulas") {
         {
-            let mut conf = config_writer().expect("couldn't change ast_format config");
-            conf.ast_format = AstFormat::None;
+            let mut conf_w = config_writer().expect("couldn't change ast_format config");
+            conf_w.ast_format = AstFormat::None;
         }
         let mut vars: HashMap<String, BigDecimal> = HashMap::new();
         for line in form.split('\n') {
-            if let Err(e) = process_form(line.replace("\r", ""), &mut vars) {
-                eprintlnc!(e);
+            match process_form(line.replace("\r", ""), &mut vars) {
+                Ok(res) => {
+                    for (_v, p) in res {
+                        print!("{} ", p);
+                    }
+                    println!();
+                }
+                Err(e) => eprintln!("{}", e),
             }
         }
         return;
@@ -106,15 +60,25 @@ fn main() {
     // formulas from file
     if let Some(file_name) = matches.get_one::<String>("file") {
         {
-            let mut conf = config_writer().expect("couldn't change ast_format config");
-            conf.ast_format = AstFormat::None;
+            let mut conf_w = config_writer().expect("couldn't change ast_format config");
+            conf_w.ast_format = AstFormat::None;
         }
         let f: File = File::open(file_name).expect(file_name);
         let reader: BufReader<File> = BufReader::new(f);
         let mut vars: HashMap<String, BigDecimal> = HashMap::new();
         for line in reader.lines() {
-            if let Err(e) = process_form(line.unwrap(), &mut vars) {
-                eprintlnc!(e);
+            match process_form(
+                line.expect("failed split input into lines")
+                    .replace("\r", ""),
+                &mut vars,
+            ) {
+                Ok(res) => {
+                    for (_v, p) in res {
+                        print!("{} ", p);
+                    }
+                    println!();
+                }
+                Err(e) => eprintln!("{}", e),
             }
         }
         return;
@@ -138,204 +102,18 @@ fn main() {
             Err(ReadlineError::Eof) => return,
             Err(err) => panic!("{}", err),
         };
-        if form.trim() == ":q" {
-            return;
-        }
-        match process_form(form.to_string(), &mut vars) {
-            Ok(_) => (),
+        match process_form(form, &mut vars) {
+            Ok(res) => {
+                for (_v, p) in res {
+                    print!("{} ", p);
+                }
+                println!();
+            }
             Err(MyError::Quit) => return,
             Err(MyError::NoToken) => (),
-            Err(e) => eprintlnc!(e),
+            Err(e) => {
+                eprintln!("{}", e)
+            }
         }
     }
-}
-
-enum OutpuFormat {
-    Default,
-    Hex,
-    Dec,
-    Bin,
-    Oct,
-}
-
-fn process_form(
-    form: String,
-    vars: &mut HashMap<String, BigDecimal>,
-) -> Result<Vec<BigDecimal>, MyError> {
-    debugln!("form: '{}'", form);
-    let form: String = form.replace("\n", "").replace("\t", "").replace("\r", "");
-    let mut pars = Parser::new(form.clone())?;
-    for i in vars.iter() {
-        debugln!("{:?}", i);
-    }
-    let ast_or_cmd_vec = pars.build_ast(vars)?;
-    let num_of_digit = match config_reader() {
-        Ok(c) => c.num_of_digit,
-        Err(e) => {
-            return Err(e);
-        }
-    };
-    let mut res = Vec::new();
-    let mut out_from = OutpuFormat::Default;
-    for ast_or_cmd in ast_or_cmd_vec {
-        match ast_or_cmd {
-            NodeOrCmd::Node(ast_root) => match calc(*ast_root, vars) {
-                Ok(result) => {
-                    debugln!("resutl: {}", result);
-                    res.push(result.clone());
-                    match out_from {
-                        OutpuFormat::Default => {
-                            println!("{}", num_formatter(&result, num_of_digit));
-                        }
-                        OutpuFormat::Hex => {
-                            println!("{}", num_hex_formatter(&result, num_of_digit));
-                        }
-                        OutpuFormat::Dec => {
-                            println!("{}", num_formatter(&result, 0));
-                        }
-                        OutpuFormat::Bin => {
-                            println!("{}", num_bin_formatter(&result, num_of_digit));
-                        }
-                        OutpuFormat::Oct => {
-                            println!("{}", num_oct_formatter(&result, num_of_digit));
-                        }
-                    }
-                }
-                Err(e) => return Err(e),
-            },
-            parser::NodeOrCmd::TscCmd(cmd) => match cmd {
-                TscCmd::Hex => out_from = OutpuFormat::Hex,
-                TscCmd::Dec => out_from = OutpuFormat::Dec,
-                TscCmd::Bin => out_from = OutpuFormat::Bin,
-                TscCmd::Oct => out_from = OutpuFormat::Oct,
-            },
-        }
-    }
-    Ok(res)
-}
-
-fn calc(node: parser::Node, vars: &HashMap<String, BigDecimal>) -> Result<BigDecimal, MyError> {
-    match node.node_kind {
-        NodeKind::Num | NodeKind::Var => {
-            return Ok(match node.val.unwrap() {
-                NumOrVar::Num(n) => n,
-                NumOrVar::Var(v) => match vars.get(&v) {
-                    Some(n) => n.clone(),
-                    None => return Err(MyError::UDvariableErr(v)),
-                },
-            })
-        }
-        _ => (),
-    }
-
-    let loperand: BigDecimal;
-    let mut roperand: BigDecimal = BigDecimal::from(1);
-
-    if let Some(left) = node.left_node {
-        loperand = getoperand(*left, vars)?;
-    } else {
-        // Num, Var以外でleftがNoneはエラー
-        // ここに到達した => 不正なAST
-        return Err(MyError::BrokenAstErr);
-    }
-
-    if let Some(right) = node.right_node {
-        roperand = getoperand(*right, vars)?;
-    } else {
-        // Num, Var以外でrightがNoneはありえる
-        // 前置, 1引数のノードの場合 => 正常
-        // それ以外 => 不正なAST
-        match node.node_kind {
-            NodeKind::Add => return Err(MyError::BrokenAstErr),
-            NodeKind::Sub => return Err(MyError::BrokenAstErr),
-            NodeKind::Div => return Err(MyError::BrokenAstErr),
-            NodeKind::Mul => return Err(MyError::BrokenAstErr),
-            _ => (),
-        }
-    }
-
-    let conf = config_reader()?;
-
-    fn radian2degree(rad: BigDecimal) -> BigDecimal {
-        rad * BigDecimal::from(180) / BigDecimal::from_f64(std::f64::consts::PI).unwrap()
-    }
-
-    fn degree2radian(deg: BigDecimal) -> BigDecimal {
-        deg * BigDecimal::from_f64(std::f64::consts::PI).unwrap() / BigDecimal::from(180)
-    }
-
-    match node.node_kind {
-        NodeKind::Add => Ok(loperand + roperand),
-        NodeKind::Sub => Ok(loperand - roperand),
-        NodeKind::Mul => Ok(loperand * roperand),
-        NodeKind::Div => Ok(loperand / roperand),
-        NodeKind::Sqrt => loperand
-            .sqrt()
-            .ok_or(MyError::CalcErr("failed calc sqrt".to_string())),
-        NodeKind::Log => Ok(math_functions::log(conf.log_base.clone(), loperand)?),
-        NodeKind::Ln => Ok(math_functions::log(
-            BigDecimal::from_f64(std::f64::consts::E).unwrap(),
-            loperand,
-        )?),
-        NodeKind::Abs => Ok(loperand.abs()),
-        NodeKind::Exp => Ok(loperand.exp()),
-        NodeKind::Sin => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(math_functions::sin(loperand)?),
-            TrigFuncArg::Degree => Ok(math_functions::sin(degree2radian(loperand))?),
-        },
-        NodeKind::Cos => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(math_functions::cos(loperand)?),
-            TrigFuncArg::Degree => Ok(math_functions::cos(degree2radian(loperand))?),
-        },
-        NodeKind::Tan => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(math_functions::tan(loperand)?),
-            TrigFuncArg::Degree => Ok(math_functions::tan(degree2radian(loperand))?),
-        },
-        NodeKind::Csc => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(1.0 / math_functions::sin(loperand)?),
-            TrigFuncArg::Degree => Ok(1.0 / math_functions::sin(degree2radian(loperand))?),
-        },
-        NodeKind::Sec => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(1.0 / math_functions::cos(loperand)?),
-            TrigFuncArg::Degree => Ok(1.0 / math_functions::cos(degree2radian(loperand))?),
-        },
-        NodeKind::Cot => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(1.0 / math_functions::tan(loperand)?),
-            TrigFuncArg::Degree => Ok(1.0 / math_functions::tan(degree2radian(loperand))?),
-        },
-        NodeKind::AcSin => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(math_functions::asin(loperand)?),
-            TrigFuncArg::Degree => Ok(radian2degree(math_functions::asin(loperand)?)),
-        },
-        NodeKind::AcCos => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(math_functions::acos(loperand)?),
-            TrigFuncArg::Degree => Ok(radian2degree(math_functions::acos(loperand)?)),
-        },
-        NodeKind::AcTan => match conf.trig_func_arg {
-            TrigFuncArg::Radian => Ok(math_functions::atan(loperand)?),
-            TrigFuncArg::Degree => Ok(radian2degree(math_functions::atan(loperand)?)),
-        },
-        NodeKind::Pow => Ok(math_functions::pow(loperand, roperand)?),
-        NodeKind::Neg => Ok(-loperand),
-        _ => Err(MyError::UDcommandErr(node.node_kind.to_string())),
-    }
-}
-
-fn getoperand(
-    node: parser::Node,
-    vars: &HashMap<String, BigDecimal>,
-) -> Result<BigDecimal, MyError> {
-    match &node.node_kind {
-        NodeKind::Num | NodeKind::Var => {
-            return Ok(match node.val.unwrap() {
-                NumOrVar::Num(n) => n,
-                NumOrVar::Var(v) => match vars.get(&v) {
-                    Some(n) => n.clone(),
-                    None => return Err(MyError::UDvariableErr(v)),
-                },
-            })
-        }
-        _ => (),
-    }
-    calc(node, vars)
 }
