@@ -24,7 +24,7 @@ pub fn process_tsccommand(
     match &*t1.token {
         ":q" => {
             return Err(MyError::UnexpectedInput(
-                "true/false".to_string(),
+                "None".to_string(),
                 t2.token.clone(),
             ));
         }
