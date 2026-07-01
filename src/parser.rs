@@ -331,7 +331,7 @@ impl Parser {
     /// parser内でエラーが起こっており、r.token_idxにエラーの原因となる
     /// tokenが入っているときに、エラーが数式のどの個所で起こったかを示す文字列を返す
     /// ex)
-    /// ```
+    /// ```text
     /// \frac {3} {
     ///            ^~~
     /// ```
@@ -352,10 +352,10 @@ impl Parser {
     /// 変数やTSC Commandの処理中等のparser外でエラーが起こっており、r.token_idxにエラーの
     /// 原因個所のtoken indexが入っていないときにエラーが数式のどの個所で起こったかを示す文字列を返す
     /// ex)
-    /// ```
+    /// ```text
     /// , x = a
     ///       ^
-    ///       ```
+    /// ```
     /// * `token_idx` - token_idx: エラーが発生したtokenのindex
     pub fn format_err_loc_idx(&self, token_idx: usize) -> String {
         let mut pad: String = String::with_capacity(self.token_loc[token_idx]);
