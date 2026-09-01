@@ -156,7 +156,7 @@ fn try_dec0_from(formula: &str) -> Option<(String, NumFormat)> {
                 if cf.is_ascii_digit() {
                     token.push(cf);
                     is_prev_sep = false;
-                } else if cf == ',' || cf == '_' {
+                } else if cf == '_' {
                     if is_prev_sep {
                         break;
                     } else {
@@ -282,14 +282,14 @@ fn try_scientific_from(formula: &str) -> Option<(String, NumFormat)> {
                         }
                     // formula: [1-9]\.[0-9]+(!([0-9]|E))
                     // token: [1-9]\.[0-9]+
-                    } else if cf == ',' || cf == '_' {
+                    } else if cf == '_' {
                         // dec(!int): '1.234', '1.2_34'
                         // let dec_pat = r"([0-9]+(_|,)?)*[0-9]+\.([0-9]+(_|,)?)*[0-9]+";
                         token.push(cf);
                         pushed += 1;
                         let mut is_prev_sep = true;
                         for cfi in formula[pushed..].chars() {
-                            let is_sep = cfi == '_' || cfi == ',';
+                            let is_sep = cfi == '_';
                             if cfi.is_ascii_digit() || (!is_prev_sep && is_sep) {
                                 token.push(cfi);
                                 is_prev_sep = is_sep;
@@ -328,6 +328,7 @@ fn try_scientific_from(formula: &str) -> Option<(String, NumFormat)> {
 fn try_dec_from(formula: &str) -> Option<(String, NumFormat)> {
     let mut token = String::new();
     let mut have_dot = false;
+    let mut have_comma = false;
     let mut is_prev_sep = false;
     let mut is_prev_dot = false;
     for c in formula.chars() {
@@ -346,6 +347,8 @@ fn try_dec_from(formula: &str) -> Option<(String, NumFormat)> {
             } else if is_prev_dot {
                 token.pop();
                 return Some((token, NumFormat::DecInt));
+            } else if have_comma {
+                return Some((token, NumFormat::DecInt));
             } else if have_dot {
                 return Some((token, NumFormat::Dec));
             } else {
@@ -353,6 +356,16 @@ fn try_dec_from(formula: &str) -> Option<(String, NumFormat)> {
                 have_dot = true;
                 is_prev_sep = false;
                 is_prev_dot = true;
+            }
+        } else if c == ',' && have_dot {
+            if is_prev_sep {
+                token.pop();
+                return Some((token, NumFormat::Dec));
+            } else if is_prev_dot {
+                token.pop();
+                return Some((token, NumFormat::DecInt));
+            } else {
+                return Some((token, NumFormat::Dec));
             }
         } else if c == ',' || c == '_' {
             if is_prev_sep {
@@ -367,6 +380,9 @@ fn try_dec_from(formula: &str) -> Option<(String, NumFormat)> {
                 return Some((token, NumFormat::DecInt));
             } else {
                 token.push(c);
+                if c == ',' {
+                    have_comma = true;
+                }
                 is_prev_sep = true;
             }
         } else {
@@ -413,7 +429,7 @@ fn try_num_from(formula: &str) -> Option<(String, NumFormat)> {
                     if ('0'..='7').contains(&c1) {
                         try_oct_from(formula)
                     } else {
-                        try_dec_from(formula)
+                        Some(("0".to_string(), NumFormat::DecInt))
                     }
                 } else {
                     Some(("0".to_string(), NumFormat::DecInt))
@@ -456,9 +472,9 @@ pub fn tokenize(formulas: &str) -> Result<(Vec<Token>, Vec<usize>), MyError> {
     // bin: 0b1010, 0b10_10, 0b0110
     // let bin_pat = r"0b([0-1]+_?)*[0-1]+";
     // dec(!int): '1.234', '1.2_34'
-    // let dec_pat = r"([0-9]+(_|,)?)*[0-9]+\.([0-9]+(_|,)?)*[0-9]+";
+    // let dec_pat = r"(0|[1-9][0-9]*(_[0-9]+)*)\.[0-9]+(_[0-9]+)*";
     // dec(int): '1234', '12_34', '1,234
-    // let decint_pat = r"([0-9]+(_|,)?)*[0-9]+";
+    // let decint_pat = r"(0|[1-9][0-9]*((_|,)[0-9]+)*)";
     /*
     let num =
         Regex::new(r"[1-9]\.[0-9]+E(+|-)[1-9][0-9]*|(0x([0-9a-fA-F]+_?)*[0-9a-fA-F]+)|(0([0-7]+_?)*[0-7]+)|(0b([0-1]+_?)*[0-1]+)|(([0-9]+(_|,)?)*[0-9]+\.([0-9]+(_|,)?)*[0-9]+)|(([0-9]+(_|,)?)*[0-9]+)")
@@ -717,15 +733,28 @@ mod test {
             ),
             (
                 "08",
-                vec![new_token("08", TkNum(DecInt)), new_token("EOT", TkEOT)],
+                vec![
+                    new_token("0", TkNum(DecInt)),
+                    new_token("8", TkNum(DecInt)),
+                    new_token("EOT", TkEOT),
+                ],
             ),
             (
                 "09",
-                vec![new_token("09", TkNum(DecInt)), new_token("EOT", TkEOT)],
+                vec![
+                    new_token("0", TkNum(DecInt)),
+                    new_token("9", TkNum(DecInt)),
+                    new_token("EOT", TkEOT),
+                ],
             ),
             (
                 "0_8",
-                vec![new_token("0_8", TkNum(DecInt)), new_token("EOT", TkEOT)],
+                vec![
+                    new_token("0", TkNum(DecInt)),
+                    new_token("_", TkOperator),
+                    new_token("8", TkNum(DecInt)),
+                    new_token("EOT", TkEOT),
+                ],
             ),
             // repeated separators in prefixed literals
             (
