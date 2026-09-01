@@ -357,11 +357,7 @@ fn try_dec_from(formula: &str) -> Option<(String, NumFormat)> {
                 }
             } else if is_prev_dot {
                 token.pop();
-                if have_dot {
-                    return Some((token, NumFormat::Dec));
-                } else {
-                    return Some((token, NumFormat::DecInt));
-                }
+                return Some((token, NumFormat::DecInt));
             } else {
                 token.push(c);
                 is_prev_sep = true;
