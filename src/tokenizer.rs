@@ -244,11 +244,11 @@ fn try_scientific_from(formula: &str) -> Option<(String, NumFormat)> {
                                         pushed += 1;
                                         // token: [1-9]\.[0-9]+E(\+|-)[1-9]
                                         for cfi in formula[pushed..].chars() {
-                                            if ('1'..='9').contains(&cfi) {
+                                            if cfi.is_ascii_digit() {
                                                 token.push(cfi);
-                                                // token: [1-9]\.[0-9]+E(\+|-)[1-9]+
+                                                // token: [1-9]\.[0-9]+E(\+|-)[1-9][0-9]*
                                             } else {
-                                                // token: [1-9]\.[0-9]+E(\+|-)[1-9]+
+                                                // token: [1-9]\.[0-9]+E(\+|-)[1-9][0-9]*
                                                 return Some((token, NumFormat::Scientific));
                                             }
                                         }
@@ -448,7 +448,7 @@ pub fn tokenize(formulas: &str) -> Result<(Vec<Token>, Vec<usize>), MyError> {
     let mut token_loc: Vec<usize> = Vec::new();
 
     // scientific: 1.16E-6
-    // let scientific_pat = r"[1-9]\.[0-9]+E(\+|-)[1-9]+";
+    // let scientific_pat = r"[1-9]\.[0-9]+E(\+|-)[1-9][0-9]*";
     // hex: 0x1234, 0x12_34, 0x01
     // let hex_pat = r"0x([0-9a-fA-F]+_?)*[0-9a-fA-F]+";
     // oct: 01234, 0_12_34, 00712
@@ -458,10 +458,10 @@ pub fn tokenize(formulas: &str) -> Result<(Vec<Token>, Vec<usize>), MyError> {
     // dec(!int): '1.234', '1.2_34'
     // let dec_pat = r"([0-9]+(_|,)?)*[0-9]+\.([0-9]+(_|,)?)*[0-9]+";
     // dec(int): '1234', '12_34', '1,234
-    // let decint_pat = r"([1-9]+(_|,)?)*[0-9]+";
+    // let decint_pat = r"([0-9]+(_|,)?)*[0-9]+";
     /*
     let num =
-        Regex::new(r"[1-9]\.[0-9]+E(+|-)[1-9]+|(0x([0-9a-fA-F]+_?)*[0-9a-fA-F]+)|(0([0-7]+_?)*[0-7]+)|(0b([0-1]+_?)*[0-1]+)|(([0-9]+(_|,)?)*[0-9]+\.([0-9]+(_|,)?)*[0-9]+)|(([0-9]+(_|,)?)*[0-9]+)")
+        Regex::new(r"[1-9]\.[0-9]+E(+|-)[1-9][0-9]*|(0x([0-9a-fA-F]+_?)*[0-9a-fA-F]+)|(0([0-7]+_?)*[0-7]+)|(0b([0-1]+_?)*[0-1]+)|(([0-9]+(_|,)?)*[0-9]+\.([0-9]+(_|,)?)*[0-9]+)|(([0-9]+(_|,)?)*[0-9]+)")
             .unwrap();
     */
     /*
