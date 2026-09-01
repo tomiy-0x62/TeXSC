@@ -336,11 +336,18 @@ fn try_dec_from(formula: &str) -> Option<(String, NumFormat)> {
             is_prev_sep = false;
             is_prev_dot = false;
         } else if c == '.' {
-            if have_dot {
-                return Some((token, NumFormat::Dec));
-            } else if is_prev_sep {
+            if is_prev_sep {
+                token.pop();
+                if have_dot {
+                    return Some((token, NumFormat::Dec));
+                } else {
+                    return Some((token, NumFormat::DecInt));
+                }
+            } else if is_prev_dot {
                 token.pop();
                 return Some((token, NumFormat::DecInt));
+            } else if have_dot {
+                return Some((token, NumFormat::Dec));
             } else {
                 token.push('.');
                 have_dot = true;
