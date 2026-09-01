@@ -84,7 +84,7 @@ pub fn tokenize(formulas: &str) -> Result<(Vec<Token>, Vec<usize>), MyError> {
     let operator = Regex::new(r"^(\+|-|\*|=|/|!|_|\^|\|)").unwrap();
     let var = Regex::new(r"^[A-Za-z][A-Za-z0-9]*").unwrap();
     // scientific: 1.16E-6
-    let scientific_pat = r"[1-9]\.[0-9]+E(\+|-)[1-9]+";
+    let scientific_pat = r"[1-9]\.[0-9]+E(\+|-)[1-9][0-9]*";
     // hex: 0x1234, 0x12_34
     let hex_pat = r"0x([0-9a-fA-F]+_?)*[0-9a-fA-F]+";
     // oct: 01234, 0_12_34
